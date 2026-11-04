@@ -1,0 +1,8 @@
+spring:
+  flyway:
+    # En dev, on charge en plus le jeu de données de démonstration.
+    locations: classpath:db/migration/flyway/schema,classpath:db/migration/flyway/jdd/reference,classpath:db/migration/flyway/jdd/dev
+
+logging:
+  level:
+    org.flywaydb: DEBUG

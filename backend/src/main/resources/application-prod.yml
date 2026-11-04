@@ -1,0 +1,12 @@
+spring:
+  flyway:
+    locations: classpath:db/migration/flyway/schema,classpath:db/migration/flyway/jdd/reference
+
+app:
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS}
+
+logging:
+  level:
+    com.tmk.immobilier: INFO
+    org.flywaydb: INFO

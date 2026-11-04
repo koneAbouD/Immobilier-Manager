@@ -1,0 +1,43 @@
+services:
+
+  immobilier-manager-backend:
+    image: ${BACKEND_IMAGE:-ghcr.io/koneaboud/immobilier-manager-backend:latest}
+    container_name: immobilier-manager-backend
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      SERVER_PORT: 8082
+    ports:
+      # L'API (8082) n'est PAS publiée : nginx la sert via le réseau interne
+      # (proxy_pass http://immobilier-manager-backend:8082). Décommente pour debug local :
+      # - "127.0.0.1:8082:8082"
+      []
+    networks:
+      - infra
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8082/actuator/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      start_period: 90s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: ${BACKEND_MEM_LIMIT:-1024m}
+        reservations:
+          memory: 384m
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+    labels:
+      - autoheal=true
+
+# Réseau partagé avec la stack d'infra (timescaledb, keycloak, minio, nginx...)
+networks:
+  infra:
+    external: true
+    name: opt_infra_net

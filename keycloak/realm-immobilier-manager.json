@@ -1,0 +1,44 @@
+{
+  "realm": "immobilier-manager",
+  "enabled": true,
+  "displayName": "Immobilier Manager",
+  "sslRequired": "external",
+  "accessTokenLifespan": 900,
+  "ssoSessionIdleTimeout": 28800,
+  "ssoSessionMaxLifespan": 86400,
+  "bruteForceProtected": true,
+  "roles": {
+    "realm": [
+      { "name": "ADMIN", "description": "Administration complète" },
+      { "name": "GESTIONNAIRE", "description": "Gestion locative au quotidien" }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "immobilier-manager-backend",
+      "name": "Immobilier Manager — backend",
+      "enabled": true,
+      "publicClient": false,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "dev-backend-secret-a-changer",
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": false,
+      "protocol": "openid-connect"
+    }
+  ],
+  "users": [
+    {
+      "username": "gestionnaire.demo",
+      "enabled": true,
+      "firstName": "Démo",
+      "lastName": "Gestionnaire",
+      "email": "gestionnaire.demo@immobilier.local",
+      "emailVerified": true,
+      "credentials": [
+        { "type": "password", "value": "Demo@2026", "temporary": false }
+      ],
+      "realmRoles": ["GESTIONNAIRE", "ADMIN"]
+    }
+  ]
+}

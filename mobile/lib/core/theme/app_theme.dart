@@ -1,0 +1,133 @@
+import 'package:flutter/material.dart';
+
+import 'app_palette.dart';
+
+/// Thème global de l'application, dérivé de la [AppPalette].
+///
+/// Centralise les valeurs par défaut (fond des pages, en-tête, boutons,
+/// champs) : toute page utilisant les widgets Material standard hérite
+/// automatiquement de la charte sans couleur codée en dur.
+abstract final class AppTheme {
+  static ThemeData clair(AppAccent accent) =>
+      _construire(AppPalette.de(accent, Brightness.light));
+
+  static ThemeData sombre(AppAccent accent) =>
+      _construire(AppPalette.de(accent, Brightness.dark));
+
+  static ThemeData _construire(AppPalette p) {
+    final scheme = ColorScheme.fromSeed(
+      seedColor: p.primary,
+      brightness: p.brightness,
+    ).copyWith(
+      primary: p.primary,
+      onPrimary: Colors.white,
+      surface: p.surface,
+      onSurface: p.dark,
+      error: p.error,
+      outline: p.border,
+    );
+
+    // Gabarit des champs premium (formulaires véhicule, chauffeur…) : fond
+    // gris neutre sans contour au repos, contour à l'accent une fois actif.
+    // Tout champ sans décoration propre en hérite.
+    OutlineInputBorder border(Color c, [double w = 1.2]) => OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: c, width: w),
+        );
+    final sansContour = OutlineInputBorder(
+      borderRadius: BorderRadius.circular(12),
+      borderSide: BorderSide.none,
+    );
+
+    return ThemeData(
+      useMaterial3: true,
+      brightness: p.brightness,
+      colorScheme: scheme,
+      scaffoldBackgroundColor: p.scaffold,
+      cardColor: p.surface,
+      canvasColor: p.surface,
+      dividerColor: p.border,
+      // Texte courant : les Text sans style explicite suivent la charte.
+      textTheme: ThemeData(brightness: p.brightness).textTheme.apply(
+            bodyColor: p.dark,
+            displayColor: p.dark,
+          ),
+
+      appBarTheme: AppBarTheme(
+        backgroundColor: p.scaffold,
+        foregroundColor: p.dark,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+      ),
+
+      navigationBarTheme: NavigationBarThemeData(
+        backgroundColor: p.surface,
+        indicatorColor: p.primaryTint,
+        surfaceTintColor: Colors.transparent,
+        elevation: 2,
+      ),
+
+      // Bulles d'aide aux couleurs inversées de la page : foncées sur fond
+      // clair, claires sur fond sombre. Le défaut de Flutter en sombre (bulle
+      // claire) rendait illisible tout texte forcé en blanc.
+      tooltipTheme: TooltipThemeData(
+        decoration: BoxDecoration(
+          color: p.dark.withValues(alpha: 0.95),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        textStyle: TextStyle(fontSize: 12, color: p.scaffold),
+      ),
+
+      dialogTheme: DialogThemeData(
+        backgroundColor: p.surface,
+        surfaceTintColor: Colors.transparent,
+      ),
+      bottomSheetTheme: BottomSheetThemeData(
+        backgroundColor: p.surface,
+        surfaceTintColor: Colors.transparent,
+        modalBackgroundColor: p.surface,
+      ),
+      cardTheme: CardThemeData(
+        color: p.surface,
+        surfaceTintColor: Colors.transparent,
+      ),
+      popupMenuTheme: PopupMenuThemeData(
+        color: p.surface,
+        surfaceTintColor: Colors.transparent,
+      ),
+      dividerTheme: DividerThemeData(color: p.border),
+
+      filledButtonTheme: FilledButtonThemeData(
+        style: FilledButton.styleFrom(
+          backgroundColor: p.primary,
+          foregroundColor: Colors.white,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        ),
+      ),
+
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: p.fieldFill,
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        hintStyle: TextStyle(color: p.hint, fontSize: 15),
+        // Icônes neutres : sans cela, Material les teinte de la couleur de
+        // marque (gris-vert en thème vert).
+        prefixIconColor: p.hint,
+        suffixIconColor: p.hint,
+        labelStyle: TextStyle(color: p.hint),
+        floatingLabelStyle:
+            TextStyle(color: p.primary, fontWeight: FontWeight.w600),
+        enabledBorder: sansContour,
+        disabledBorder: sansContour,
+        border: sansContour,
+        focusedBorder: border(p.primary, 1.5),
+        errorBorder: border(p.error),
+        focusedErrorBorder: border(p.error, 1.5),
+        errorStyle: const TextStyle(fontSize: 11),
+      ),
+    );
+  }
+}
