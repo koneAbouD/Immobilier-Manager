@@ -93,9 +93,17 @@ public class KeycloakAuthAdapter implements KeycloakAuthPort {
             return new TokenResponse(token.accessToken(), token.refreshToken(), token.expiresIn(),
                     token.refreshExpiresIn(), token.tokenType());
         } catch (HttpClientErrorException e) {
-            // 400/401 : identifiants refusés ou refresh token invalide.
-            log.debug("Keycloak a refusé la demande de jeton : {} {}", e.getStatusCode(), e.getResponseBodyAsString());
-            throw new AuthenticationFailedException(messageRefus);
+            String reponse = e.getResponseBodyAsString();
+            // invalid_grant : identifiants refusés ou refresh token invalide — faute de l'utilisateur.
+            if (reponse.contains("invalid_grant")) {
+                log.debug("Keycloak a refusé la demande de jeton : {} {}", e.getStatusCode(), reponse);
+                throw new AuthenticationFailedException(messageRefus);
+            }
+            // Tout le reste (invalid_client, unauthorized_client, realm inconnu…) est
+            // une erreur de configuration serveur : ne pas la maquiller en mauvais mot de passe.
+            log.error("Keycloak a rejeté le client backend ({}) : {} {}",
+                    properties.tokenEndpoint(), e.getStatusCode(), reponse);
+            throw new AuthServiceUnavailableException("Service d'authentification mal configuré.", e);
         } catch (ResourceAccessException e) {
             throw new AuthServiceUnavailableException("Service d'authentification injoignable.", e);
         } catch (RestClientException e) {

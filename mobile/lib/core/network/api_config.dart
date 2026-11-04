@@ -12,8 +12,8 @@ import 'package:flutter/foundation.dart';
 class ApiConfig {
   static const _port = 8082;
 
-  /// URL de l'API en production — à renseigner au premier déploiement.
-  static const String _prodBaseUrl = 'https://immobilier.example.com/api';
+  /// URL de l'API en production (nginx → immobilier-manager-backend:8082).
+  static const String _prodBaseUrl = 'https://immobilier.tmk.camdvr.org/api';
 
   static const String _urlOverride = String.fromEnvironment('API_BASE_URL');
   static const String _hostOverride = String.fromEnvironment('DEV_HOST');
