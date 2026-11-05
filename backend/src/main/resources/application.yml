@@ -61,6 +61,23 @@ app:
     client-id: ${KEYCLOAK_CLIENT_ID:immobilier-manager-backend}
     client-secret: ${KEYCLOAK_CLIENT_SECRET:rj0yS7GF7JHnvMjPI3DVu0b1bbLohBax}
 
+  # Stockage objet des documents chargés (contrats signés) : MinIO ou compatible S3.
+  stockage:
+    endpoint: ${STOCKAGE_ENDPOINT:http://localhost:9010}
+    access-key: ${STOCKAGE_ACCESS_KEY:immo_minio}
+    secret-key: ${STOCKAGE_SECRET_KEY:immo_minio_password}
+    bucket: ${STOCKAGE_BUCKET:immobilier-documents}
+
+  # Bailleur imprimé sur les contrats de bail. Les champs vides laissent une
+  # ligne à compléter à la main sur le PDF.
+  bailleur:
+    nom: ${BAILLEUR_NOM:TMK}
+    representant: ${BAILLEUR_REPRESENTANT:}
+    adresse: ${BAILLEUR_ADRESSE:}
+    telephone: ${BAILLEUR_TELEPHONE:}
+    email: ${BAILLEUR_EMAIL:}
+    ville: ${BAILLEUR_VILLE:Abidjan}
+
 logging:
   level:
     org.springframework.security: INFO

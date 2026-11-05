@@ -5,6 +5,7 @@
 #   docker compose up -d
 #   → PostgreSQL : localhost:5434
 #   → Keycloak   : http://localhost:8180  (console admin : KEYCLOAK_ADMIN ci-dessous)
+#   → MinIO      : http://localhost:9010 (API) · http://localhost:9011 (console)
 services:
   postgres:
     image: postgres:16-alpine
@@ -46,5 +47,20 @@ services:
       postgres:
         condition: service_healthy
 
+  # Stockage objet des contrats signés (le bucket est créé par le backend).
+  minio:
+    image: minio/minio:latest
+    container_name: immobilier-manager-minio
+    command: ["server", "/data", "--console-address", ":9001"]
+    environment:
+      MINIO_ROOT_USER: immo_minio
+      MINIO_ROOT_PASSWORD: immo_minio_password
+    ports:
+      - "9010:9000"
+      - "9011:9001"
+    volumes:
+      - minio-data:/data
+
 volumes:
   postgres-data:
+  minio-data:

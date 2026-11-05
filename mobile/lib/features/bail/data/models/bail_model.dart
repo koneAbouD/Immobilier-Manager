@@ -23,6 +23,13 @@ abstract final class BailModel {
         dateResiliation: parseDate(json['dateResiliation']),
         motifResiliation: json['motifResiliation'] as String?,
         resiliePar: json['resiliePar'] as String?,
+        statutContrat: StatutContrat.fromCode(json['statutContrat'] as String?),
+        contratGenereLe: parseDate(json['contratGenereLe']),
+        contratSigneNom: json['contratSigneNom'] as String?,
+        contratSigneType: json['contratSigneType'] as String?,
+        contratSigneTaille: (json['contratSigneTaille'] as num?)?.toInt(),
+        contratSigneLe: parseDate(json['contratSigneLe']),
+        contratSignePar: json['contratSignePar'] as String?,
       );
 
   /// `BailRequest` (création) ; les identifiants sont ignorés en révision.

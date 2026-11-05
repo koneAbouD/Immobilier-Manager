@@ -87,7 +87,7 @@ class BailTile extends StatelessWidget {
       titre: afficherLocataire ? (b.locataireNom ?? '') : b.logement,
       valeur: formatMontant(b.montantMensuel),
       sousTitre: afficherLocataire ? b.logement : null,
-      detail: periode,
+      detail: b.estActif ? '$periode · ${b.statutContrat.libelle}' : periode,
       badge: PastilleStatut(b.statut.libelle, b.statut.couleur),
       onTap: onTap,
     );

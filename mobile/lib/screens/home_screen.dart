@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import '../core/theme/app_colors.dart';
 import '../core/widgets/app_header.dart';
 import '../core/widgets/header_tabs_pills.dart';
-import '../features/bail/presentation/pages/baux_page.dart';
 import '../features/immeuble/presentation/pages/immeubles_page.dart';
 import '../features/locataire/presentation/pages/locataires_page.dart';
 import '../features/loyer/presentation/pages/loyers_page.dart';
@@ -14,7 +13,7 @@ import '../features/tableau_bord/presentation/pages/tableau_bord_page.dart';
 /// Index des onglets de la barre de navigation principale.
 const _accueilNavIndex = 0;
 const _biensNavIndex = 1;
-const _locationsNavIndex = 2;
+const _locatairesNavIndex = 2;
 const _loyersNavIndex = 3;
 const _travauxNavIndex = 4;
 
@@ -30,9 +29,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int _index = _accueilNavIndex;
 
-  /// Sous-onglets des hubs Locations (Locataires / Baux) et Loyers
-  /// (Échéances / Paiements), posés dans l'en-tête.
-  int _ongletLocations = 0;
+  /// Sous-onglet du hub Loyers (Échéances / Paiements), posé dans l'en-tête.
   int _ongletLoyers = 0;
 
   void _naviguer(int i) => setState(() => _index = i);
@@ -41,9 +38,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     final page = switch (_index) {
       _biensNavIndex => const ImmeublesPage(),
-      _locationsNavIndex => _ongletLocations == 0
-          ? const LocatairesPage(key: ValueKey('locataires'))
-          : const BauxPage(key: ValueKey('baux')),
+      _locatairesNavIndex => const LocatairesPage(),
       _loyersNavIndex => LoyersPage(
           key: ValueKey('loyers-$_ongletLoyers'), onglet: _ongletLoyers),
       _travauxNavIndex => const MaintenancesPage(),
@@ -61,6 +56,7 @@ class _HomeScreenState extends State<HomeScreen> {
         appBar: AppHeader(
           title: switch (_index) {
             _biensNavIndex => 'Biens immobiliers',
+            _locatairesNavIndex => 'Locataires',
             _travauxNavIndex => 'Maintenances',
             _ => '',
           },
@@ -77,11 +73,6 @@ class _HomeScreenState extends State<HomeScreen> {
               : null,
           center: switch (_index) {
             _accueilNavIndex => const _Salutation(),
-            _locationsNavIndex => HeaderTabsPills(
-                labels: const ['Locataires', 'Baux'],
-                index: _ongletLocations,
-                onSelected: (i) => setState(() => _ongletLocations = i),
-              ),
             _loyersNavIndex => HeaderTabsPills(
                 labels: const ['Échéances', 'Paiements'],
                 index: _ongletLoyers,
@@ -92,6 +83,7 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         // Seul l'onglet affiché est construit : y revenir recharge ses données,
         // qu'une action menée ailleurs (bail signé, loyer encaissé) a pu changer.
+        // Les baux se consultent depuis la fiche du locataire ou du logement.
         body: page,
         extendBody: true,
         bottomNavigationBar: _FloatingNavBar(
@@ -135,7 +127,7 @@ class _NavItem {
 const _navItems = [
   _NavItem(Icons.home_outlined, Icons.home, 'Accueil'),
   _NavItem(Icons.apartment_outlined, Icons.apartment, 'Biens'),
-  _NavItem(Icons.people_outline, Icons.people, 'Locations'),
+  _NavItem(Icons.people_outline, Icons.people, 'Locataires'),
   _NavItem(Icons.account_balance_wallet_outlined, Icons.account_balance_wallet,
       'Loyers'),
   _NavItem(Icons.build_outlined, Icons.build, 'Travaux'),

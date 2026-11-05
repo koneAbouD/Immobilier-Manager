@@ -21,6 +21,13 @@ public interface BailRestMapper {
     @Mapping(target = "dateResiliation", ignore = true)
     @Mapping(target = "motifResiliation", ignore = true)
     @Mapping(target = "resiliePar", ignore = true)
+    @Mapping(target = "contratGenereLe", ignore = true)
+    @Mapping(target = "contratSigneCle", ignore = true)
+    @Mapping(target = "contratSigneNom", ignore = true)
+    @Mapping(target = "contratSigneType", ignore = true)
+    @Mapping(target = "contratSigneTaille", ignore = true)
+    @Mapping(target = "contratSigneLe", ignore = true)
+    @Mapping(target = "contratSignePar", ignore = true)
     Bail toDomain(BailRequest request);
 
     @Mapping(target = "id", ignore = true)
@@ -31,6 +38,13 @@ public interface BailRestMapper {
     @Mapping(target = "dateResiliation", ignore = true)
     @Mapping(target = "motifResiliation", ignore = true)
     @Mapping(target = "resiliePar", ignore = true)
+    @Mapping(target = "contratGenereLe", ignore = true)
+    @Mapping(target = "contratSigneCle", ignore = true)
+    @Mapping(target = "contratSigneNom", ignore = true)
+    @Mapping(target = "contratSigneType", ignore = true)
+    @Mapping(target = "contratSigneTaille", ignore = true)
+    @Mapping(target = "contratSigneLe", ignore = true)
+    @Mapping(target = "contratSignePar", ignore = true)
     Bail toDomain(BailConditionsRequest request);
 
     @Mapping(target = "appartementId", source = "appartement.id")
@@ -41,5 +55,6 @@ public interface BailRestMapper {
     @Mapping(target = "locataireNom", expression = "java(domain.getLocataire() != null ? domain.getLocataire().nomComplet() : null)")
     @Mapping(target = "locataireTelephone", source = "locataire.telephone")
     @Mapping(target = "montantMensuel", expression = "java(domain.montantMensuel())")
+    @Mapping(target = "statutContrat", expression = "java(domain.statutContrat())")
     BailResponse toResponse(Bail domain);
 }

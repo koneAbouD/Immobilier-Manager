@@ -5,6 +5,7 @@ import com.tmk.immobilier.application.exception.AuthenticationFailedException;
 import com.tmk.immobilier.application.exception.RegleMetierException;
 import com.tmk.immobilier.application.exception.ResourceAlreadyExistsException;
 import com.tmk.immobilier.application.exception.ResourceNotFoundException;
+import com.tmk.immobilier.infrastructure.stockage.StockageIndisponibleException;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -103,6 +104,13 @@ public class GlobalExceptionHandler {
                                                           HttpServletRequest request) {
         return respond(HttpStatus.SERVICE_UNAVAILABLE, "AUTH_SERVICE_UNAVAILABLE",
                 "Le service d'authentification est momentanément indisponible. Réessayez dans un instant.",
+                request, ex);
+    }
+
+    @ExceptionHandler(StockageIndisponibleException.class)
+    public ResponseEntity<ApiError> handleStockage(StockageIndisponibleException ex, HttpServletRequest request) {
+        return respond(HttpStatus.SERVICE_UNAVAILABLE, "STOCKAGE_INDISPONIBLE",
+                ex.getMessage() + " Le stockage des documents ne répond pas, réessayez dans un instant.",
                 request, ex);
     }
 

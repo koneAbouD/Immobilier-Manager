@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
 
 import '../error/exception.dart';
 import '../storage/secure_storage.dart';
@@ -50,6 +52,31 @@ class ApiClient {
 
   Future<dynamic> delete(String path) => _send('DELETE', path);
 
+  /// Fichier binaire (PDF…) : renvoie son contenu brut.
+  Future<Uint8List> getBytes(String path) async {
+    final response = await _executer(() async => http.Request('GET', _buildUri(path, null)),
+        accept: '*/*');
+    _verifier(response);
+    return response.bodyBytes;
+  }
+
+  /// Envoi d'un fichier en `multipart/form-data` sous le champ [champ].
+  Future<dynamic> postFichier(String path,
+      {required String champ,
+      required Uint8List contenu,
+      required String nomFichier,
+      required String type}) async {
+    final response = await _executer(() async {
+      final mime = type.split('/');
+      return http.MultipartRequest('POST', _buildUri(path, null))
+        ..files.add(http.MultipartFile.fromBytes(champ, contenu,
+            filename: nomFichier, contentType: MediaType(mime[0], mime[1])));
+    });
+    _verifier(response);
+    final raw = utf8.decode(response.bodyBytes);
+    return raw.isEmpty ? null : _tryJson(raw);
+  }
+
   /// Appel sans jeton ni refresh (login, refresh, logout).
   Future<dynamic> postPublic(String path, Object body) =>
       _send('POST', path, body: body, authentifie: false);
@@ -96,6 +123,44 @@ class ApiClient {
     if (response.statusCode >= 200 && response.statusCode < 300) {
       return parsed;
     }
+    final map = parsed is Map<String, dynamic> ? parsed : null;
+    throw ApiException(
+      response.statusCode,
+      _messageErreur(response.statusCode, map),
+      code: map?['error'] as String?,
+      body: map,
+    );
+  }
+
+  /// Envoie la requête construite par [construire] avec le jeton ; sur un 401,
+  /// renouvelle la session puis la reconstruit et la rejoue une fois (un corps
+  /// de requête ne se relit pas, d'où la fabrique).
+  Future<http.Response> _executer(Future<http.BaseRequest> Function() construire,
+      {String accept = 'application/json', bool rejeu = false}) async {
+    final request = await construire();
+    request.headers['Accept'] = accept;
+    final token = await _storage.getAccessToken();
+    if (token != null) request.headers['Authorization'] = 'Bearer $token';
+    final http.Response response;
+    try {
+      // Un fichier peut être long à monter sur une connexion mobile.
+      response = await http.Response.fromStream(
+          await _http.send(request).timeout(_timeout * 3));
+    } on TimeoutException {
+      throw const NetworkException(kMsgServeurTimeout);
+    } on http.ClientException {
+      throw const NetworkException(kMsgServeurInjoignable);
+    }
+    if (response.statusCode == 401 && !rejeu) {
+      if (await _refresh()) return _executer(construire, accept: accept, rejeu: true);
+      onSessionExpired?.call();
+    }
+    return response;
+  }
+
+  void _verifier(http.Response response) {
+    if (response.statusCode >= 200 && response.statusCode < 300) return;
+    final parsed = _tryJson(utf8.decode(response.bodyBytes, allowMalformed: true));
     final map = parsed is Map<String, dynamic> ? parsed : null;
     throw ApiException(
       response.statusCode,

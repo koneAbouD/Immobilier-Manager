@@ -11,6 +11,7 @@ import '../../../../core/widgets/form_fields.dart';
 import '../../../loyer/presentation/widgets/echeances_liste.dart';
 import '../../domain/entities/bail.dart';
 import '../providers/bail_providers.dart';
+import '../widgets/contrat_bail.dart';
 
 class BailDetailPage extends ConsumerStatefulWidget {
   final int bailId;
@@ -74,6 +75,7 @@ class _BailDetailPageState extends ConsumerState<BailDetailPage> {
                 statutLabel: b.statut.libelle,
                 statutColor: b.statut.couleur,
               ),
+              SectionContrat(bail: b, onChange: _rafraichir),
               DetailInfoCard(titre: 'Conditions', icon: Icons.handshake_outlined, children: [
                 DetailInfoRow(Icons.phone_outlined, 'Téléphone', b.locataireTelephone),
                 DetailInfoRow(Icons.event_outlined, 'Début', formatDate(b.dateDebut)),

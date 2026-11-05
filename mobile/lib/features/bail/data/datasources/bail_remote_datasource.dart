@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import '../../../../core/network/api_client.dart';
 import '../../../../core/network/page_result.dart';
 import '../../../../core/utils/formatters.dart';
@@ -41,4 +43,14 @@ class BailRemoteDatasource {
         'dateResiliation': date == null ? null : isoDate(date),
         'motif': motif,
       }) as Map<String, dynamic>);
+
+  /// Contrat PDF prérempli, régénéré à chaque appel.
+  Future<Uint8List> genererContrat(int id) => _client.getBytes('/baux/$id/contrat');
+
+  Future<Bail> deposerContratSigne(int id,
+          {required Uint8List contenu, required String nomFichier, required String type}) async =>
+      BailModel.fromJson(await _client.postFichier('/baux/$id/contrat-signe',
+          champ: 'fichier', contenu: contenu, nomFichier: nomFichier, type: type) as Map<String, dynamic>);
+
+  Future<Uint8List> telechargerContratSigne(int id) => _client.getBytes('/baux/$id/contrat-signe');
 }

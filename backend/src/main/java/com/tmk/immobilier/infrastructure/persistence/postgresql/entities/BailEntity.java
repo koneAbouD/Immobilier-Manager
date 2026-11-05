@@ -6,6 +6,7 @@ import lombok.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = BailEntity.TABLE_NAME)
@@ -63,4 +64,25 @@ public class BailEntity extends AbstractAuditEntity {
 
     @Column(name = "resilie_par", length = 100)
     private String resiliePar;
+
+    @Column(name = "contrat_genere_le")
+    private LocalDateTime contratGenereLe;
+
+    @Column(name = "contrat_signe_cle")
+    private String contratSigneCle;
+
+    @Column(name = "contrat_signe_nom")
+    private String contratSigneNom;
+
+    @Column(name = "contrat_signe_type", length = 100)
+    private String contratSigneType;
+
+    @Column(name = "contrat_signe_taille")
+    private Long contratSigneTaille;
+
+    @Column(name = "contrat_signe_le")
+    private LocalDateTime contratSigneLe;
+
+    @Column(name = "contrat_signe_par", length = 100)
+    private String contratSignePar;
 }

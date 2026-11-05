@@ -20,6 +20,32 @@ enum StatutBail {
       values.firstWhere((v) => v.code == code, orElse: () => StatutBail.actif);
 }
 
+/// Avancement du contrat écrit d'un bail.
+enum StatutContrat {
+  aGenerer('A_GENERER', 'Contrat à générer'),
+  aSigner('A_SIGNER', 'Contrat à faire signer'),
+  signe('SIGNE', 'Contrat signé');
+
+  final String code;
+  final String libelle;
+  const StatutContrat(this.code, this.libelle);
+
+  Color get couleur => switch (this) {
+        aGenerer => AppColors.grey500,
+        aSigner => AppColors.warning,
+        signe => AppColors.positive,
+      };
+
+  IconData get icone => switch (this) {
+        aGenerer => Icons.note_add_outlined,
+        aSigner => Icons.pending_actions_outlined,
+        signe => Icons.task_outlined,
+      };
+
+  static StatutContrat fromCode(String? code) =>
+      values.firstWhere((v) => v.code == code, orElse: () => StatutContrat.aGenerer);
+}
+
 class Bail {
   final int? id;
   final String? reference;
@@ -44,6 +70,14 @@ class Bail {
   final String? motifResiliation;
   final String? resiliePar;
 
+  final StatutContrat statutContrat;
+  final DateTime? contratGenereLe;
+  final String? contratSigneNom;
+  final String? contratSigneType;
+  final int? contratSigneTaille;
+  final DateTime? contratSigneLe;
+  final String? contratSignePar;
+
   const Bail({
     this.id,
     this.reference,
@@ -65,6 +99,13 @@ class Bail {
     this.dateResiliation,
     this.motifResiliation,
     this.resiliePar,
+    this.statutContrat = StatutContrat.aGenerer,
+    this.contratGenereLe,
+    this.contratSigneNom,
+    this.contratSigneType,
+    this.contratSigneTaille,
+    this.contratSigneLe,
+    this.contratSignePar,
   });
 
   bool get estActif => statut == StatutBail.actif;

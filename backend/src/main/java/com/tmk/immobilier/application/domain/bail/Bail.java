@@ -10,6 +10,7 @@ import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.YearMonth;
 
 /**
@@ -42,6 +43,17 @@ public class Bail {
     private LocalDate dateResiliation;
     private String motifResiliation;
     private String resiliePar;
+
+    // ── Contrat ──────────────────────────────────────────────────────────
+    /** Dernière génération du contrat PDF à faire signer. */
+    private LocalDateTime contratGenereLe;
+    /** Clé de l'exemplaire signé dans le stockage de documents ; nulle tant qu'il n'est pas chargé. */
+    private String contratSigneCle;
+    private String contratSigneNom;
+    private String contratSigneType;
+    private Long contratSigneTaille;
+    private LocalDateTime contratSigneLe;
+    private String contratSignePar;
 
     public void initializeDefaults() {
         if (statut == null) statut = StatutBail.ACTIF;
@@ -104,5 +116,24 @@ public class Bail {
         if (jourEcheance != null && (jourEcheance < 1 || jourEcheance > 28)) {
             throw new RegleMetierException("JOUR_ECHEANCE_INVALIDE", "Le jour d'échéance doit être compris entre 1 et 28.");
         }
+    }
+
+    public StatutContrat statutContrat() {
+        if (contratSigneCle != null) return StatutContrat.SIGNE;
+        return contratGenereLe != null ? StatutContrat.A_SIGNER : StatutContrat.A_GENERER;
+    }
+
+    public void marquerContratGenere() {
+        this.contratGenereLe = LocalDateTime.now();
+    }
+
+    /** Archive l'exemplaire signé ; un nouveau chargement remplace le précédent. */
+    public void enregistrerContratSigne(String cle, String nom, String type, long taille, String auteur) {
+        this.contratSigneCle = cle;
+        this.contratSigneNom = nom;
+        this.contratSigneType = type;
+        this.contratSigneTaille = taille;
+        this.contratSigneLe = LocalDateTime.now();
+        this.contratSignePar = auteur;
     }
 }

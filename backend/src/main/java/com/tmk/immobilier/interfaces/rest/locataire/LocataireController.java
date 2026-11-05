@@ -1,9 +1,13 @@
 package com.tmk.immobilier.interfaces.rest.locataire;
 
+import com.tmk.immobilier.application.domain.locataire.SituationLocataire;
 import com.tmk.immobilier.application.usecases.locataire.*;
 import com.tmk.immobilier.interfaces.rest.common.PageResponse;
 import com.tmk.immobilier.interfaces.rest.locataire.dto.request.LocataireRequest;
+import com.tmk.immobilier.interfaces.rest.locataire.dto.response.ComptesSituationsResponse;
 import com.tmk.immobilier.interfaces.rest.locataire.dto.response.LocataireResponse;
+import com.tmk.immobilier.interfaces.rest.locataire.dto.response.LocataireResumeResponse;
+import io.swagger.v3.oas.annotations.Operation;
 import com.tmk.immobilier.interfaces.rest.locataire.mapper.LocataireRestMapper;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -23,6 +27,7 @@ public class LocataireController {
     private final DeleteLocataireUseCase deleteLocataireUseCase;
     private final GetLocataireByIdUseCase getLocataireByIdUseCase;
     private final GetLocatairesUseCase getLocatairesUseCase;
+    private final GetLocataireResumesUseCase getLocataireResumesUseCase;
     private final LocataireRestMapper mapper;
 
     @PostMapping
@@ -37,6 +42,24 @@ public class LocataireController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
         return PageResponse.from(getLocatairesUseCase.executePage(recherche, page, size).map(mapper::toResponse));
+    }
+
+    @GetMapping("/resumes/page")
+    @Operation(summary = "Locataires avec leur situation",
+            description = "Logement en cours et état des loyers ; les retards en tête, puis par nom")
+    public PageResponse<LocataireResumeResponse> findResumes(
+            @RequestParam(required = false) String recherche,
+            @RequestParam(required = false) SituationLocataire situation,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        return PageResponse.from(getLocataireResumesUseCase.executePage(recherche, situation, page, size)
+                .map(mapper::toResponse));
+    }
+
+    @GetMapping("/resumes/comptes")
+    @Operation(summary = "Nombre de locataires par situation", description = "Alimente les filtres de la liste")
+    public ComptesSituationsResponse compterSituations(@RequestParam(required = false) String recherche) {
+        return mapper.toResponse(getLocataireResumesUseCase.compter(recherche));
     }
 
     @GetMapping("/{id:\\d+}")

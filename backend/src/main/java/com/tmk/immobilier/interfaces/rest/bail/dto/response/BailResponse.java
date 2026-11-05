@@ -1,9 +1,11 @@
 package com.tmk.immobilier.interfaces.rest.bail.dto.response;
 
 import com.tmk.immobilier.application.domain.bail.StatutBail;
+import com.tmk.immobilier.application.domain.bail.StatutContrat;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 public record BailResponse(
         Long id,
@@ -25,6 +27,13 @@ public record BailResponse(
         StatutBail statut,
         LocalDate dateResiliation,
         String motifResiliation,
-        String resiliePar
+        String resiliePar,
+        StatutContrat statutContrat,
+        LocalDateTime contratGenereLe,
+        String contratSigneNom,
+        String contratSigneType,
+        Long contratSigneTaille,
+        LocalDateTime contratSigneLe,
+        String contratSignePar
 ) {
 }

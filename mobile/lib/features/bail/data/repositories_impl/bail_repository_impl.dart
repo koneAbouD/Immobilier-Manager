@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:fpdart/fpdart.dart';
 
 import '../../../../core/error/failure.dart';
@@ -41,4 +43,16 @@ class BailRepositoryImpl implements BailRepository {
   @override
   Future<Either<Failure, Bail>> resilier(int id, {DateTime? date, required String motif}) =>
       guard(() => _ds.resilier(id, date: date, motif: motif));
+
+  @override
+  Future<Either<Failure, Uint8List>> genererContrat(int id) => guard(() => _ds.genererContrat(id));
+
+  @override
+  Future<Either<Failure, Bail>> deposerContratSigne(int id,
+          {required Uint8List contenu, required String nomFichier, required String type}) =>
+      guard(() => _ds.deposerContratSigne(id, contenu: contenu, nomFichier: nomFichier, type: type));
+
+  @override
+  Future<Either<Failure, Uint8List>> telechargerContratSigne(int id) =>
+      guard(() => _ds.telechargerContratSigne(id));
 }

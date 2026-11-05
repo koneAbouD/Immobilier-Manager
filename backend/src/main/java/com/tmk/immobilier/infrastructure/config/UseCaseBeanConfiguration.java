@@ -1,6 +1,8 @@
 package com.tmk.immobilier.infrastructure.config;
 
 import com.tmk.immobilier.application.ports.auth.KeycloakAuthPort;
+import com.tmk.immobilier.application.ports.document.ContratBailGenerateurPort;
+import com.tmk.immobilier.application.ports.document.StockageDocumentsPort;
 import com.tmk.immobilier.application.ports.persistence.AppartementRepository;
 import com.tmk.immobilier.application.ports.persistence.BailRepository;
 import com.tmk.immobilier.application.ports.persistence.EcheanceLoyerRepository;
@@ -14,6 +16,7 @@ import com.tmk.immobilier.application.usecases.auth.LoginUseCase;
 import com.tmk.immobilier.application.usecases.auth.LogoutUseCase;
 import com.tmk.immobilier.application.usecases.auth.RefreshTokenUseCase;
 import com.tmk.immobilier.application.usecases.bail.*;
+import com.tmk.immobilier.application.usecases.contrat.*;
 import com.tmk.immobilier.application.usecases.immeuble.*;
 import com.tmk.immobilier.application.usecases.locataire.*;
 import com.tmk.immobilier.application.usecases.loyer.*;
@@ -132,6 +135,11 @@ public class UseCaseBeanConfiguration {
         return new GetLocatairesUseCase(locataireRepo);
     }
 
+    @Bean
+    public GetLocataireResumesUseCase getLocataireResumesUseCase(LocataireRepository locataireRepo) {
+        return new GetLocataireResumesUseCase(locataireRepo);
+    }
+
     // ----- Loyers -----
     @Bean
     public GenererEcheancesUseCase genererEcheancesUseCase(BailRepository bailRepo,
@@ -192,6 +200,25 @@ public class UseCaseBeanConfiguration {
     @Bean
     public GetBauxUseCase getBauxUseCase(BailRepository bailRepo) {
         return new GetBauxUseCase(bailRepo);
+    }
+
+    // ----- Contrats de bail -----
+    @Bean
+    public GenererContratBailUseCase genererContratBailUseCase(BailRepository bailRepo,
+                                                               ContratBailGenerateurPort generateur) {
+        return new GenererContratBailUseCase(bailRepo, generateur);
+    }
+
+    @Bean
+    public DeposerContratSigneUseCase deposerContratSigneUseCase(BailRepository bailRepo,
+                                                                 StockageDocumentsPort stockage,
+                                                                 AuteurCourantPort auteurCourant) {
+        return new DeposerContratSigneUseCase(bailRepo, stockage, auteurCourant);
+    }
+
+    @Bean
+    public GetContratSigneUseCase getContratSigneUseCase(BailRepository bailRepo, StockageDocumentsPort stockage) {
+        return new GetContratSigneUseCase(bailRepo, stockage);
     }
 
     // ----- Maintenances -----

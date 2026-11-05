@@ -4,6 +4,7 @@ import '../../../../core/error/failure.dart';
 import '../../../../core/error/guard.dart';
 import '../../../../core/network/page_result.dart';
 import '../../domain/entities/locataire.dart';
+import '../../domain/entities/locataire_resume.dart';
 import '../../domain/repositories/locataire_repository.dart';
 import '../datasources/locataire_remote_datasource.dart';
 
@@ -15,6 +16,15 @@ class LocataireRepositoryImpl implements LocataireRepository {
   Future<Either<Failure, PageResult<Locataire>>> getPage(
           {int page = 0, int size = 20, String? recherche}) =>
       guard(() => _ds.getPage(page: page, size: size, recherche: recherche));
+
+  @override
+  Future<Either<Failure, PageResult<LocataireResume>>> getResumes(
+          {int page = 0, int size = 20, String? recherche, SituationLocataire? situation}) =>
+      guard(() => _ds.getResumes(page: page, size: size, recherche: recherche, situation: situation));
+
+  @override
+  Future<Either<Failure, ComptesSituations>> getComptes({String? recherche}) =>
+      guard(() => _ds.getComptes(recherche: recherche));
 
   @override
   Future<Either<Failure, Locataire>> getById(int id) => guard(() => _ds.getById(id));
