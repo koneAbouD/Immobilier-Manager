@@ -84,9 +84,9 @@ class _LocataireFormPageState extends ConsumerState<LocataireFormPage> {
           children: [
             GroupeChamps(titre: 'Identité', icone: Icons.person_outline_rounded, children: [
               Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Expanded(child: ChampTexte(controller: _prenom, label: 'Prénom', obligatoire: true)),
-                const SizedBox(width: 12),
                 Expanded(child: ChampTexte(controller: _nom, label: 'Nom', obligatoire: true)),
+                const SizedBox(width: 12),
+                Expanded(child: ChampTexte(controller: _prenom, label: 'Prénom', obligatoire: true)),
               ]),
               kGapChamps,
               ChampDate(
