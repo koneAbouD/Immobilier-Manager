@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import '../theme/app_colors.dart';
 import '../utils/formatters.dart';
+import 'date_filter_dialogs.dart';
 import 'premium_select_field.dart';
 
 /// Espacement standard entre champs de formulaire.
@@ -295,11 +296,16 @@ class ChampDate extends StatelessWidget {
             erreur: state.hasError,
             onTap: () async {
               FocusScope.of(context).unfocus();
-              final choisie = await showDatePicker(
+              // Molette en feuille du bas, comme dans VTC Manager : la date
+              // retenue est appliquée à la fermeture de la feuille.
+              final choisie = await showDialog<DateTime>(
                 context: context,
-                initialDate: valeur ?? DateTime.now(),
-                firstDate: premiere ?? DateTime(2000),
-                lastDate: derniere ?? DateTime(2100),
+                builder: (_) => SingleDatePickerDialog(
+                  initialDate: valeur ?? DateTime.now(),
+                  firstDate: premiere ?? DateTime(1900),
+                  lastDate: derniere ?? DateTime(2100),
+                  titre: label,
+                ),
               );
               if (choisie != null) {
                 onChanged(choisie);

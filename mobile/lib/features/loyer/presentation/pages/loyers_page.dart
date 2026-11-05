@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/formatters.dart';
+import '../../../../core/widgets/date_filter_dialogs.dart';
 import '../../../../core/widgets/feedback.dart';
 import '../../../../core/widgets/liste_carte.dart';
 import '../../../../core/widgets/paged_list_view.dart';
@@ -22,8 +23,7 @@ class LoyersPage extends StatelessWidget {
   const LoyersPage({super.key, this.onglet = 0});
 
   @override
-  Widget build(BuildContext context) =>
-      onglet == 0 ? const _EcheancesTab() : const _PaiementsTab();
+  Widget build(BuildContext context) => onglet == 0 ? const _EcheancesTab() : const _PaiementsTab();
 }
 
 /// Filtre rapide des échéances.
@@ -43,6 +43,15 @@ class _EcheancesTabState extends ConsumerState<_EcheancesTab> {
 
   void _changerMois(int delta) =>
       setState(() => _mois = DateTime(_mois!.year, _mois!.month + delta));
+
+  Future<void> _choisirMois() async {
+    final m = _mois ?? DateTime.now();
+    final choisi = await showDialog<DateTime>(
+      context: context,
+      builder: (_) => MonthPickerDialog(initialYear: m.year, initialMonth: m.month),
+    );
+    if (choisi != null && mounted) setState(() => _mois = DateTime(choisi.year, choisi.month));
+  }
 
   Future<void> _generer() async {
     final result = await ref.read(loyerRepositoryProvider).genererEcheances();
@@ -73,7 +82,12 @@ class _EcheancesTabState extends ConsumerState<_EcheancesTab> {
                 onTap: periode == null ? null : () => _changerMois(-1),
               ),
               const SizedBox(width: 8),
-              Expanded(child: _PastilleMois(libelle: periode == null ? 'Tous les mois' : formatMois(periode))),
+              Expanded(
+                child: _PastilleMois(
+                  libelle: periode == null ? 'Tous les mois' : formatMois(periode),
+                  onTap: periode == null ? null : _choisirMois,
+                ),
+              ),
               const SizedBox(width: 8),
               _BoutonCarre(
                 icon: Icons.chevron_right_rounded,
@@ -154,29 +168,40 @@ class _PaiementsTab extends ConsumerWidget {
 class _PastilleMois extends StatelessWidget {
   final String libelle;
 
-  const _PastilleMois({required this.libelle});
+  /// Ouvre la molette des mois.
+  final VoidCallback? onTap;
+
+  const _PastilleMois({required this.libelle, this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: 40,
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      decoration: BoxDecoration(
-        color: AppColors.grey200,
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.calendar_month_outlined, size: 14, color: AppColors.grey600),
-          const SizedBox(width: 6),
-          Flexible(
-            child: Text(libelle,
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        height: 40,
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        decoration: BoxDecoration(
+          color: AppColors.grey200,
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.calendar_month_outlined, size: 14, color: AppColors.grey600),
+            const SizedBox(width: 6),
+            Flexible(
+              child: Text(
+                libelle,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                    fontSize: 13, color: AppColors.grey700, fontWeight: FontWeight.w600)),
-          ),
-        ],
+                  fontSize: 13,
+                  color: AppColors.grey700,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -204,8 +229,7 @@ class _BoutonCarre extends StatelessWidget {
         child: SizedBox(
           width: 40,
           height: 40,
-          child: Icon(icon,
-              size: 20, color: onTap == null ? AppColors.grey300 : AppColors.grey600),
+          child: Icon(icon, size: 20, color: onTap == null ? AppColors.grey300 : AppColors.grey600),
         ),
       ),
     );

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../core/widgets/app_header.dart';
+import '../../../../core/widgets/date_filter_dialogs.dart';
 import '../../../../core/widgets/detail_carte.dart';
 import '../../../../core/widgets/dialogs.dart';
 import '../../../../core/widgets/feedback.dart';
@@ -31,12 +32,14 @@ class _BailDetailPageState extends ConsumerState<BailDetailPage> {
   }
 
   Future<void> _resilier(Bail bail) async {
-    final date = await showDatePicker(
+    final date = await showDialog<DateTime>(
       context: context,
-      helpText: 'Date d\'effet de la résiliation',
-      initialDate: DateTime.now().isBefore(bail.dateDebut) ? bail.dateDebut : DateTime.now(),
-      firstDate: bail.dateDebut,
-      lastDate: DateTime.now().add(const Duration(days: 365)),
+      builder: (_) => SingleDatePickerDialog(
+        titre: 'Date d\'effet de la résiliation',
+        initialDate: DateTime.now().isBefore(bail.dateDebut) ? bail.dateDebut : DateTime.now(),
+        firstDate: bail.dateDebut,
+        lastDate: DateTime.now().add(const Duration(days: 365)),
+      ),
     );
     if (date == null || !mounted) return;
     final motif = await demanderMotif(context,
