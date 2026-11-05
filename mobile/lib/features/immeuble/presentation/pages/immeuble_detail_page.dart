@@ -144,7 +144,7 @@ class AppartementTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final a = appartement;
     return ListeCarte(
-      icon: Icons.door_front_door_outlined,
+      icon: a.type.icone,
       couleur: a.statut.couleur,
       titre: '${a.reference} · ${a.type.libelle}',
       valeur: formatMontant(a.montantMensuel),

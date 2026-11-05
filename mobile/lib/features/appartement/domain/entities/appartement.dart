@@ -2,24 +2,19 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_colors.dart';
 
+/// Nature du local loué ; la taille d'un appartement se lit dans ses pièces.
 enum TypeLogement {
-  studio('STUDIO', 'Studio'),
-  chambreSalon('CHAMBRE_SALON', 'Chambre-salon'),
-  t2('T2', 'T2'),
-  t3('T3', 'T3'),
-  t4('T4', 'T4'),
-  t5Plus('T5_PLUS', 'T5 et plus'),
-  duplex('DUPLEX', 'Duplex'),
-  villa('VILLA', 'Villa'),
-  magasin('MAGASIN', 'Magasin'),
-  bureau('BUREAU', 'Bureau');
+  appartement('APPARTEMENT', 'Appartement', Icons.door_front_door_outlined),
+  magasin('MAGASIN', 'Magasin', Icons.storefront_outlined),
+  bureau('BUREAU', 'Bureau', Icons.business_center_outlined);
 
   final String code;
   final String libelle;
-  const TypeLogement(this.code, this.libelle);
+  final IconData icone;
+  const TypeLogement(this.code, this.libelle, this.icone);
 
   static TypeLogement fromCode(String? code) =>
-      values.firstWhere((v) => v.code == code, orElse: () => TypeLogement.t2);
+      values.firstWhere((v) => v.code == code, orElse: () => TypeLogement.appartement);
 }
 
 enum StatutAppartement {

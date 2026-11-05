@@ -35,17 +35,17 @@ void main() {
       'immeubleId': 1,
       'reference': 'B11',
       'etage': 1,
-      'type': 'CHAMBRE_SALON',
+      'type': 'MAGASIN',
       'loyerMensuel': 90000,
       'charges': 5000,
       'statut': 'EN_TRAVAUX',
     });
-    expect(a.type, TypeLogement.chambreSalon);
+    expect(a.type, TypeLogement.magasin);
     expect(a.statut, StatutAppartement.enTravaux);
     expect(a.montantMensuel, 95000);
     expect(a.libelleEtage, '1er étage');
     final json = AppartementModel.toJson(a);
-    expect(json['type'], 'CHAMBRE_SALON');
+    expect(json['type'], 'MAGASIN');
     expect(json['statut'], 'EN_TRAVAUX');
   });
 }

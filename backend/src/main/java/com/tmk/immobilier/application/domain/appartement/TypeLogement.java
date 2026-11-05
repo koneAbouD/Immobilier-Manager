@@ -1,14 +1,8 @@
 package com.tmk.immobilier.application.domain.appartement;
 
+/** Nature du local loué : la taille d'un appartement se lit dans son nombre de pièces. */
 public enum TypeLogement {
-    STUDIO,
-    CHAMBRE_SALON,
-    T2,
-    T3,
-    T4,
-    T5_PLUS,
-    DUPLEX,
-    VILLA,
+    APPARTEMENT,
     MAGASIN,
     BUREAU
 }
