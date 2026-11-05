@@ -81,47 +81,50 @@ class _AppartementFormPageState extends ConsumerState<AppartementFormPage> {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 4, 16, 32),
           children: [
-            Row(children: [
-              Expanded(
-                  child: ChampTexte(controller: _reference, label: 'Référence', obligatoire: true)),
-              const SizedBox(width: 12),
-              Expanded(child: ChampEntier(controller: _etage, label: 'Étage (0 = RDC)')),
+            GroupeChamps(titre: 'Local', icone: Icons.home_work_outlined, children: [
+              ChampChoix<TypeLogement>(
+                label: 'Type',
+                valeur: _type,
+                options: TypeLogement.values,
+                libelle: (t) => t.libelle,
+                obligatoire: true,
+                onChanged: (t) => setState(() => _type = t),
+              ),
+              kGapChamps,
+              Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Expanded(child: ChampTexte(controller: _reference, label: 'Référence', hint: 'Ex. A01', obligatoire: true)),
+                const SizedBox(width: 12),
+                Expanded(child: ChampEntier(controller: _etage, label: 'Étage', aide: '0 = rez-de-chaussée')),
+              ]),
+              kGapChamps,
+              Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Expanded(child: ChampEntier(controller: _superficie, label: 'Superficie (m²)')),
+                const SizedBox(width: 12),
+                Expanded(child: ChampEntier(controller: _pieces, label: 'Pièces')),
+              ]),
             ]),
-            kGapChamps,
-            ChampChoix<TypeLogement>(
-              label: 'Type',
-              valeur: _type,
-              options: TypeLogement.values,
-              libelle: (t) => t.libelle,
-              obligatoire: true,
-              onChanged: (t) => setState(() => _type = t),
-            ),
-            kGapChamps,
-            Row(children: [
-              Expanded(child: ChampEntier(controller: _superficie, label: 'Superficie (m²)')),
-              const SizedBox(width: 12),
-              Expanded(child: ChampEntier(controller: _pieces, label: 'Pièces')),
+            GroupeChamps(titre: 'Loyer', icone: Icons.payments_outlined, couleur: AppColors.positive, children: [
+              ChampMontant(
+                  controller: _loyer, label: 'Loyer mensuel', obligatoire: true, strictementPositif: true),
+              kGapChamps,
+              ChampMontant(controller: _charges, label: 'Charges mensuelles'),
             ]),
-            kGapChamps,
-            ChampMontant(
-                controller: _loyer, label: 'Loyer mensuel', obligatoire: true, strictementPositif: true),
-            kGapChamps,
-            ChampMontant(controller: _charges, label: 'Charges mensuelles'),
-            kGapChamps,
-            if (_statutModifiable)
-              ChampChoix<StatutAppartement>(
-                label: 'Statut',
-                valeur: _statut,
-                options: const [StatutAppartement.libre, StatutAppartement.enTravaux],
-                libelle: (s) => s.libelle,
-                onChanged: (s) => setState(() => _statut = s ?? StatutAppartement.libre),
-              )
-            else
-              Text('Ce logement est occupé : son statut suit le bail en cours.',
-                  style: TextStyle(fontSize: 13, color: AppColors.label)),
-            kGapChamps,
-            ChampTexte(controller: _description, label: 'Description', maxLines: 3),
-            const SizedBox(height: 24),
+            GroupeChamps(titre: 'Statut et description', icone: Icons.tune_rounded, couleur: AppColors.info, children: [
+              if (_statutModifiable)
+                ChampChoix<StatutAppartement>(
+                  label: 'Statut',
+                  valeur: _statut,
+                  options: const [StatutAppartement.libre, StatutAppartement.enTravaux],
+                  libelle: (s) => s.libelle,
+                  onChanged: (s) => setState(() => _statut = s ?? StatutAppartement.libre),
+                )
+              else
+                Text('Ce logement est occupé : son statut suit le bail en cours.',
+                    style: TextStyle(fontSize: 13, color: AppColors.label)),
+              kGapChamps,
+              ChampTexte(controller: _description, label: 'Description', hint: 'Équipements, état…', maxLines: 3),
+            ]),
+            const SizedBox(height: 8),
             BoutonPrincipal(
               label: 'Enregistrer',
               loading: _envoi,

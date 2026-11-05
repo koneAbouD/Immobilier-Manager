@@ -107,81 +107,90 @@ class _MaintenanceFormPageState extends ConsumerState<MaintenanceFormPage> {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 4, 16, 32),
           children: [
-            immeubles.when(
-              loading: () => const LinearProgressIndicator(),
-              error: (e, _) => Text('$e', style: TextStyle(color: AppColors.error)),
-              data: (liste) => ChampChoix<int>(
-                label: 'Immeuble',
-                valeur: _immeubleId,
-                obligatoire: true,
-                options: liste.map((i) => i.id!).toList(),
-                libelle: (id) => liste.firstWhere((i) => i.id == id, orElse: () => const Immeuble(nom: '?')).nom,
-                onChanged: (id) => setState(() {
-                  if (id != _immeubleId) {
-                    _appartementId = null;
-                    _appartementLibelle = null;
-                  }
-                  _immeubleId = id;
-                }),
-              ),
-            ),
-            kGapChamps,
-            Row(children: [
-              Expanded(
-                child: ChampSelection<Appartement>(
-                  key: ValueKey(_appartementLibelle),
-                  label: 'Logement (vide = parties communes)',
-                  valeurAffichee: _appartementLibelle,
-                  actif: _immeubleId != null,
-                  ouvrir: _choisirAppartement,
-                  onSelected: (a) => setState(() {
-                    _appartementId = a.id;
-                    _appartementLibelle = a.reference;
+            GroupeChamps(titre: 'Localisation', icone: Icons.place_outlined, children: [
+              immeubles.when(
+                loading: () => const LinearProgressIndicator(),
+                error: (e, _) => Text('$e', style: TextStyle(color: AppColors.error)),
+                data: (liste) => ChampChoix<int>(
+                  label: 'Immeuble',
+                  valeur: _immeubleId,
+                  obligatoire: true,
+                  options: liste.map((i) => i.id!).toList(),
+                  libelle: (id) => liste.firstWhere((i) => i.id == id, orElse: () => const Immeuble(nom: '?')).nom,
+                  onChanged: (id) => setState(() {
+                    if (id != _immeubleId) {
+                      _appartementId = null;
+                      _appartementLibelle = null;
+                    }
+                    _immeubleId = id;
                   }),
                 ),
               ),
-              if (_appartementId != null)
-                IconButton(
-                  tooltip: 'Parties communes',
-                  icon: const Icon(Icons.clear),
-                  onPressed: () => setState(() {
-                    _appartementId = null;
-                    _appartementLibelle = null;
-                  }),
+              kGapChamps,
+              Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
+                Expanded(
+                  child: ChampSelection<Appartement>(
+                    key: ValueKey(_appartementLibelle),
+                    label: 'Logement',
+                    valeurAffichee: _appartementLibelle,
+                    actif: _immeubleId != null,
+                    ouvrir: _choisirAppartement,
+                    onSelected: (a) => setState(() {
+                      _appartementId = a.id;
+                      _appartementLibelle = a.reference;
+                    }),
+                  ),
                 ),
+                if (_appartementId != null)
+                  IconButton(
+                    tooltip: 'Parties communes (aucun logement)',
+                    icon: const Icon(Icons.clear),
+                    onPressed: () => setState(() {
+                      _appartementId = null;
+                      _appartementLibelle = null;
+                    }),
+                  ),
+              ]),
+              Padding(
+                padding: const EdgeInsets.only(top: 6, left: 4),
+                child: Text('Sans logement, l\'intervention concerne les parties communes.',
+                    style: TextStyle(fontSize: 11.5, color: AppColors.hint)),
+              ),
             ]),
-            kGapChamps,
-            ChampTexte(controller: _titre, label: 'Titre', obligatoire: true),
-            kGapChamps,
-            ChampChoix<CategorieMaintenance>(
-              label: 'Catégorie',
-              valeur: _categorie,
-              obligatoire: true,
-              options: CategorieMaintenance.values,
-              libelle: (c) => c.libelle,
-              onChanged: (c) => setState(() => _categorie = c),
-            ),
-            kGapChamps,
-            ChampChoix<PrioriteMaintenance>(
-              label: 'Priorité',
-              valeur: _priorite,
-              options: PrioriteMaintenance.values,
-              libelle: (p) => p.libelle,
-              onChanged: (p) => setState(() => _priorite = p ?? PrioriteMaintenance.normale),
-            ),
-            kGapChamps,
-            ChampTexte(controller: _description, label: 'Description', maxLines: 3),
-            kGapChamps,
-            ChampDate(
-              label: 'Date d\'intervention prévue',
-              valeur: _datePrevue,
-              onChanged: (d) => setState(() => _datePrevue = d),
-            ),
-            kGapChamps,
-            ChampTexte(controller: _prestataire, label: 'Prestataire'),
-            kGapChamps,
-            ChampMontant(controller: _cout, label: 'Coût estimé'),
-            const SizedBox(height: 24),
+            GroupeChamps(titre: 'Intervention', icone: Icons.build_outlined, couleur: AppColors.warning, children: [
+              ChampTexte(controller: _titre, label: 'Titre', hint: 'Ex. Fuite sous l\'évier', obligatoire: true),
+              kGapChamps,
+              ChampChoix<CategorieMaintenance>(
+                label: 'Catégorie',
+                valeur: _categorie,
+                obligatoire: true,
+                options: CategorieMaintenance.values,
+                libelle: (c) => c.libelle,
+                onChanged: (c) => setState(() => _categorie = c),
+              ),
+              kGapChamps,
+              ChampChoix<PrioriteMaintenance>(
+                label: 'Priorité',
+                valeur: _priorite,
+                options: PrioriteMaintenance.values,
+                libelle: (p) => p.libelle,
+                onChanged: (p) => setState(() => _priorite = p ?? PrioriteMaintenance.normale),
+              ),
+              kGapChamps,
+              ChampTexte(controller: _description, label: 'Description', maxLines: 3),
+            ]),
+            GroupeChamps(titre: 'Planification', icone: Icons.event_outlined, couleur: AppColors.info, children: [
+              ChampDate(
+                label: 'Date d\'intervention prévue',
+                valeur: _datePrevue,
+                onChanged: (d) => setState(() => _datePrevue = d),
+              ),
+              kGapChamps,
+              ChampTexte(controller: _prestataire, label: 'Prestataire'),
+              kGapChamps,
+              ChampMontant(controller: _cout, label: 'Coût estimé'),
+            ]),
+            const SizedBox(height: 8),
             BoutonPrincipal(
               label: 'Enregistrer',
               loading: _envoi,

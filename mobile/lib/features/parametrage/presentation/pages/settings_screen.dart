@@ -24,7 +24,8 @@ class SettingsScreen extends ConsumerWidget {
         titre: 'Se déconnecter ?',
         message: 'Vous devrez saisir à nouveau vos identifiants.',
         action: 'Se déconnecter',
-        destructive: true);
+        destructive: true,
+        icone: Icons.logout_rounded);
     if (ok) await ref.read(authNotifierProvider.notifier).logout();
   }
 
@@ -88,20 +89,9 @@ class SettingsScreen extends ConsumerWidget {
   }
 
   void _aPropos(BuildContext context) {
-    showDialog<void>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('À propos'),
-        content: const Text('$_kAppName - Gestion locative\n\n'
-            'Version $_kAppVersion\n\n'
-            '© 2026 TMK'),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(ctx), child: const Text('Fermer')),
-        ],
-      ),
-    );
+    informer(context,
+        titre: 'À propos',
+        message: '$_kAppName - Gestion locative\n\nVersion $_kAppVersion\n\n© 2026 TMK');
   }
 }
 

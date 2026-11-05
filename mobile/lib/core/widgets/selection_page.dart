@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../pagination/paged_list_notifier.dart';
+import '../theme/app_colors.dart';
 import 'app_header.dart';
 import 'debounce.dart';
 import 'form_fields.dart';
@@ -103,25 +104,29 @@ class ChampSelection<T> extends StatelessWidget {
       initialValue: valeurAffichee,
       validator: (_) =>
           obligatoire && valeurAffichee == null ? 'Champ obligatoire.' : null,
-      builder: (state) => InkWell(
-        onTap: !actif
-            ? null
-            : () async {
-                final choix = await ouvrir();
-                if (choix != null) {
-                  onSelected(choix);
-                  state.didChange('ok');
-                }
-              },
-        child: InputDecorator(
-          decoration: InputDecoration(
-            labelText: obligatoire ? '$label *' : label,
-            errorText: state.errorText,
-            enabled: actif,
-            suffixIcon: const Icon(Icons.keyboard_arrow_down_rounded),
+      builder: (state) => ChampEtiquete(
+        label: label,
+        obligatoire: obligatoire,
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          PiluleCliquable(
+            valeur: valeurAffichee,
+            hint: 'Choisir…',
+            actif: actif,
+            erreur: state.hasError,
+            onTap: () async {
+              final choix = await ouvrir();
+              if (choix != null) {
+                onSelected(choix);
+                state.didChange('ok');
+              }
+            },
+            suffixe: Padding(
+              padding: const EdgeInsets.all(10),
+              child: Icon(Icons.keyboard_arrow_down_rounded, color: AppColors.hint),
+            ),
           ),
-          child: Text(valeurAffichee ?? ''),
-        ),
+          ErreurChamp(state.errorText),
+        ]),
       ),
     );
   }

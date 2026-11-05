@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/app_header.dart';
 import '../../../../core/widgets/feedback.dart';
 import '../../../../core/widgets/form_fields.dart';
@@ -78,24 +79,28 @@ class _ImmeubleFormPageState extends ConsumerState<ImmeubleFormPage> {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 4, 16, 32),
           children: [
-            ChampTexte(controller: _nom, label: 'Nom', obligatoire: true),
-            kGapChamps,
-            ChampTexte(controller: _adresse, label: 'Adresse'),
-            kGapChamps,
-            Row(children: [
-              Expanded(child: ChampTexte(controller: _commune, label: 'Commune')),
-              const SizedBox(width: 12),
-              Expanded(child: ChampTexte(controller: _ville, label: 'Ville')),
+            GroupeChamps(titre: 'Immeuble', icone: Icons.apartment_rounded, children: [
+              ChampTexte(controller: _nom, label: 'Nom', hint: 'Ex. Résidence Les Palmiers', obligatoire: true),
+              kGapChamps,
+              Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Expanded(child: ChampEntier(controller: _etages, label: 'Nombre d\'étages')),
+                const SizedBox(width: 12),
+                Expanded(child: ChampEntier(controller: _annee, label: 'Année de construction', hint: 'Ex. 2015')),
+              ]),
             ]),
-            kGapChamps,
-            Row(children: [
-              Expanded(child: ChampEntier(controller: _etages, label: 'Nombre d\'étages')),
-              const SizedBox(width: 12),
-              Expanded(child: ChampEntier(controller: _annee, label: 'Année de construction')),
+            GroupeChamps(titre: 'Adresse', icone: Icons.place_outlined, couleur: AppColors.info, children: [
+              ChampTexte(controller: _adresse, label: 'Adresse', hint: 'Rue, lot, repère'),
+              kGapChamps,
+              Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Expanded(child: ChampTexte(controller: _commune, label: 'Commune', hint: 'Ex. Cocody')),
+                const SizedBox(width: 12),
+                Expanded(child: ChampTexte(controller: _ville, label: 'Ville', hint: 'Ex. Abidjan')),
+              ]),
             ]),
-            kGapChamps,
-            ChampTexte(controller: _description, label: 'Description', maxLines: 3),
-            const SizedBox(height: 24),
+            GroupeChamps(titre: 'Description', icone: Icons.notes_rounded, couleur: AppColors.warning, children: [
+              ChampTexte(controller: _description, label: 'Description', hint: 'Informations utiles', maxLines: 3),
+            ]),
+            const SizedBox(height: 8),
             BoutonPrincipal(
               label: 'Enregistrer',
               loading: _envoi,

@@ -266,46 +266,59 @@ class _BailFormPageState extends ConsumerState<BailFormPage> {
   List<Widget> _etapeConditions() => [
     const _TitreEtape(titre: 'Conditions du bail', detail: 'Reprises du logement, vous pouvez les ajuster.'),
     _Recap(appartement: _appartement!, locataire: _locataire!),
-    const SizedBox(height: 16),
-    Row(
+    const SizedBox(height: 12),
+    GroupeChamps(
+      titre: 'Durée',
+      icone: Icons.event_outlined,
+      couleur: AppColors.info,
       children: [
-        Expanded(
-          child: ChampDate(
-            label: 'Début',
-            valeur: _dateDebut,
-            obligatoire: true,
-            onChanged: (d) => setState(() => _dateDebut = d),
-          ),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: ChampDate(
+                label: 'Début',
+                valeur: _dateDebut,
+                obligatoire: true,
+                onChanged: (d) => setState(() => _dateDebut = d),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: ChampDate(
+                label: 'Fin',
+                valeur: _dateFin,
+                premiere: _dateDebut,
+                onChanged: (d) => setState(() => _dateFin = d),
+              ),
+            ),
+          ],
         ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: ChampDate(
-            label: 'Fin (facultatif)',
-            valeur: _dateFin,
-            premiere: _dateDebut,
-            onChanged: (d) => setState(() => _dateFin = d),
-          ),
+        kGapChamps,
+        ChampEntier(
+          controller: _jour,
+          label: 'Jour d\'échéance du loyer',
+          hint: '5',
+          obligatoire: true,
+          aide: 'Jour du mois où le loyer est exigible (1 à 28)',
+          validator: (v) {
+            final j = int.tryParse(v ?? '');
+            return j == null || j < 1 || j > 28 ? 'Entre 1 et 28.' : null;
+          },
         ),
       ],
     ),
-    kGapChamps,
-    ChampMontant(controller: _loyer, label: 'Loyer mensuel', obligatoire: true, strictementPositif: true),
-    kGapChamps,
-    ChampMontant(controller: _charges, label: 'Charges mensuelles'),
-    kGapChamps,
-    ChampMontant(controller: _depot, label: 'Dépôt de garantie'),
-    kGapChamps,
-    TextFormField(
-      controller: _jour,
-      keyboardType: TextInputType.number,
-      decoration: const InputDecoration(
-        labelText: 'Jour d\'échéance du loyer *',
-        helperText: 'Jour du mois où le loyer est exigible (1 à 28)',
-      ),
-      validator: (v) {
-        final j = int.tryParse(v ?? '');
-        return j == null || j < 1 || j > 28 ? 'Entre 1 et 28.' : null;
-      },
+    GroupeChamps(
+      titre: 'Montants',
+      icone: Icons.payments_outlined,
+      couleur: AppColors.positive,
+      children: [
+        ChampMontant(controller: _loyer, label: 'Loyer mensuel', obligatoire: true, strictementPositif: true),
+        kGapChamps,
+        ChampMontant(controller: _charges, label: 'Charges mensuelles'),
+        kGapChamps,
+        ChampMontant(controller: _depot, label: 'Dépôt de garantie'),
+      ],
     ),
   ];
 

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/app_header.dart';
 import '../../../../core/widgets/feedback.dart';
 import '../../../../core/widgets/form_fields.dart';
@@ -81,55 +82,64 @@ class _LocataireFormPageState extends ConsumerState<LocataireFormPage> {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 4, 16, 32),
           children: [
-            Row(children: [
-              Expanded(child: ChampTexte(controller: _prenom, label: 'Prénom', obligatoire: true)),
-              const SizedBox(width: 12),
-              Expanded(child: ChampTexte(controller: _nom, label: 'Nom', obligatoire: true)),
+            GroupeChamps(titre: 'Identité', icone: Icons.person_outline_rounded, children: [
+              Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Expanded(child: ChampTexte(controller: _prenom, label: 'Prénom', obligatoire: true)),
+                const SizedBox(width: 12),
+                Expanded(child: ChampTexte(controller: _nom, label: 'Nom', obligatoire: true)),
+              ]),
+              kGapChamps,
+              ChampDate(
+                label: 'Date de naissance',
+                valeur: _dateNaissance,
+                derniere: DateTime.now(),
+                premiere: DateTime(1920),
+                onChanged: (d) => setState(() => _dateNaissance = d),
+              ),
+              kGapChamps,
+              ChampTexte(controller: _profession, label: 'Profession', hint: 'Ex. Comptable'),
             ]),
-            kGapChamps,
-            ChampTexte(
-                controller: _telephone,
-                label: 'Téléphone',
-                obligatoire: true,
-                keyboardType: TextInputType.phone),
-            kGapChamps,
-            ChampTexte(
-              controller: _email,
-              label: 'E-mail',
-              keyboardType: TextInputType.emailAddress,
-              validator: (v) => v != null && v.trim().isNotEmpty && !v.contains('@')
-                  ? 'Adresse e-mail invalide.'
-                  : null,
-            ),
-            kGapChamps,
-            ChampChoix<TypePiece>(
-              label: 'Pièce d\'identité',
-              valeur: _typePiece,
-              options: TypePiece.values,
-              libelle: (t) => t.libelle,
-              onChanged: (t) => setState(() => _typePiece = t),
-            ),
-            kGapChamps,
-            ChampTexte(controller: _numeroPiece, label: 'Numéro de pièce'),
-            kGapChamps,
-            ChampDate(
-              label: 'Date de naissance',
-              valeur: _dateNaissance,
-              derniere: DateTime.now(),
-              premiere: DateTime(1920),
-              onChanged: (d) => setState(() => _dateNaissance = d),
-            ),
-            kGapChamps,
-            ChampTexte(controller: _profession, label: 'Profession'),
-            kGapChamps,
-            ChampTexte(controller: _adresse, label: 'Adresse'),
-            const SizedBox(height: 20),
-            const Text('Contact d\'urgence', style: TextStyle(fontWeight: FontWeight.w700)),
-            kGapChamps,
-            ChampTexte(controller: _urgenceNom, label: 'Nom'),
-            kGapChamps,
-            ChampTexte(controller: _urgenceTel, label: 'Téléphone', keyboardType: TextInputType.phone),
-            const SizedBox(height: 24),
+            GroupeChamps(titre: 'Coordonnées', icone: Icons.contact_mail_outlined, couleur: AppColors.info, children: [
+              ChampTexte(
+                  controller: _telephone,
+                  label: 'Téléphone',
+                  hint: '07 00 00 00 00',
+                  obligatoire: true,
+                  keyboardType: TextInputType.phone),
+              kGapChamps,
+              ChampTexte(
+                controller: _email,
+                label: 'E-mail',
+                hint: 'exemple@email.com',
+                keyboardType: TextInputType.emailAddress,
+                validator: (v) => v != null && v.trim().isNotEmpty && !v.contains('@')
+                    ? 'Adresse e-mail invalide.'
+                    : null,
+              ),
+              kGapChamps,
+              ChampTexte(controller: _adresse, label: 'Adresse', hint: 'Commune, quartier, rue'),
+            ]),
+            GroupeChamps(titre: 'Pièce d\'identité', icone: Icons.badge_outlined, couleur: AppColors.warning, children: [
+              ChampChoix<TypePiece>(
+                label: 'Type de pièce',
+                valeur: _typePiece,
+                options: TypePiece.values,
+                libelle: (t) => t.libelle,
+                onChanged: (t) => setState(() => _typePiece = t),
+              ),
+              kGapChamps,
+              ChampTexte(controller: _numeroPiece, label: 'Numéro de pièce', hint: 'Ex. CI0012345'),
+            ]),
+            GroupeChamps(titre: 'Contact d\'urgence', icone: Icons.emergency_outlined, couleur: AppColors.error, children: [
+              ChampTexte(controller: _urgenceNom, label: 'Nom', hint: 'Personne à prévenir'),
+              kGapChamps,
+              ChampTexte(
+                  controller: _urgenceTel,
+                  label: 'Téléphone',
+                  hint: '07 00 00 00 00',
+                  keyboardType: TextInputType.phone),
+            ]),
+            const SizedBox(height: 8),
             BoutonPrincipal(
               label: 'Enregistrer',
               loading: _envoi,

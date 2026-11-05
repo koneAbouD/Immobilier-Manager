@@ -3,14 +3,75 @@ import 'package:flutter/services.dart';
 
 import '../theme/app_colors.dart';
 import '../utils/formatters.dart';
+import 'premium_select_field.dart';
 
 /// Espacement standard entre champs de formulaire.
 const kGapChamps = SizedBox(height: 14);
+
+/// Étiquette posée au-dessus d'un champ, au style des formulaires de VTC
+/// Manager : petit libellé gris, astérisque rouge si le champ est obligatoire.
+class EtiquetteChamp extends StatelessWidget {
+  final String label;
+  final bool obligatoire;
+
+  const EtiquetteChamp(this.label, {super.key, this.obligatoire = false});
+
+  @override
+  Widget build(BuildContext context) {
+    final style = TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: AppColors.label);
+    return Text.rich(TextSpan(text: label, style: style, children: [
+      if (obligatoire)
+        TextSpan(
+            text: ' *', style: TextStyle(color: AppColors.error, fontWeight: FontWeight.w700)),
+    ]));
+  }
+}
+
+/// Champ précédé de son étiquette.
+class ChampEtiquete extends StatelessWidget {
+  final String label;
+  final bool obligatoire;
+  final Widget child;
+
+  const ChampEtiquete({super.key, required this.label, required this.child, this.obligatoire = false});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        EtiquetteChamp(label, obligatoire: obligatoire),
+        const SizedBox(height: 6),
+        child,
+      ],
+    );
+  }
+}
+
+/// Décoration « pilule » des champs : fond gris sans contour, indication en
+/// gris dans le champ ; le contour d'accent au focus vient du thème.
+InputDecoration decorationPilule({String? hint, Widget? suffixIcon, String? suffixText, String? aide}) =>
+    InputDecoration(
+      hintText: hint,
+      hintStyle: TextStyle(color: AppColors.hint, fontSize: 15),
+      isDense: true,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      suffixIcon: suffixIcon,
+      suffixText: suffixText,
+      suffixStyle: TextStyle(color: AppColors.hint, fontSize: 13, fontWeight: FontWeight.w600),
+      helperText: aide,
+      helperStyle: TextStyle(fontSize: 11.5, color: AppColors.hint),
+      helperMaxLines: 2,
+    );
+
+TextStyle get _styleSaisie => TextStyle(fontSize: 15, color: AppColors.dark);
 
 /// Champ texte obligatoire ou facultatif.
 class ChampTexte extends StatelessWidget {
   final TextEditingController controller;
   final String label;
+  final String? hint;
   final bool obligatoire;
   final TextInputType? keyboardType;
   final int maxLines;
@@ -20,6 +81,7 @@ class ChampTexte extends StatelessWidget {
     super.key,
     required this.controller,
     required this.label,
+    this.hint,
     this.obligatoire = false,
     this.keyboardType,
     this.maxLines = 1,
@@ -28,15 +90,18 @@ class ChampTexte extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return TextFormField(
-      controller: controller,
-      keyboardType: keyboardType,
-      maxLines: maxLines,
-      decoration: InputDecoration(labelText: obligatoire ? '$label *' : label),
-      validator: validator ??
-          (obligatoire
-              ? (v) => v == null || v.trim().isEmpty ? 'Champ obligatoire.' : null
-              : null),
+    return ChampEtiquete(
+      label: label,
+      obligatoire: obligatoire,
+      child: TextFormField(
+        controller: controller,
+        keyboardType: keyboardType,
+        maxLines: maxLines,
+        style: _styleSaisie,
+        decoration: decorationPilule(hint: hint ?? label),
+        validator: validator ??
+            (obligatoire ? (v) => v == null || v.trim().isEmpty ? 'Champ obligatoire.' : null : null),
+      ),
     );
   }
 }
@@ -58,43 +123,145 @@ class ChampMontant extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return TextFormField(
-      controller: controller,
-      keyboardType: TextInputType.number,
-      inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9 ]'))],
-      decoration: InputDecoration(
-        labelText: obligatoire ? '$label *' : label,
-        suffixText: 'FCFA',
+    return ChampEtiquete(
+      label: label,
+      obligatoire: obligatoire,
+      child: TextFormField(
+        controller: controller,
+        keyboardType: TextInputType.number,
+        inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9 ]'))],
+        style: _styleSaisie,
+        decoration: decorationPilule(hint: '0', suffixText: 'FCFA'),
+        validator: (v) {
+          final montant = parseMontantSaisi(v);
+          if (montant == null) return obligatoire ? 'Champ obligatoire.' : null;
+          if (strictementPositif && montant <= 0) return 'Le montant doit être positif.';
+          return null;
+        },
       ),
-      validator: (v) {
-        final montant = parseMontantSaisi(v);
-        if (montant == null) return obligatoire ? 'Champ obligatoire.' : null;
-        if (strictementPositif && montant <= 0) return 'Le montant doit être positif.';
-        return null;
-      },
     );
   }
 }
 
-/// Champ entier facultatif.
+/// Champ entier.
 class ChampEntier extends StatelessWidget {
   final TextEditingController controller;
   final String label;
+  final String? hint;
+  final bool obligatoire;
 
-  const ChampEntier({super.key, required this.controller, required this.label});
+  /// Texte d'aide sous le champ.
+  final String? aide;
+  final String? Function(String?)? validator;
+
+  const ChampEntier({
+    super.key,
+    required this.controller,
+    required this.label,
+    this.hint,
+    this.obligatoire = false,
+    this.aide,
+    this.validator,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return TextFormField(
-      controller: controller,
-      keyboardType: TextInputType.number,
-      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-      decoration: InputDecoration(labelText: label),
+    return ChampEtiquete(
+      label: label,
+      obligatoire: obligatoire,
+      child: TextFormField(
+        controller: controller,
+        keyboardType: TextInputType.number,
+        inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+        style: _styleSaisie,
+        decoration: decorationPilule(hint: hint ?? '0', aide: aide),
+        validator: validator ??
+            (obligatoire ? (v) => v == null || v.trim().isEmpty ? 'Champ obligatoire.' : null : null),
+      ),
     );
   }
 }
 
-/// Sélecteur de date en lecture seule (ouvre le calendrier au tap).
+/// Fond « pilule » d'un champ qui s'ouvre au tap (date, sélection) : même
+/// gabarit que les champs texte, contour rouge seulement en erreur.
+class PiluleCliquable extends StatelessWidget {
+  final String? valeur;
+  final String hint;
+  final Widget? prefixe;
+  final Widget suffixe;
+  final bool erreur;
+  final bool actif;
+  final VoidCallback onTap;
+
+  const PiluleCliquable({
+    super.key,
+    required this.valeur,
+    required this.hint,
+    required this.suffixe,
+    required this.onTap,
+    this.prefixe,
+    this.erreur = false,
+    this.actif = true,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Opacity(
+      opacity: actif ? 1 : 0.55,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: actif ? onTap : null,
+          child: Container(
+            constraints: const BoxConstraints(minHeight: 52),
+            padding: const EdgeInsets.only(left: 16, right: 6),
+            decoration: BoxDecoration(
+              color: AppColors.fieldFill,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                  color: erreur ? AppColors.error : Colors.transparent, width: erreur ? 1.4 : 1),
+            ),
+            child: Row(children: [
+              if (prefixe != null) ...[prefixe!, const SizedBox(width: 10)],
+              Expanded(
+                child: Text(
+                  valeur ?? hint,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 15,
+                    color: valeur != null ? AppColors.dark : AppColors.hint,
+                    fontWeight: valeur != null ? FontWeight.w500 : FontWeight.w400,
+                  ),
+                ),
+              ),
+              suffixe,
+            ]),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Message d'erreur sous un champ cliquable.
+class ErreurChamp extends StatelessWidget {
+  final String? message;
+
+  const ErreurChamp(this.message, {super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    if (message == null) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(top: 6, left: 4),
+      child: Text(message!, style: TextStyle(color: AppColors.error, fontSize: 12)),
+    );
+  }
+}
+
+/// Sélecteur de date (ouvre le calendrier au tap).
 class ChampDate extends StatelessWidget {
   final String label;
   final DateTime? valeur;
@@ -118,41 +285,50 @@ class ChampDate extends StatelessWidget {
     return FormField<DateTime>(
       initialValue: valeur,
       validator: (_) => obligatoire && valeur == null ? 'Champ obligatoire.' : null,
-      builder: (state) => InkWell(
-        onTap: () async {
-          final choisie = await showDatePicker(
-            context: context,
-            initialDate: valeur ?? DateTime.now(),
-            firstDate: premiere ?? DateTime(2000),
-            lastDate: derniere ?? DateTime(2100),
-          );
-          if (choisie != null) {
-            onChanged(choisie);
-            state.didChange(choisie);
-          }
-        },
-        child: InputDecorator(
-          decoration: InputDecoration(
-            labelText: obligatoire ? '$label *' : label,
-            errorText: state.errorText,
-            suffixIcon: valeur != null && !obligatoire
+      builder: (state) => ChampEtiquete(
+        label: label,
+        obligatoire: obligatoire,
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          PiluleCliquable(
+            valeur: valeur == null ? null : formatDate(valeur),
+            hint: 'jj/mm/aaaa',
+            erreur: state.hasError,
+            onTap: () async {
+              FocusScope.of(context).unfocus();
+              final choisie = await showDatePicker(
+                context: context,
+                initialDate: valeur ?? DateTime.now(),
+                firstDate: premiere ?? DateTime(2000),
+                lastDate: derniere ?? DateTime(2100),
+              );
+              if (choisie != null) {
+                onChanged(choisie);
+                state.didChange(choisie);
+              }
+            },
+            suffixe: valeur != null && !obligatoire
                 ? IconButton(
-                    icon: const Icon(Icons.close_rounded, size: 18),
+                    tooltip: 'Effacer',
+                    icon: Icon(Icons.close_rounded, size: 18, color: AppColors.hint),
                     onPressed: () {
                       onChanged(null);
                       state.didChange(null);
                     },
                   )
-                : const Icon(Icons.calendar_today_outlined, size: 18),
+                : Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Icon(Icons.calendar_today_outlined, size: 18, color: AppColors.hint),
+                  ),
           ),
-          child: Text(valeur == null ? '' : formatDate(valeur)),
-        ),
+          ErreurChamp(state.errorText),
+        ]),
       ),
     );
   }
 }
 
-/// Liste déroulante sur une énumération (ou toute liste de valeurs).
+/// Choix parmi une liste de valeurs : feuille de sélection « premium » de VTC
+/// Manager à la place du menu déroulant Material.
 class ChampChoix<T> extends StatelessWidget {
   final String label;
   final T? valeur;
@@ -160,6 +336,7 @@ class ChampChoix<T> extends StatelessWidget {
   final String Function(T) libelle;
   final ValueChanged<T?> onChanged;
   final bool obligatoire;
+  final String? hint;
 
   const ChampChoix({
     super.key,
@@ -169,19 +346,22 @@ class ChampChoix<T> extends StatelessWidget {
     required this.libelle,
     required this.onChanged,
     this.obligatoire = false,
+    this.hint,
   });
 
   @override
   Widget build(BuildContext context) {
-    return DropdownButtonFormField<T>(
-      initialValue: valeur,
-      isExpanded: true,
-      decoration: InputDecoration(labelText: obligatoire ? '$label *' : label),
-      items: options
-          .map((o) => DropdownMenuItem(value: o, child: Text(libelle(o))))
-          .toList(),
-      onChanged: onChanged,
-      validator: (v) => obligatoire && v == null ? 'Champ obligatoire.' : null,
+    return ChampEtiquete(
+      label: label,
+      obligatoire: obligatoire,
+      child: PremiumSelectField<T>(
+        value: valeur,
+        hint: hint ?? 'Choisir…',
+        sheetTitle: label,
+        isRequired: obligatoire,
+        options: options.map((o) => SelectOption<T>(value: o, label: libelle(o))).toList(),
+        onChanged: onChanged,
+      ),
     );
   }
 }
@@ -429,42 +609,56 @@ class LigneInfo extends StatelessWidget {
   }
 }
 
-/// Groupe de champs d'un formulaire, posé sur une carte : un titre discret
-/// au-dessus, comme les rubriques des formulaires de VTC Manager.
+/// Rubrique d'un formulaire, au style des cartes de VTC Manager : carte
+/// blanche bordée, icône dans une tuile teintée et titre, puis les champs.
 class GroupeChamps extends StatelessWidget {
   final String titre;
+  final IconData icone;
+
+  /// Teinte de la tuile d'icône ; l'accent de la charte par défaut.
+  final Color? couleur;
   final List<Widget> children;
 
-  const GroupeChamps({super.key, required this.titre, required this.children});
+  const GroupeChamps({
+    super.key,
+    required this.titre,
+    required this.icone,
+    required this.children,
+    this.couleur,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
+    final accent = couleur ?? AppColors.primary;
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.blanc,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Padding(
-            padding: const EdgeInsets.only(left: 4, bottom: 8),
-            child: Text(titre.toUpperCase(),
-                style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 0.6,
-                    color: AppColors.label)),
-          ),
-          Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: AppColors.surface,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppColors.border),
+          Row(children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: accent.withValues(alpha: 0.10),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(icone, size: 18, color: accent),
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: children,
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(titre,
+                  style: TextStyle(
+                      fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.dark, letterSpacing: -0.2)),
             ),
-          ),
+          ]),
+          const SizedBox(height: 16),
+          ...children,
         ],
       ),
     );

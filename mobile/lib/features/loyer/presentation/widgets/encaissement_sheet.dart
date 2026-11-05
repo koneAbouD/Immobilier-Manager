@@ -15,13 +15,8 @@ import '../providers/loyer_providers.dart';
 /// Fiche d'une échéance : paiements reçus (annulables) et encaissement du
 /// reste dû. Renvoie vrai si quelque chose a changé.
 Future<bool> ouvrirEcheance(BuildContext context, Echeance echeance) async {
-  final change = await showModalBottomSheet<bool>(
-    context: context,
-    isScrollControlled: true,
-    useSafeArea: true,
-    showDragHandle: true,
-    shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+  final change = await afficherFeuille<bool>(
+    context,
     builder: (_) => _EcheanceSheet(echeance: echeance),
   );
   return change ?? false;
@@ -87,7 +82,9 @@ class _EcheanceSheetState extends ConsumerState<_EcheanceSheet> {
 
   Future<void> _annuler(Paiement p) async {
     final motif = await demanderMotif(context,
-        titre: 'Annuler ce paiement de ${formatMontant(p.montant)} ?', action: 'Annuler le paiement');
+        titre: 'Annuler ce paiement de ${formatMontant(p.montant)} ?',
+        message: 'Le montant sera de nouveau dû sur ce loyer.',
+        action: 'Annuler le paiement');
     if (motif == null || !mounted) return;
     final result = await ref.read(loyerRepositoryProvider).annulerPaiement(p.id!, motif);
     if (!mounted) return;
@@ -102,26 +99,19 @@ class _EcheanceSheetState extends ConsumerState<_EcheanceSheet> {
     return Padding(
       padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
       child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+        padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Row(children: [
-              Expanded(
-                child: Text('Loyer de ${formatMois(e.periode)}',
-                    style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.dark,
-                        letterSpacing: -0.3)),
-              ),
-              StatutBadge(e.enRetard ? 'En retard' : e.statut.libelle,
+            EnteteFeuille(
+              icone: Icons.receipt_long_outlined,
+              couleur: e.enRetard ? AppColors.error : null,
+              titre: 'Loyer de ${formatMois(e.periode)}',
+              sousTitre: '${e.locataireNom} · ${e.logement}',
+              trailing: StatutBadge(e.enRetard ? 'En retard' : e.statut.libelle,
                   e.enRetard ? AppColors.error : e.statut.couleur),
-            ]),
-            const SizedBox(height: 2),
-            Text('${e.locataireNom} · ${e.logement}',
-                style: TextStyle(fontSize: 13, color: AppColors.label)),
-            const SizedBox(height: 14),
+            ),
+            const SizedBox(height: 16),
             Container(
               padding: const EdgeInsets.fromLTRB(14, 8, 14, 8),
               decoration: BoxDecoration(
@@ -216,7 +206,7 @@ class _EcheanceSheetState extends ConsumerState<_EcheanceSheet> {
                       onChanged: (d) => setState(() => _date = d),
                     ),
                     kGapChamps,
-                    ChampTexte(controller: _reference, label: 'Référence (transaction, chèque…)'),
+                    ChampTexte(controller: _reference, label: 'Référence', hint: 'N° de transaction ou de chèque'),
                     const SizedBox(height: 16),
                     BoutonPrincipal(
                       label: 'Enregistrer le paiement',
