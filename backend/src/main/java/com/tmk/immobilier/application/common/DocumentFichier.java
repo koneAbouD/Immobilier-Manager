@@ -1,7 +1,7 @@
-package com.tmk.immobilier.application.usecases.contrat;
+package com.tmk.immobilier.application.common;
 
 import java.io.InputStream;
 
-/** Fichier de contrat renvoyé au client : nom proposé, type MIME, contenu. */
-public record DocumentContrat(String nomFichier, String type, long taille, InputStream contenu) {
+/** Fichier renvoyé au client (contrat, pièce d'identité…) : nom proposé, type MIME, contenu. */
+public record DocumentFichier(String nomFichier, String type, long taille, InputStream contenu) {
 }

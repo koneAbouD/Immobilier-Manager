@@ -28,6 +28,14 @@ class Locataire {
   final String? contactUrgenceNom;
   final String? contactUrgenceTelephone;
 
+  /// Copie numérisée de la pièce d'identité (lecture seule : elle se charge à part).
+  final bool pieceChargee;
+  final String? pieceNom;
+  final String? pieceType;
+  final int? pieceTaille;
+  final DateTime? pieceChargeeLe;
+  final String? pieceChargeePar;
+
   const Locataire({
     this.id,
     required this.nom,
@@ -41,6 +49,12 @@ class Locataire {
     this.adresse,
     this.contactUrgenceNom,
     this.contactUrgenceTelephone,
+    this.pieceChargee = false,
+    this.pieceNom,
+    this.pieceType,
+    this.pieceTaille,
+    this.pieceChargeeLe,
+    this.pieceChargeePar,
   });
 
   String get nomComplet => '$prenom $nom';

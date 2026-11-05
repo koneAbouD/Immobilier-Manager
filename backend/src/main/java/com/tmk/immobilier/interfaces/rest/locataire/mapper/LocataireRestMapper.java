@@ -15,9 +15,17 @@ import org.mapstruct.Mapping;
 public interface LocataireRestMapper {
 
     @Mapping(target = "id", ignore = true)
+    // La copie de la pièce d'identité se charge à part, jamais par le formulaire.
+    @Mapping(target = "pieceCle", ignore = true)
+    @Mapping(target = "pieceNom", ignore = true)
+    @Mapping(target = "pieceType", ignore = true)
+    @Mapping(target = "pieceTaille", ignore = true)
+    @Mapping(target = "pieceChargeeLe", ignore = true)
+    @Mapping(target = "pieceChargeePar", ignore = true)
     Locataire toDomain(LocataireRequest request);
 
     @Mapping(target = "nomComplet", expression = "java(domain.nomComplet())")
+    @Mapping(target = "pieceChargee", expression = "java(domain.aPieceIdentite())")
     LocataireResponse toResponse(Locataire domain);
 
     @Mapping(target = "id", source = "locataire.id")

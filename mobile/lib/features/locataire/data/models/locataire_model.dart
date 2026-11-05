@@ -15,6 +15,12 @@ abstract final class LocataireModel {
         adresse: json['adresse'] as String?,
         contactUrgenceNom: json['contactUrgenceNom'] as String?,
         contactUrgenceTelephone: json['contactUrgenceTelephone'] as String?,
+        pieceChargee: json['pieceChargee'] as bool? ?? false,
+        pieceNom: json['pieceNom'] as String?,
+        pieceType: json['pieceType'] as String?,
+        pieceTaille: (json['pieceTaille'] as num?)?.toInt(),
+        pieceChargeeLe: parseDate(json['pieceChargeeLe']),
+        pieceChargeePar: json['pieceChargeePar'] as String?,
       );
 
   static Map<String, dynamic> toJson(Locataire l) => {

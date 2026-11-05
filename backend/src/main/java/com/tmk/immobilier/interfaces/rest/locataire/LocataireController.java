@@ -12,9 +12,16 @@ import com.tmk.immobilier.interfaces.rest.locataire.mapper.LocataireRestMapper;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.core.io.InputStreamResource;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.io.IOException;
+
+import static com.tmk.immobilier.interfaces.rest.common.ReponsesFichier.fichier;
 
 @RestController
 @RequestMapping("/api/locataires")
@@ -28,6 +35,8 @@ public class LocataireController {
     private final GetLocataireByIdUseCase getLocataireByIdUseCase;
     private final GetLocatairesUseCase getLocatairesUseCase;
     private final GetLocataireResumesUseCase getLocataireResumesUseCase;
+    private final DeposerPieceIdentiteUseCase deposerPieceIdentiteUseCase;
+    private final GetPieceIdentiteUseCase getPieceIdentiteUseCase;
     private final LocataireRestMapper mapper;
 
     @PostMapping
@@ -76,5 +85,20 @@ public class LocataireController {
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         deleteLocataireUseCase.execute(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping(value = "/{id}/piece-identite", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "Charger la pièce d'identité",
+            description = "PDF ou photo (JPEG, PNG) ; remplace la copie précédemment chargée")
+    public LocataireResponse deposerPieceIdentite(@PathVariable Long id,
+                                                  @RequestPart("fichier") MultipartFile fichier) throws IOException {
+        return mapper.toResponse(deposerPieceIdentiteUseCase.execute(id, fichier.getOriginalFilename(),
+                fichier.getContentType(), fichier.getSize(), fichier.getInputStream()));
+    }
+
+    @GetMapping("/{id}/piece-identite")
+    @Operation(summary = "Télécharger la pièce d'identité")
+    public ResponseEntity<InputStreamResource> telechargerPieceIdentite(@PathVariable Long id) {
+        return fichier(getPieceIdentiteUseCase.execute(id));
     }
 }

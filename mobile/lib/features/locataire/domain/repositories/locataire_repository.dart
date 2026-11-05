@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:fpdart/fpdart.dart';
 
 import '../../../../core/error/failure.dart';
@@ -20,4 +22,9 @@ abstract interface class LocataireRepository {
   Future<Either<Failure, Locataire>> update(int id, Locataire locataire);
 
   Future<Either<Failure, void>> delete(int id);
+
+  Future<Either<Failure, Locataire>> deposerPieceIdentite(int id,
+      {required Uint8List contenu, required String nomFichier, required String type});
+
+  Future<Either<Failure, Uint8List>> telechargerPieceIdentite(int id);
 }

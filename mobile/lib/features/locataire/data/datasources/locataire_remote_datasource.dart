@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import '../../../../core/network/api_client.dart';
 import '../../../../core/network/page_result.dart';
 import '../../domain/entities/locataire.dart';
@@ -44,4 +46,11 @@ class LocataireRemoteDatasource {
       await _client.put('/locataires/$id', LocataireModel.toJson(l)) as Map<String, dynamic>);
 
   Future<void> delete(int id) => _client.delete('/locataires/$id');
+
+  Future<Locataire> deposerPieceIdentite(int id,
+          {required Uint8List contenu, required String nomFichier, required String type}) async =>
+      LocataireModel.fromJson(await _client.postFichier('/locataires/$id/piece-identite',
+          champ: 'fichier', contenu: contenu, nomFichier: nomFichier, type: type) as Map<String, dynamic>);
+
+  Future<Uint8List> telechargerPieceIdentite(int id) => _client.getBytes('/locataires/$id/piece-identite');
 }

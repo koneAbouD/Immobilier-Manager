@@ -14,13 +14,15 @@ public class UpdateLocataireUseCase {
 
     @Transactional
     public Locataire execute(Long id, Locataire modifications) {
-        locataireRepository.findById(id).orElseThrow(() -> ResourceNotFoundException.of("Locataire", id));
+        Locataire existant = locataireRepository.findById(id)
+                .orElseThrow(() -> ResourceNotFoundException.of("Locataire", id));
         String telephone = TelephoneNormalizer.normaliser(modifications.getTelephone());
         if (locataireRepository.existsByTelephoneAndIdNot(telephone, id)) {
             throw ResourceAlreadyExistsException.of("Locataire", "téléphone", telephone);
         }
         modifications.setId(id);
         modifications.setTelephone(telephone);
+        modifications.conserverPieceIdentiteDe(existant);
         return locataireRepository.save(modifications);
     }
 }

@@ -1,5 +1,6 @@
 package com.tmk.immobilier.application.usecases.contrat;
 
+import com.tmk.immobilier.application.common.DocumentFichier;
 import com.tmk.immobilier.application.domain.bail.Bail;
 import com.tmk.immobilier.application.exception.ResourceNotFoundException;
 import com.tmk.immobilier.application.ports.document.ContratBailGenerateurPort;
@@ -20,12 +21,12 @@ public class GenererContratBailUseCase {
     private final ContratBailGenerateurPort generateur;
 
     @Transactional
-    public DocumentContrat execute(Long bailId) {
+    public DocumentFichier execute(Long bailId) {
         Bail bail = bailRepository.findById(bailId).orElseThrow(() -> ResourceNotFoundException.of("Bail", bailId));
         byte[] pdf = generateur.generer(bail);
         bail.marquerContratGenere();
         bailRepository.save(bail);
-        return new DocumentContrat("Contrat-" + bail.getReference() + ".pdf", "application/pdf", pdf.length,
+        return new DocumentFichier("Contrat-" + bail.getReference() + ".pdf", "application/pdf", pdf.length,
                 new ByteArrayInputStream(pdf));
     }
 }

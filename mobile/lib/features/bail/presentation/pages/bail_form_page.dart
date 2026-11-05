@@ -186,7 +186,7 @@ class _BailFormPageState extends ConsumerState<BailFormPage> {
   }
 
   Future<void> _chargerSigne() async {
-    final maj = await chargerContratSigne(context, _bail!);
+    final maj = await chargerContratSigne(context, ref, _bail!);
     if (maj != null && mounted) setState(() => _bail = maj);
   }
 

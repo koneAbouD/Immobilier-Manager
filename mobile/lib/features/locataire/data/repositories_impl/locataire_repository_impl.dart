@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:fpdart/fpdart.dart';
 
 import '../../../../core/error/failure.dart';
@@ -38,4 +40,13 @@ class LocataireRepositoryImpl implements LocataireRepository {
 
   @override
   Future<Either<Failure, void>> delete(int id) => guard(() => _ds.delete(id));
+
+  @override
+  Future<Either<Failure, Locataire>> deposerPieceIdentite(int id,
+          {required Uint8List contenu, required String nomFichier, required String type}) =>
+      guard(() => _ds.deposerPieceIdentite(id, contenu: contenu, nomFichier: nomFichier, type: type));
+
+  @override
+  Future<Either<Failure, Uint8List>> telechargerPieceIdentite(int id) =>
+      guard(() => _ds.telechargerPieceIdentite(id));
 }

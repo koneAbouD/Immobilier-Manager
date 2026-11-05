@@ -5,9 +5,11 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../core/widgets/app_header.dart';
+import '../../../../core/widgets/capture_document.dart';
 import '../../../../core/widgets/detail_carte.dart';
 import '../../../../core/widgets/dialogs.dart';
 import '../../../../core/widgets/feedback.dart';
+import '../../../../core/widgets/form_fields.dart';
 import '../../../../core/widgets/liste_carte.dart';
 import '../../../bail/domain/entities/bail.dart';
 import '../../../bail/presentation/pages/bail_detail_page.dart';
@@ -76,6 +78,47 @@ class _LocataireDetailPageState extends ConsumerState<LocataireDetailPage> {
     if (await ouvrirEcheance(context, e)) _rafraichir();
   }
 
+  /// Photographie la pièce d'identité, la réunit en PDF et l'archive.
+  Future<void> _chargerPiece(Locataire l) async {
+    final ok = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => CaptureDocumentPage(
+          titre: 'Pièce d\'identité',
+          sousTitre: [l.nomComplet, l.typePiece?.libelle, l.numeroPiece].whereType<String>().join(' · '),
+          nomFichier: 'Piece-identite-${l.nom}-${l.prenom}.pdf'.replaceAll(' ', '-'),
+          libelleEnvoi: 'Archiver la pièce d\'identité',
+          aidePhoto: 'Recto puis verso, réunis en un seul PDF',
+          messageSucces: 'Pièce d\'identité archivée.',
+          envoyer: (pdf, nom) async {
+            final result = await ref
+                .read(locataireRepositoryProvider)
+                .deposerPieceIdentite(l.id!, contenu: pdf, nomFichier: nom, type: 'application/pdf');
+            return result.fold((f) => f.message, (_) => null);
+          },
+        ),
+      ),
+    );
+    if (ok == true) _rafraichir();
+  }
+
+  Future<void> _voirPiece(Locataire l) async {
+    final result = await ref.read(locataireRepositoryProvider).telechargerPieceIdentite(l.id!);
+    if (!mounted) return;
+    result.fold((f) => showError(context, f.message), (contenu) {
+      final estPdf = l.pieceType == null || l.pieceType == 'application/pdf';
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => estPdf
+              ? ApercuPdfPage(
+                  titre: 'Pièce d\'identité', nomFichier: l.pieceNom ?? 'Piece-identite.pdf', pdf: contenu)
+              : ApercuImagePage(titre: 'Pièce d\'identité', image: contenu),
+        ),
+      );
+    });
+  }
+
   Future<void> _supprimer(Locataire l) async {
     final ok = await confirmer(context,
         titre: 'Supprimer le locataire ?',
@@ -117,6 +160,13 @@ class _LocataireDetailPageState extends ConsumerState<LocataireDetailPage> {
               padding: const EdgeInsets.fromLTRB(16, 4, 16, 32),
               children: [
                 _Profil(locataire: l, baux: baux.valueOrNull),
+                const SizedBox(height: 10),
+                Center(
+                  child: _PastillePiece(
+                    chargee: l.pieceChargee,
+                    onTap: () => l.pieceChargee ? _voirPiece(l) : _chargerPiece(l),
+                  ),
+                ),
                 const SizedBox(height: 16),
                 _Contacts(telephone: l.telephone),
                 const SizedBox(height: 16),
@@ -141,7 +191,11 @@ class _LocataireDetailPageState extends ConsumerState<LocataireDetailPage> {
                       onNouveau: () => _ouvrir(BailFormPage(locataireInitial: l)),
                     ),
                   _Onglet.paiements => _OngletPaiements(locataireId: _id),
-                  _Onglet.infos => _OngletInfos(locataire: l),
+                  _Onglet.infos => _OngletInfos(
+                      locataire: l,
+                      onChargerPiece: () => _chargerPiece(l),
+                      onVoirPiece: () => _voirPiece(l),
+                    ),
                 },
               ],
             ),
@@ -533,8 +587,10 @@ class _OngletPaiements extends ConsumerWidget {
 
 class _OngletInfos extends StatelessWidget {
   final Locataire locataire;
+  final VoidCallback onChargerPiece;
+  final VoidCallback onVoirPiece;
 
-  const _OngletInfos({required this.locataire});
+  const _OngletInfos({required this.locataire, required this.onChargerPiece, required this.onVoirPiece});
 
   @override
   Widget build(BuildContext context) {
@@ -545,18 +601,141 @@ class _OngletInfos extends StatelessWidget {
         DetailInfoRow(Icons.alternate_email_rounded, 'E-mail', l.email),
         DetailInfoRow(Icons.place_outlined, 'Adresse', l.adresse),
       ]),
-      DetailInfoCard(titre: 'Identité', icon: Icons.badge_outlined, children: [
+      DetailInfoCard(titre: 'Identité', icon: Icons.person_outline_rounded, children: [
         DetailInfoRow(Icons.work_outline_rounded, 'Profession', l.profession),
         DetailInfoRow(Icons.cake_outlined, 'Né(e) le',
             l.dateNaissance == null ? null : formatDate(l.dateNaissance)),
-        DetailInfoRow(Icons.badge_outlined, 'Pièce',
-            [l.typePiece?.libelle, l.numeroPiece].whereType<String>().join(' n° ')),
       ]),
+      _CartePiece(locataire: l, onCharger: onChargerPiece, onVoir: onVoirPiece),
       if (l.contactUrgenceNom != null || l.contactUrgenceTelephone != null)
         DetailInfoCard(titre: 'Contact d\'urgence', icon: Icons.emergency_outlined, children: [
           DetailInfoRow(Icons.person_outline, 'Nom', l.contactUrgenceNom),
           DetailInfoRow(Icons.phone_outlined, 'Téléphone', l.contactUrgenceTelephone),
         ]),
     ]);
+  }
+}
+
+// ── Pièce d'identité ────────────────────────────────────────────────────────
+
+/// Pastille sous le nom : invite à numériser la pièce, ou confirme qu'elle
+/// est archivée (et l'ouvre).
+class _PastillePiece extends StatelessWidget {
+  final bool chargee;
+  final VoidCallback onTap;
+
+  const _PastillePiece({required this.chargee, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final couleur = chargee ? AppColors.positive : AppColors.warning;
+    return Material(
+      color: couleur.withValues(alpha: 0.10),
+      borderRadius: BorderRadius.circular(20),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(20),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          child: Row(mainAxisSize: MainAxisSize.min, children: [
+            Icon(chargee ? Icons.verified_user_outlined : Icons.add_a_photo_outlined, size: 15, color: couleur),
+            const SizedBox(width: 6),
+            Text(chargee ? 'Pièce d\'identité archivée' : 'Ajouter la pièce d\'identité',
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: couleur)),
+          ]),
+        ),
+      ),
+    );
+  }
+}
+
+/// Carte de la pièce d'identité : type et numéro, copie numérisée et actions.
+class _CartePiece extends StatelessWidget {
+  final Locataire locataire;
+  final VoidCallback onCharger;
+  final VoidCallback onVoir;
+
+  const _CartePiece({required this.locataire, required this.onCharger, required this.onVoir});
+
+  @override
+  Widget build(BuildContext context) {
+    final l = locataire;
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        Row(children: [
+          Icon(Icons.badge_outlined, size: 18, color: AppColors.primaryDark),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text('Pièce d\'identité',
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.dark)),
+          ),
+        ]),
+        const SizedBox(height: 12),
+        DetailInfoRow(Icons.badge_outlined, 'Type', l.typePiece?.libelle),
+        DetailInfoRow(Icons.numbers_rounded, 'Numéro', l.numeroPiece),
+        if (l.pieceChargee) ...[
+          Material(
+            color: AppColors.blanc,
+            borderRadius: BorderRadius.circular(12),
+            child: InkWell(
+              onTap: onVoir,
+              borderRadius: BorderRadius.circular(12),
+              child: Ink(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.border),
+                ),
+                child: Row(children: [
+                  Container(
+                    width: 38,
+                    height: 38,
+                    decoration: BoxDecoration(
+                      color: AppColors.error.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(Icons.picture_as_pdf_rounded, color: AppColors.error, size: 20),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Text(l.pieceNom ?? 'Pièce d\'identité',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.dark)),
+                      Text(
+                          'Chargée le ${formatDate(l.pieceChargeeLe)}'
+                          '${l.pieceChargeePar != null ? ' par ${l.pieceChargeePar}' : ''}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(fontSize: 11.5, color: AppColors.label)),
+                    ]),
+                  ),
+                  Icon(Icons.visibility_outlined, size: 20, color: AppColors.primaryDark),
+                ]),
+              ),
+            ),
+          ),
+          const SizedBox(height: 10),
+          BoutonSecondaire(label: 'Remplacer la copie', icon: Icons.photo_camera_outlined, onPressed: onCharger),
+        ] else ...[
+          Text('Aucune copie numérisée pour le moment.',
+              style: TextStyle(fontSize: 12.5, color: AppColors.label)),
+          const SizedBox(height: 12),
+          BoutonPrincipal(
+            label: 'Photographier la pièce',
+            icon: Icons.photo_camera_outlined,
+            onPressed: onCharger,
+          ),
+        ],
+      ]),
+    );
   }
 }

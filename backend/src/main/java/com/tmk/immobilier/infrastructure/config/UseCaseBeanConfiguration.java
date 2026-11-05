@@ -140,6 +140,19 @@ public class UseCaseBeanConfiguration {
         return new GetLocataireResumesUseCase(locataireRepo);
     }
 
+    @Bean
+    public DeposerPieceIdentiteUseCase deposerPieceIdentiteUseCase(LocataireRepository locataireRepo,
+                                                                   StockageDocumentsPort stockage,
+                                                                   AuteurCourantPort auteurCourant) {
+        return new DeposerPieceIdentiteUseCase(locataireRepo, stockage, auteurCourant);
+    }
+
+    @Bean
+    public GetPieceIdentiteUseCase getPieceIdentiteUseCase(LocataireRepository locataireRepo,
+                                                           StockageDocumentsPort stockage) {
+        return new GetPieceIdentiteUseCase(locataireRepo, stockage);
+    }
+
     // ----- Loyers -----
     @Bean
     public GenererEcheancesUseCase genererEcheancesUseCase(BailRepository bailRepo,

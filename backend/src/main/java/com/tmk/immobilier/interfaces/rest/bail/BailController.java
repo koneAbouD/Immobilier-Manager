@@ -3,7 +3,6 @@ package com.tmk.immobilier.interfaces.rest.bail;
 import com.tmk.immobilier.application.domain.bail.StatutBail;
 import com.tmk.immobilier.application.usecases.bail.*;
 import com.tmk.immobilier.application.usecases.contrat.DeposerContratSigneUseCase;
-import com.tmk.immobilier.application.usecases.contrat.DocumentContrat;
 import com.tmk.immobilier.application.usecases.contrat.GenererContratBailUseCase;
 import com.tmk.immobilier.application.usecases.contrat.GetContratSigneUseCase;
 import com.tmk.immobilier.interfaces.rest.bail.dto.request.BailConditionsRequest;
@@ -17,8 +16,6 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.InputStreamResource;
-import org.springframework.http.ContentDisposition;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -26,7 +23,8 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
+
+import static com.tmk.immobilier.interfaces.rest.common.ReponsesFichier.fichier;
 
 @RestController
 @RequestMapping("/api/baux")
@@ -106,14 +104,5 @@ public class BailController {
     @Operation(summary = "Télécharger le contrat signé")
     public ResponseEntity<InputStreamResource> telechargerContratSigne(@PathVariable Long id) {
         return fichier(getContratSigneUseCase.execute(id));
-    }
-
-    private static ResponseEntity<InputStreamResource> fichier(DocumentContrat document) {
-        ResponseEntity.BodyBuilder reponse = ResponseEntity.ok()
-                .contentType(MediaType.parseMediaType(document.type()))
-                .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.inline()
-                        .filename(document.nomFichier(), StandardCharsets.UTF_8).build().toString());
-        if (document.taille() >= 0) reponse.contentLength(document.taille());
-        return reponse.body(new InputStreamResource(document.contenu()));
     }
 }

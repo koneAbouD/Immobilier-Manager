@@ -3,6 +3,7 @@ package com.tmk.immobilier.interfaces.rest.locataire.dto.response;
 import com.tmk.immobilier.application.domain.locataire.TypePiece;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 public record LocataireResponse(
         Long id,
@@ -17,6 +18,12 @@ public record LocataireResponse(
         LocalDate dateNaissance,
         String adresse,
         String contactUrgenceNom,
-        String contactUrgenceTelephone
+        String contactUrgenceTelephone,
+        boolean pieceChargee,
+        String pieceNom,
+        String pieceType,
+        Long pieceTaille,
+        LocalDateTime pieceChargeeLe,
+        String pieceChargeePar
 ) {
 }

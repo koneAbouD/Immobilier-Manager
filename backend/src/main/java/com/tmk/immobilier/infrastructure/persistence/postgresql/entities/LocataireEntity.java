@@ -5,6 +5,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = LocataireEntity.TABLE_NAME)
@@ -53,4 +54,22 @@ public class LocataireEntity extends AbstractAuditEntity {
 
     @Column(name = "contact_urgence_telephone", length = 30)
     private String contactUrgenceTelephone;
+
+    @Column(name = "piece_cle")
+    private String pieceCle;
+
+    @Column(name = "piece_nom")
+    private String pieceNom;
+
+    @Column(name = "piece_type", length = 100)
+    private String pieceType;
+
+    @Column(name = "piece_taille")
+    private Long pieceTaille;
+
+    @Column(name = "piece_chargee_le")
+    private LocalDateTime pieceChargeeLe;
+
+    @Column(name = "piece_chargee_par", length = 100)
+    private String pieceChargeePar;
 }
