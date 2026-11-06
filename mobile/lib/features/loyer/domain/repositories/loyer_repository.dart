@@ -17,6 +17,8 @@ abstract interface class LoyerRepository {
     bool enRetard,
   });
 
+  Future<Either<Failure, Echeance>> getEcheance(int id);
+
   Future<Either<Failure, Paiement>> encaisser(int echeanceId, Paiement paiement);
 
   Future<Either<Failure, List<Paiement>>> getPaiementsEcheance(int echeanceId);
@@ -30,6 +32,7 @@ abstract interface class LoyerRepository {
 
   Future<Either<Failure, Paiement>> annulerPaiement(int paiementId, String motif);
 
-  /// Émet les loyers manquants jusqu'au mois courant ; renvoie le nombre créé.
-  Future<Either<Failure, int>> genererEcheances();
+  /// Émet les loyers manquants jusqu'au mois [jusquA] (par défaut le dernier
+  /// mois émis automatiquement), pour un bail ou pour tous ; renvoie le nombre créé.
+  Future<Either<Failure, int>> genererEcheances({DateTime? jusquA, int? bailId});
 }

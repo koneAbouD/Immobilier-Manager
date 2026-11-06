@@ -9,6 +9,7 @@ import '../../../../core/widgets/detail_carte.dart';
 import '../../../../core/widgets/dialogs.dart';
 import '../../../../core/widgets/feedback.dart';
 import '../../../../core/widgets/form_fields.dart';
+import '../../../loyer/presentation/widgets/creation_loyers_sheet.dart';
 import '../../../loyer/presentation/widgets/echeances_liste.dart';
 import '../../domain/entities/bail.dart';
 import '../providers/bail_providers.dart';
@@ -100,6 +101,14 @@ class _BailDetailPageState extends ConsumerState<BailDetailPage> {
                   DetailInfoRow(Icons.person_outline, 'Par', b.resiliePar),
                 ]),
               if (b.estActif) ...[
+                BoutonSecondaire(
+                  label: 'Créer des loyers à l\'avance',
+                  icon: Icons.playlist_add_rounded,
+                  onPressed: () async {
+                    if (await creerLoyers(context, bail: b) != null) _rafraichir();
+                  },
+                ),
+                const SizedBox(height: 10),
                 BoutonSecondaire(
                   label: 'Résilier le bail',
                   icon: Icons.logout_rounded,

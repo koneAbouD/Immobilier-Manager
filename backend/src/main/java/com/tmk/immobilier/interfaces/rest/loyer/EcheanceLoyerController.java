@@ -19,6 +19,7 @@ import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.List;
 
@@ -57,12 +58,14 @@ public class EcheanceLoyerController {
 
     @PostMapping("/generer")
     @Operation(summary = "Émettre les loyers",
-            description = "Émet les loyers manquants des baux actifs jusqu'au mois donné (idempotent). "
-                    + "Le scheduler le fait chaque nuit pour le mois courant.")
+            description = "Émet les loyers manquants jusqu'au mois donné (idempotent), pour un bail ou pour "
+                    + "tous les baux actifs ; au plus 12 mois d'avance. Sans mois, s'arrête au dernier mois "
+                    + "émis automatiquement (le mois courant à partir du 25).")
     public GenerationEcheancesResponse generer(
-            @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM") YearMonth jusquA) {
-        YearMonth mois = jusquA != null ? jusquA : YearMonth.now();
-        return new GenerationEcheancesResponse(mois, genererEcheancesUseCase.execute(mois));
+            @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM") YearMonth jusquA,
+            @RequestParam(required = false) Long bailId) {
+        YearMonth mois = jusquA != null ? jusquA : GenererEcheancesUseCase.dernierMoisEmis(LocalDate.now());
+        return new GenerationEcheancesResponse(mois, genererEcheancesUseCase.executeManuelle(bailId, mois));
     }
 
     @PostMapping("/{id}/paiements")

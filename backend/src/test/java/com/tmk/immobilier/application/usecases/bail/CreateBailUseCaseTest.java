@@ -18,7 +18,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.YearMonth;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -64,7 +63,8 @@ class CreateBailUseCaseTest {
         assertThat(bail.getReference()).isEqualTo("BAIL-00042");
         // Sans conditions propres, le bail reprend celles du logement.
         assertThat(bail.montantMensuel()).isEqualByComparingTo("125000");
-        verify(genererEcheancesUseCase).executePourBail(eq(bail), eq(YearMonth.now()));
+        verify(genererEcheancesUseCase).executePourBail(eq(bail),
+                eq(GenererEcheancesUseCase.dernierMoisEmis(LocalDate.now())));
     }
 
     @Test

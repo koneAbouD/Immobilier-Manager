@@ -35,6 +35,9 @@ class LoyerRepositoryImpl implements LoyerRepository {
           ));
 
   @override
+  Future<Either<Failure, Echeance>> getEcheance(int id) => guard(() => _ds.getEcheance(id));
+
+  @override
   Future<Either<Failure, Paiement>> encaisser(int echeanceId, Paiement paiement) =>
       guard(() => _ds.encaisser(echeanceId, paiement));
 
@@ -53,5 +56,6 @@ class LoyerRepositoryImpl implements LoyerRepository {
       guard(() => _ds.annulerPaiement(paiementId, motif));
 
   @override
-  Future<Either<Failure, int>> genererEcheances() => guard(_ds.genererEcheances);
+  Future<Either<Failure, int>> genererEcheances({DateTime? jusquA, int? bailId}) =>
+      guard(() => _ds.genererEcheances(jusquA: jusquA, bailId: bailId));
 }

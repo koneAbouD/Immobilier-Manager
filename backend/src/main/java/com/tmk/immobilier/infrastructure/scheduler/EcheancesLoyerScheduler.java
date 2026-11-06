@@ -6,12 +6,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
-import java.time.YearMonth;
 
 /**
- * Émet chaque jour les loyers du mois courant pour les baux actifs. La
- * génération étant idempotente, un passage quotidien (plutôt que le 1er du
- * mois seulement) rattrape tout arrêt du serveur.
+ * Émet chaque jour les loyers dus des baux actifs : celui du mois courant à
+ * partir du 25, les mois précédents sinon. La génération étant idempotente, un
+ * passage quotidien rattrape tout arrêt du serveur.
  */
 @Slf4j
 @Component
@@ -22,7 +21,7 @@ public class EcheancesLoyerScheduler {
 
     @Scheduled(cron = "${app.scheduler.echeances-loyer-cron}", zone = "Africa/Abidjan")
     public void genererEcheancesDuMois() {
-        int creees = genererEcheancesUseCase.execute(YearMonth.now());
-        if (creees > 0) log.info("{} échéance(s) de loyer émise(s) pour {}", creees, YearMonth.now());
+        int creees = genererEcheancesUseCase.executeAutomatique();
+        if (creees > 0) log.info("{} échéance(s) de loyer émise(s)", creees);
     }
 }

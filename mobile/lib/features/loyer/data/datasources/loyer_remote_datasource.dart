@@ -32,6 +32,9 @@ class LoyerRemoteDatasource {
     return PageResult.fromJson(data as Map<String, dynamic>, EcheanceModel.fromJson);
   }
 
+  Future<Echeance> getEcheance(int id) async =>
+      EcheanceModel.fromJson(await _client.get('/loyers/echeances/$id') as Map<String, dynamic>);
+
   Future<Paiement> encaisser(int echeanceId, Paiement p) async => PaiementModel.fromJson(
       await _client.post('/loyers/echeances/$echeanceId/paiements', PaiementModel.toJson(p))
           as Map<String, dynamic>);
@@ -56,8 +59,17 @@ class LoyerRemoteDatasource {
       PaiementModel.fromJson(await _client
           .patch('/loyers/paiements/$paiementId/annuler', {'motif': motif}) as Map<String, dynamic>);
 
-  Future<int> genererEcheances() async {
-    final data = await _client.post('/loyers/echeances/generer') as Map<String, dynamic>;
+  /// Émet les loyers manquants jusqu'au mois [jusquA] (par défaut le dernier
+  /// mois émis automatiquement), pour un bail ou pour tous les baux actifs.
+  Future<int> genererEcheances({DateTime? jusquA, int? bailId}) async {
+    final query = {
+      if (jusquA != null) 'jusquA': isoMois(jusquA),
+      if (bailId != null) 'bailId': '$bailId',
+    };
+    final chemin = query.isEmpty
+        ? '/loyers/echeances/generer'
+        : '/loyers/echeances/generer?${Uri(queryParameters: query).query}';
+    final data = await _client.post(chemin) as Map<String, dynamic>;
     return (data['nombreCreees'] as num).toInt();
   }
 }

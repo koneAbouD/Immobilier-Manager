@@ -13,7 +13,7 @@ import com.tmk.immobilier.application.usecases.loyer.GenererEcheancesUseCase;
 import lombok.RequiredArgsConstructor;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.YearMonth;
+import java.time.LocalDate;
 
 /**
  * Signature d'un bail : le logement passe occupé et les loyers dus depuis le
@@ -59,7 +59,8 @@ public class CreateBailUseCase {
         saved.setReference(String.format("BAIL-%05d", saved.getId()));
         saved = bailRepository.save(saved);
 
-        genererEcheancesUseCase.executePourBail(saved, YearMonth.now());
+        // Mêmes règles que l'émission automatique : le mois en cours attend le 25.
+        genererEcheancesUseCase.executePourBail(saved, GenererEcheancesUseCase.dernierMoisEmis(LocalDate.now()));
         return saved;
     }
 }

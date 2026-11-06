@@ -17,6 +17,7 @@ import java.time.YearMonth;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
@@ -64,5 +65,21 @@ class GenererEcheancesUseCaseTest {
 
         assertThat(creees).isZero();
         verify(echeanceLoyerRepository, never()).saveAll(any());
+    }
+
+    @Test
+    void leMoisCourantNEstEmisQuAPartirDu25() {
+        assertThat(GenererEcheancesUseCase.dernierMoisEmis(LocalDate.of(2026, 11, 6))).isEqualTo(YearMonth.of(2026, 10));
+        assertThat(GenererEcheancesUseCase.dernierMoisEmis(LocalDate.of(2026, 11, 24))).isEqualTo(YearMonth.of(2026, 10));
+        assertThat(GenererEcheancesUseCase.dernierMoisEmis(LocalDate.of(2026, 11, 25))).isEqualTo(YearMonth.of(2026, 11));
+        assertThat(GenererEcheancesUseCase.dernierMoisEmis(LocalDate.of(2027, 1, 3))).isEqualTo(YearMonth.of(2026, 12));
+    }
+
+    @Test
+    void refuseUneCreationManuelleTropLointaine() {
+        assertThatThrownBy(
+                        () -> useCase.executeManuelle(null, YearMonth.now().plusMonths(13)))
+                .hasMessageContaining("12 mois");
+        verifyNoInteractions(bailRepository, echeanceLoyerRepository);
     }
 }
