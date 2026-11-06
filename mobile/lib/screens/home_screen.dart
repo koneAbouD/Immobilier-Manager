@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../core/theme/app_colors.dart';
 import '../core/widgets/app_header.dart';
-import '../core/widgets/header_tabs_pills.dart';
 import '../features/immeuble/presentation/pages/immeubles_page.dart';
 import '../features/locataire/presentation/pages/locataires_page.dart';
 import '../features/loyer/presentation/pages/loyers_page.dart';
@@ -29,9 +28,6 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int _index = _accueilNavIndex;
 
-  /// Sous-onglet du hub Loyers (Échéances / Paiements), posé dans l'en-tête.
-  int _ongletLoyers = 0;
-
   void _naviguer(int i) => setState(() => _index = i);
 
   @override
@@ -39,8 +35,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final page = switch (_index) {
       _biensNavIndex => const ImmeublesPage(),
       _locatairesNavIndex => const LocatairesPage(),
-      _loyersNavIndex => LoyersPage(
-          key: ValueKey('loyers-$_ongletLoyers'), onglet: _ongletLoyers),
+      _loyersNavIndex => const LoyersPage(),
       _travauxNavIndex => const MaintenancesPage(),
       _ => TableauBordPage(onNaviguer: _naviguer),
     };
@@ -57,6 +52,7 @@ class _HomeScreenState extends State<HomeScreen> {
           title: switch (_index) {
             _biensNavIndex => 'Biens immobiliers',
             _locatairesNavIndex => 'Locataires',
+            _loyersNavIndex => 'Loyers',
             _travauxNavIndex => 'Maintenances',
             _ => '',
           },
@@ -73,11 +69,6 @@ class _HomeScreenState extends State<HomeScreen> {
               : null,
           center: switch (_index) {
             _accueilNavIndex => const _Salutation(),
-            _loyersNavIndex => HeaderTabsPills(
-                labels: const ['Échéances', 'Paiements'],
-                index: _ongletLoyers,
-                onSelected: (i) => setState(() => _ongletLoyers = i),
-              ),
             _ => null,
           },
         ),

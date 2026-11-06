@@ -5,11 +5,9 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../core/widgets/date_filter_dialogs.dart';
 import '../../../../core/widgets/feedback.dart';
-import '../../../../core/widgets/liste_carte.dart';
 import '../../../../core/widgets/paged_list_view.dart';
 import '../../../../core/widgets/statut_filtre_chip.dart';
 import '../../domain/entities/echeance.dart';
-import '../../domain/entities/paiement.dart';
 import '../providers/loyer_providers.dart';
 import '../widgets/echeance_tile.dart';
 import '../../../tableau_bord/domain/entities/tableau_bord.dart';
@@ -17,16 +15,13 @@ import '../../../tableau_bord/presentation/providers/tableau_bord_providers.dart
 import '../widgets/creation_loyers_sheet.dart';
 import '../widgets/encaissement_sheet.dart';
 
-/// Onglet « Loyers » : loyers émis par mois et journal des paiements. Le
-/// sous-onglet est choisi par les pastilles de l'en-tête (HomeScreen).
+/// Onglet « Loyers » : les loyers émis, mois par mois. Les paiements se
+/// consultent sur la fiche de chaque loyer.
 class LoyersPage extends StatelessWidget {
-  /// 0 = Échéances, 1 = Paiements.
-  final int onglet;
-
-  const LoyersPage({super.key, this.onglet = 0});
+  const LoyersPage({super.key});
 
   @override
-  Widget build(BuildContext context) => onglet == 0 ? const _EcheancesTab() : const _PaiementsTab();
+  Widget build(BuildContext context) => const _EcheancesTab();
 }
 
 /// Filtre rapide des loyers.
@@ -247,30 +242,6 @@ class _Chiffre extends StatelessWidget {
               color: AppColors.dark,
               letterSpacing: fort ? -0.4 : 0)),
     ]);
-  }
-}
-
-class _PaiementsTab extends ConsumerWidget {
-  const _PaiementsTab();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final repo = ref.watch(loyerRepositoryProvider);
-    return PagedListView<Paiement>(
-      fetcher: (page, size) => repo.getPaiements(page: page, size: size),
-      emptyIcon: Icons.payments_outlined,
-      emptyMessage: 'Aucun paiement enregistré.',
-      itemBuilder: (context, p) => ListeCarte(
-        icon: p.annule ? Icons.block_rounded : Icons.trending_up_rounded,
-        couleur: p.annule ? AppColors.hint : AppColors.positive,
-        titre: p.locataireNom ?? '',
-        valeur: formatMontant(p.montant),
-        barre: p.annule,
-        sousTitre: '${formatMois(p.periode)} · ${p.appartementReference ?? ''}',
-        detail: '${formatDate(p.datePaiement)} · ${p.modePaiement.libelle}',
-        badge: p.annule ? PastilleStatut('Annulé', AppColors.error) : null,
-      ),
-    );
   }
 }
 
