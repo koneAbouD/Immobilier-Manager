@@ -94,11 +94,21 @@ Future<LatLng> positionActuelle() async {
   return LatLng(p.latitude, p.longitude);
 }
 
-/// Ouvre l'itinéraire vers [position] dans l'application de cartes du téléphone.
-Future<bool> ouvrirItineraire(LatLng position) => launchUrl(
-      Uri.parse('https://www.google.com/maps/dir/?api=1&destination=${position.latitude},${position.longitude}'),
+/// Ouvre dans Google Maps l'itinéraire vers [destination], au départ de
+/// [origine] ; sans origine, Google Maps part de la position du téléphone.
+Future<bool> ouvrirItineraire(LatLng destination, {LatLng? origine}) => launchUrl(
+      Uri.https('www.google.com', '/maps/dir/', {
+        'api': '1',
+        if (origine != null) 'origin': coordonneesGoogle(origine),
+        'destination': coordonneesGoogle(destination),
+        'travelmode': 'driving',
+      }),
       mode: LaunchMode.externalApplication,
     );
+
+/// « 5.360012,-4.008301 » : forme que Google Maps comprend, à coller dans sa
+/// recherche.
+String coordonneesGoogle(LatLng p) => '${p.latitude.toStringAsFixed(6)},${p.longitude.toStringAsFixed(6)}';
 
 /// « 5.360012, -4.008301 ».
 String formatPosition(LatLng p) => '${p.latitude.toStringAsFixed(6)}, ${p.longitude.toStringAsFixed(6)}';

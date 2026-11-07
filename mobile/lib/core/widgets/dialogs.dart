@@ -161,11 +161,13 @@ Future<bool> dialogueSaisie(
   return ok ?? false;
 }
 
-/// Boîte d'information à un seul bouton « Fermer ».
+/// Boîte d'information à un seul bouton « Fermer » ; [contenu] remplace le
+/// [message] quand il faut plus qu'un texte.
 Future<void> informer(
   BuildContext context, {
   required String titre,
-  required String message,
+  String message = '',
+  Widget? contenu,
   IconData icone = Icons.info_outline_rounded,
 }) =>
     showDialog<void>(
@@ -174,7 +176,7 @@ Future<void> informer(
         shape: _forme,
         title: _titre(titre, icone, AppColors.info),
         contentPadding: _contentPadding,
-        content: _message(message),
+        content: contenu ?? _message(message),
         actionsPadding: _actionsPadding,
         actions: [_boutonAction('Fermer', () => Navigator.pop(ctx))],
       ),
