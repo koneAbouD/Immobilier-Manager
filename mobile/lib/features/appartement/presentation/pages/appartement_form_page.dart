@@ -6,10 +6,12 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/app_header.dart';
 import '../../../../core/widgets/feedback.dart';
 import '../../../../core/widgets/form_fields.dart';
+import '../../../immeuble/domain/entities/immeuble.dart';
+import '../../../immeuble/presentation/providers/immeuble_providers.dart';
 import '../../domain/entities/appartement.dart';
 import '../providers/appartement_providers.dart';
 
-/// Création d'un logement dans un immeuble, ou modification d'un logement.
+/// Création d'un local dans un bien, ou modification d'un local.
 class AppartementFormPage extends ConsumerStatefulWidget {
   final int immeubleId;
   final Appartement? appartement;
@@ -34,6 +36,10 @@ class _AppartementFormPageState extends ConsumerState<AppartementFormPage> {
   late StatutAppartement _statut = a?.statut ?? StatutAppartement.libre;
   bool _envoi = false;
 
+  /// Vrai si le bien du local est un immeuble (lecture ponctuelle : build
+  /// l'écoute de son côté).
+  bool get _avecEtage => ref.read(immeubleDetailProvider(widget.immeubleId)).valueOrNull?.type == TypeBien.immeuble;
+
   bool get _edition => a != null;
 
   /// OCCUPE est piloté par les baux : il n'est jamais proposé à la saisie.
@@ -53,7 +59,7 @@ class _AppartementFormPageState extends ConsumerState<AppartementFormPage> {
     final saisie = Appartement(
       immeubleId: widget.immeubleId,
       reference: _reference.text.trim(),
-      etage: int.tryParse(_etage.text),
+      etage: _avecEtage ? int.tryParse(_etage.text) : null,
       type: _type!,
       superficie: parseMontantSaisi(_superficie.text),
       nombrePieces: int.tryParse(_pieces.text),
@@ -67,15 +73,18 @@ class _AppartementFormPageState extends ConsumerState<AppartementFormPage> {
     if (!mounted) return;
     setState(() => _envoi = false);
     result.fold((f) => showError(context, f.message), (_) {
-      showSuccess(context, _edition ? 'Logement modifié.' : 'Logement créé.');
+      showSuccess(context, _edition ? 'Local modifié.' : 'Local créé.');
       Navigator.pop(context, true);
     });
   }
 
   @override
   Widget build(BuildContext context) {
+    // L'étage n'a de sens que dans un immeuble (une cour basse est de plain-pied).
+    final avecEtage =
+        ref.watch(immeubleDetailProvider(widget.immeubleId)).valueOrNull?.type == TypeBien.immeuble;
     return Scaffold(
-      appBar: AppHeader(title: _edition ? 'Modifier le logement' : 'Nouveau logement'),
+      appBar: AppHeader(title: _edition ? 'Modifier le local' : 'Nouveau local'),
       body: Form(
         key: _formKey,
         child: ListView(
@@ -93,8 +102,10 @@ class _AppartementFormPageState extends ConsumerState<AppartementFormPage> {
               kGapChamps,
               Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Expanded(child: ChampTexte(controller: _reference, label: 'Référence', hint: 'Ex. A01', obligatoire: true)),
-                const SizedBox(width: 12),
-                Expanded(child: ChampEntier(controller: _etage, label: 'Étage', aide: '0 = rez-de-chaussée')),
+                if (avecEtage) ...[
+                  const SizedBox(width: 12),
+                  Expanded(child: ChampEntier(controller: _etage, label: 'Étage', aide: '0 = rez-de-chaussée')),
+                ],
               ]),
               kGapChamps,
               Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -119,7 +130,7 @@ class _AppartementFormPageState extends ConsumerState<AppartementFormPage> {
                   onChanged: (s) => setState(() => _statut = s ?? StatutAppartement.libre),
                 )
               else
-                Text('Ce logement est occupé : son statut suit le bail en cours.',
+                Text('Ce local est occupé : son statut suit le bail en cours.',
                     style: TextStyle(fontSize: 13, color: AppColors.label)),
               kGapChamps,
               ChampTexte(controller: _description, label: 'Description', hint: 'Équipements, état…', maxLines: 3),

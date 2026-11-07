@@ -39,15 +39,15 @@ class _AppartementDetailPageState extends ConsumerState<AppartementDetailPage> {
 
   Future<void> _supprimer(Appartement a) async {
     final ok = await confirmer(context,
-        titre: 'Supprimer le logement ?',
-        message: 'Le logement ${a.reference} sera définitivement supprimé.',
+        titre: 'Supprimer le local ?',
+        message: 'Le local ${a.reference} sera définitivement supprimé.',
         action: 'Supprimer',
         destructive: true);
     if (!ok || !mounted) return;
     final result = await ref.read(appartementRepositoryProvider).delete(a.id!);
     if (!mounted) return;
     result.fold((f) => showError(context, f.message), (_) {
-      showSuccess(context, 'Logement supprimé.');
+      showSuccess(context, 'Local supprimé.');
       Navigator.pop(context);
     });
   }
@@ -64,7 +64,7 @@ class _AppartementDetailPageState extends ConsumerState<AppartementDetailPage> {
           body: ErrorView(message: '$e', onRetry: _rafraichir)),
       data: (a) => Scaffold(
         appBar: AppHeader(
-          title: 'Logement',
+          title: 'Local',
           action: ActionsDetail(
             onModifier: () =>
                 _ouvrir(AppartementFormPage(immeubleId: a.immeubleId, appartement: a)),
