@@ -5,6 +5,7 @@ public enum TypeLogement {
     APPARTEMENT,
     MAGASIN,
     BUREAU,
+    ENTREPOT,
     /**
      * Le terrain lui-même, loué nu. Réservé au local créé automatiquement avec
      * un bien de type terrain : il ne se crée ni ne se choisit à la main.

@@ -320,6 +320,7 @@ public class ContratBailPdfGenerateur implements ContratBailGenerateurPort {
         return switch (type) {
             case MAGASIN -> "CONTRAT DE BAIL À USAGE COMMERCIAL";
             case BUREAU -> "CONTRAT DE BAIL À USAGE PROFESSIONNEL";
+            case ENTREPOT -> "CONTRAT DE BAIL À USAGE D'ENTREPÔT";
             case APPARTEMENT -> "CONTRAT DE BAIL À USAGE D'HABITATION";
             case TERRAIN -> "CONTRAT DE BAIL DE TERRAIN";
         };
@@ -329,6 +330,7 @@ public class ContratBailPdfGenerateur implements ContratBailGenerateurPort {
         return switch (type) {
             case MAGASIN -> "commercial";
             case BUREAU -> "professionnel (bureaux)";
+            case ENTREPOT -> "d'entreposage et de stockage de marchandises";
             case APPARTEMENT -> "d'habitation";
             case TERRAIN -> "d'occupation du terrain nu, toute construction restant soumise à l'accord écrit du bailleur";
         };
@@ -338,6 +340,7 @@ public class ContratBailPdfGenerateur implements ContratBailGenerateurPort {
         return switch (type) {
             case MAGASIN -> "Magasin";
             case BUREAU -> "Bureau";
+            case ENTREPOT -> "Entrepôt";
             case APPARTEMENT -> "Appartement";
             case TERRAIN -> "Terrain";
         };

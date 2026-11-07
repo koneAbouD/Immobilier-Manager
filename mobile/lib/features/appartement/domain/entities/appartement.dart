@@ -7,6 +7,7 @@ enum TypeLogement {
   appartement('APPARTEMENT', 'Appartement', Icons.door_front_door_outlined),
   magasin('MAGASIN', 'Magasin', Icons.storefront_outlined),
   bureau('BUREAU', 'Bureau', Icons.business_center_outlined),
+  entrepot('ENTREPOT', 'Entrepôt', Icons.warehouse_outlined),
 
   /// Le terrain lui-même, loué nu : local créé avec un bien de type terrain,
   /// jamais saisi à la main.
