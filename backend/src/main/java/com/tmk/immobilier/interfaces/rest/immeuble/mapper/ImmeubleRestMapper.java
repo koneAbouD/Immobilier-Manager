@@ -1,9 +1,11 @@
 package com.tmk.immobilier.interfaces.rest.immeuble.mapper;
 
 import com.tmk.immobilier.application.domain.immeuble.Immeuble;
+import com.tmk.immobilier.application.domain.immeuble.PhotoBien;
 import com.tmk.immobilier.interfaces.rest.common.RestMapperConfig;
 import com.tmk.immobilier.interfaces.rest.immeuble.dto.request.ImmeubleRequest;
 import com.tmk.immobilier.interfaces.rest.immeuble.dto.response.ImmeubleResponse;
+import com.tmk.immobilier.interfaces.rest.immeuble.dto.response.PhotoBienResponse;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
@@ -22,4 +24,8 @@ public interface ImmeubleRestMapper {
     ImmeubleResponse toResponse(Immeuble domain);
 
     List<ImmeubleResponse> toResponseList(List<Immeuble> domains);
+
+    PhotoBienResponse toResponse(PhotoBien photo);
+
+    List<PhotoBienResponse> toPhotoResponseList(List<PhotoBien> photos);
 }

@@ -1,9 +1,12 @@
+import 'dart:typed_data';
+
 import 'package:fpdart/fpdart.dart';
 
 import '../../../../core/error/failure.dart';
 import '../../../../core/error/guard.dart';
 import '../../../../core/network/page_result.dart';
 import '../../domain/entities/immeuble.dart';
+import '../../domain/entities/photo_bien.dart';
 import '../../domain/repositories/immeuble_repository.dart';
 import '../datasources/immeuble_remote_datasource.dart';
 
@@ -32,4 +35,19 @@ class ImmeubleRepositoryImpl implements ImmeubleRepository {
 
   @override
   Future<Either<Failure, void>> delete(int id) => guard(() => _ds.delete(id));
+
+  @override
+  Future<Either<Failure, List<PhotoBien>>> getPhotos(int id) => guard(() => _ds.getPhotos(id));
+
+  @override
+  Future<Either<Failure, PhotoBien>> ajouterPhoto(int id,
+          {required Uint8List contenu, required String nomFichier, required String type}) =>
+      guard(() => _ds.ajouterPhoto(id, contenu: contenu, nomFichier: nomFichier, type: type));
+
+  @override
+  Future<Either<Failure, Uint8List>> telechargerPhoto(int id, int photoId) =>
+      guard(() => _ds.telechargerPhoto(id, photoId));
+
+  @override
+  Future<Either<Failure, void>> supprimerPhoto(int id, int photoId) => guard(() => _ds.supprimerPhoto(id, photoId));
 }

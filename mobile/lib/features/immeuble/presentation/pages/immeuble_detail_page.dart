@@ -12,7 +12,6 @@ import '../../../../core/widgets/dialogs.dart';
 import '../../../../core/widgets/feedback.dart';
 import '../../../../core/widgets/form_fields.dart';
 import '../../../../core/widgets/liste_carte.dart';
-import '../../../../core/widgets/paged_list_view.dart';
 import '../../../appartement/domain/entities/appartement.dart';
 import '../../../appartement/presentation/pages/appartement_detail_page.dart';
 import '../../../appartement/presentation/pages/appartement_form_page.dart';
@@ -21,6 +20,7 @@ import '../../../bail/presentation/pages/bail_form_page.dart';
 import '../../../bail/presentation/widgets/baux_liste.dart';
 import '../../domain/entities/immeuble.dart';
 import '../providers/immeuble_providers.dart';
+import '../widgets/galerie_photos_bien.dart';
 import 'immeuble_form_page.dart';
 
 /// Local unique d'un terrain : le terrain lui-même, créé avec le bien, sur
@@ -28,6 +28,13 @@ import 'immeuble_form_page.dart';
 final _localTerrainProvider = FutureProvider.autoDispose.family<Appartement?, int>((ref, immeubleId) async {
   final result = await ref.watch(appartementRepositoryProvider).getPage(size: 1, immeubleId: immeubleId);
   return result.fold((f) => throw f.message, (p) => p.content.firstOrNull);
+});
+
+/// Locaux d'un immeuble ou d'une cour basse : peu nombreux, chargés d'un coup
+/// pour tenir dans le défilement de la fiche.
+final _locauxProvider = FutureProvider.autoDispose.family<List<Appartement>, int>((ref, immeubleId) async {
+  final result = await ref.watch(appartementRepositoryProvider).getPage(size: 200, immeubleId: immeubleId);
+  return result.fold((f) => throw f.message, (p) => p.content);
 });
 
 /// Fiche d'un bien : ses informations et sa position, puis ses locaux — ou,
@@ -42,14 +49,14 @@ class ImmeubleDetailPage extends ConsumerStatefulWidget {
 }
 
 class _ImmeubleDetailPageState extends ConsumerState<ImmeubleDetailPage> {
-  final _listKey = GlobalKey<PagedListViewState<Appartement>>();
 
   int _version = 0;
 
   void _rafraichir() {
     ref.invalidate(immeubleDetailProvider(widget.immeubleId));
     ref.invalidate(_localTerrainProvider(widget.immeubleId));
-    _listKey.currentState?.refresh();
+    ref.invalidate(_locauxProvider(widget.immeubleId));
+    ref.invalidate(photosBienProvider(widget.immeubleId));
     setState(() => _version++);
   }
 
@@ -77,7 +84,6 @@ class _ImmeubleDetailPageState extends ConsumerState<ImmeubleDetailPage> {
   @override
   Widget build(BuildContext context) {
     final async = ref.watch(immeubleDetailProvider(widget.immeubleId));
-    final repoAppartements = ref.watch(appartementRepositoryProvider);
 
     return async.when(
       loading: () => const Scaffold(
@@ -95,79 +101,95 @@ class _ImmeubleDetailPageState extends ConsumerState<ImmeubleDetailPage> {
             onSupprimer: () => _supprimer(immeuble),
           ),
         ),
-        body: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
-              child: Column(
-                children: [
-                  DetailHeroCard(
-                    icon: immeuble.type.icone,
-                    titre: immeuble.nom,
-                    sousTitre: immeuble.localisation,
-                    statutLabel: immeuble.type == TypeBien.terrain
-                        ? (immeuble.nombreOccupes > 0 ? 'Loué' : 'Libre')
-                        : '${immeuble.tauxOccupation} % occupé',
-                    statutColor: AppColors.primaryDark,
-                  ),
-                  DetailInfoCard(children: [
-                    DetailInfoRow(immeuble.type.icone, 'Type', immeuble.type.libelle),
-                    DetailInfoRow(Icons.place_outlined, 'Adresse', immeuble.adresse),
-                    DetailInfoRow(Icons.map_outlined, 'Localisation', immeuble.localisation),
-                    DetailInfoRow(Icons.layers_outlined, 'Étages', immeuble.nombreEtages?.toString()),
-                    DetailInfoRow(Icons.gps_fixed_rounded, 'Position',
-                        immeuble.position == null ? null : formatPosition(immeuble.position!)),
-                    if (immeuble.type != TypeBien.terrain)
-                      DetailInfoRow(Icons.door_front_door_outlined, 'Locaux',
-                          '${immeuble.nombreOccupes}/${immeuble.nombreAppartements} occupés · ${immeuble.nombreLibres} libre(s)'),
-                  ]),
-                  if (immeuble.position != null) _CarteBien(position: immeuble.position!),
-                ],
+        body: RefreshIndicator(
+          onRefresh: () async => _rafraichir(),
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 32),
+            children: [
+              DetailHeroCard(
+                icon: immeuble.type.icone,
+                titre: immeuble.nom,
+                sousTitre: immeuble.localisation,
+                statutLabel: immeuble.type == TypeBien.terrain
+                    ? (immeuble.nombreOccupes > 0 ? 'Loué' : 'Libre')
+                    : '${immeuble.tauxOccupation} % occupé',
+                statutColor: AppColors.primaryDark,
               ),
-            ),
-            // Les locaux n'existent que pour un immeuble ou une cour basse ; un
-            // terrain se loue tel quel.
-            if (immeuble.type == TypeBien.terrain)
-              Expanded(
-                child: _LocationTerrain(
-                  key: ValueKey(_version),
-                  immeubleId: immeuble.id!,
-                  onOuvrir: _ouvrir,
-                ),
-              )
-            else ...[
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: SectionTitre(
-                  'Locaux',
-                  action: BoutonTexte(
-                    label: 'Ajouter',
-                    icon: Icons.add_rounded,
-                    onTap: () => _ouvrir(AppartementFormPage(immeubleId: immeuble.id!)),
-                  ),
-                ),
-              ),
-              Expanded(
-                child: PagedListView<Appartement>(
-                  key: _listKey,
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
-                  fetcher: (page, size) => repoAppartements.getPage(
-                      page: page, size: size, immeubleId: widget.immeubleId),
-                  emptyIcon: Icons.door_front_door_outlined,
-                  emptyMessage: 'Aucun local dans ce bien.',
-                  emptyActionLabel: 'Ajouter un local',
-                  onEmptyAction: () => _ouvrir(AppartementFormPage(immeubleId: immeuble.id!)),
-                  itemBuilder: (context, a) => AppartementTile(
-                    appartement: a,
-                    onTap: () => _ouvrir(AppartementDetailPage(appartementId: a.id!)),
-                  ),
-                ),
-              ),
+              DetailInfoCard(children: [
+                DetailInfoRow(immeuble.type.icone, 'Type', immeuble.type.libelle),
+                DetailInfoRow(Icons.place_outlined, 'Adresse', immeuble.adresse),
+                DetailInfoRow(Icons.map_outlined, 'Localisation', immeuble.localisation),
+                DetailInfoRow(Icons.layers_outlined, 'Étages', immeuble.nombreEtages?.toString()),
+                DetailInfoRow(Icons.gps_fixed_rounded, 'Position',
+                    immeuble.position == null ? null : formatPosition(immeuble.position!)),
+                if (immeuble.type != TypeBien.terrain)
+                  DetailInfoRow(Icons.door_front_door_outlined, 'Locaux',
+                      '${immeuble.nombreOccupes}/${immeuble.nombreAppartements} occupés · ${immeuble.nombreLibres} libre(s)'),
+              ]),
+              if (immeuble.position != null) _CarteBien(position: immeuble.position!),
+              const SizedBox(height: 4),
+              GaleriePhotosBien(immeubleId: immeuble.id!),
+              // Les locaux n'existent que pour un immeuble ou une cour basse ; un
+              // terrain se loue tel quel.
+              if (immeuble.type == TypeBien.terrain)
+                _LocationTerrain(key: ValueKey(_version), immeubleId: immeuble.id!, onOuvrir: _ouvrir)
+              else
+                _Locaux(immeubleId: immeuble.id!, onOuvrir: _ouvrir),
             ],
-          ],
+          ),
         ),
       ),
     );
+  }
+}
+
+/// Locaux d'un immeuble ou d'une cour basse, avec l'ajout d'un local.
+class _Locaux extends ConsumerWidget {
+  final int immeubleId;
+  final Future<void> Function(Widget page) onOuvrir;
+
+  const _Locaux({required this.immeubleId, required this.onOuvrir});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    void ajouter() => onOuvrir(AppartementFormPage(immeubleId: immeubleId));
+    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      SectionTitre(
+        'Locaux',
+        action: BoutonTexte(label: 'Ajouter', icon: Icons.add_rounded, onTap: ajouter),
+      ),
+      ref.watch(_locauxProvider(immeubleId)).when(
+            loading: () => const Padding(
+                padding: EdgeInsets.all(20), child: Center(child: CircularProgressIndicator())),
+            error: (e, _) => TextButton(
+              onPressed: () => ref.invalidate(_locauxProvider(immeubleId)),
+              child: Text('$e — Réessayer'),
+            ),
+            data: (locaux) => locaux.isEmpty
+                ? Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    child: Column(children: [
+                      Text('Aucun local dans ce bien.', style: TextStyle(color: AppColors.grey500)),
+                      const SizedBox(height: 10),
+                      FilledButton.icon(
+                        onPressed: ajouter,
+                        icon: const Icon(Icons.add_rounded, size: 18),
+                        label: const Text('Ajouter un local'),
+                      ),
+                    ]),
+                  )
+                : Column(children: [
+                    for (final a in locaux)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: AppartementTile(
+                          appartement: a,
+                          onTap: () => onOuvrir(AppartementDetailPage(appartementId: a.id!)),
+                        ),
+                      ),
+                  ]),
+          ),
+    ]);
   }
 }
 
@@ -296,15 +318,16 @@ class _LocationTerrain extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return ref.watch(_localTerrainProvider(immeubleId)).when(
-          loading: () => const Center(child: CircularProgressIndicator()),
+          loading: () => const Padding(
+              padding: EdgeInsets.all(20), child: Center(child: CircularProgressIndicator())),
           error: (e, _) => Center(
             child: TextButton(
               onPressed: () => ref.invalidate(_localTerrainProvider(immeubleId)),
               child: Text('$e — Réessayer'),
             ),
           ),
-          data: (local) => ListView(
-            padding: const EdgeInsets.fromLTRB(16, 4, 16, 32),
+          data: (local) => Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const SectionTitre('Location du terrain'),
               if (local == null)

@@ -10,6 +10,7 @@ import com.tmk.immobilier.application.ports.persistence.ImmeubleRepository;
 import com.tmk.immobilier.application.ports.persistence.LocataireRepository;
 import com.tmk.immobilier.application.ports.persistence.MaintenanceRepository;
 import com.tmk.immobilier.application.ports.persistence.PaiementLoyerRepository;
+import com.tmk.immobilier.application.ports.persistence.PhotoBienRepository;
 import com.tmk.immobilier.application.ports.security.AuteurCourantPort;
 import com.tmk.immobilier.application.usecases.appartement.*;
 import com.tmk.immobilier.application.usecases.auth.LoginUseCase;
@@ -65,8 +66,22 @@ public class UseCaseBeanConfiguration {
     public DeleteImmeubleUseCase deleteImmeubleUseCase(ImmeubleRepository immeubleRepo,
                                                        AppartementRepository appartementRepo,
                                                        MaintenanceRepository maintenanceRepo,
-                                                       BailRepository bailRepo) {
-        return new DeleteImmeubleUseCase(immeubleRepo, appartementRepo, maintenanceRepo, bailRepo);
+                                                       BailRepository bailRepo,
+                                                       PhotoBienRepository photoRepo,
+                                                       StockageDocumentsPort stockage) {
+        return new DeleteImmeubleUseCase(immeubleRepo, appartementRepo, maintenanceRepo, bailRepo, photoRepo, stockage);
+    }
+
+    @Bean
+    public AjouterPhotoBienUseCase ajouterPhotoBienUseCase(ImmeubleRepository immeubleRepo,
+                                                           PhotoBienRepository photoRepo,
+                                                           StockageDocumentsPort stockage) {
+        return new AjouterPhotoBienUseCase(immeubleRepo, photoRepo, stockage);
+    }
+
+    @Bean
+    public PhotosBienUseCase photosBienUseCase(PhotoBienRepository photoRepo, StockageDocumentsPort stockage) {
+        return new PhotosBienUseCase(photoRepo, stockage);
     }
 
     @Bean
