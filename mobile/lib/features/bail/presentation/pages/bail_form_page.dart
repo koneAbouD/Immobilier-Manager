@@ -76,10 +76,12 @@ class _BailFormPageState extends ConsumerState<BailFormPage> {
   }
 
   void _reprendreConditions(Appartement a) {
-    _loyer.text = a.loyerMensuel.toStringAsFixed(0);
+    // Un terrain n'a pas de loyer affiché : il se saisit ici, champ vide.
+    final aLoyer = a.loyerMensuel > 0;
+    _loyer.text = aLoyer ? a.loyerMensuel.toStringAsFixed(0) : '';
     _charges.text = a.charges.toStringAsFixed(0);
     // Usage courant : deux mois de loyer en caution.
-    _depot.text = (a.loyerMensuel * 2).toStringAsFixed(0);
+    _depot.text = aLoyer ? (a.loyerMensuel * 2).toStringAsFixed(0) : '';
   }
 
   /// Moment du dernier changement d'étape : les boutons de la barre changent
@@ -87,8 +89,7 @@ class _BailFormPageState extends ConsumerState<BailFormPage> {
   /// en double ne doit pas déclencher l'action de l'étape suivante.
   DateTime _changement = DateTime.now();
 
-  bool get _appuiTropProche =>
-      DateTime.now().difference(_changement) < const Duration(milliseconds: 600);
+  bool get _appuiTropProche => DateTime.now().difference(_changement) < const Duration(milliseconds: 600);
 
   /// Enveloppe une action de la barre pour ignorer l'appui qui suit de trop
   /// près un changement d'étape.
@@ -96,9 +97,9 @@ class _BailFormPageState extends ConsumerState<BailFormPage> {
       action == null ? null : () => _appuiTropProche ? null : action();
 
   void _aller(_Etape etape) => setState(() {
-        _etape = etape;
-        _changement = DateTime.now();
-      });
+    _etape = etape;
+    _changement = DateTime.now();
+  });
 
   void _precedent() {
     if (_etape.index > 0 && _bail == null) _aller(_Etape.values[_etape.index - 1]);
@@ -117,7 +118,9 @@ class _BailFormPageState extends ConsumerState<BailFormPage> {
               (page, size) =>
                   repo.getPage(page: page, size: size, statut: StatutAppartement.libre, recherche: r),
           titreItem: (a) => a.libelleComplet,
-          sousTitreItem: (a) => '${a.type.libelle} · ${formatMontant(a.montantMensuel)}/mois',
+          sousTitreItem: (a) => a.montantMensuel > 0
+              ? '${a.type.libelle} · ${formatMontant(a.montantMensuel)}/mois'
+              : '${a.type.libelle} · loyer à fixer au bail',
         ),
       ),
     );
@@ -243,7 +246,9 @@ class _BailFormPageState extends ConsumerState<BailFormPage> {
       titre: _appartement?.libelleComplet,
       detail: _appartement == null
           ? null
-          : '${_appartement!.type.libelle} · ${formatMontant(_appartement!.montantMensuel)} / mois',
+          : _appartement!.montantMensuel > 0
+          ? '${_appartement!.type.libelle} · ${formatMontant(_appartement!.montantMensuel)} / mois'
+          : '${_appartement!.type.libelle} · loyer à fixer à l\'étape Conditions',
       vide: 'Choisir un logement',
       actif: widget.appartementInitial == null,
       onTap: _choisirAppartement,

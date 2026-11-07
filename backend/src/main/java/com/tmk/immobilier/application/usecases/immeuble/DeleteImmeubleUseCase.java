@@ -1,8 +1,11 @@
 package com.tmk.immobilier.application.usecases.immeuble;
 
+import com.tmk.immobilier.application.domain.appartement.Appartement;
+import com.tmk.immobilier.application.domain.immeuble.Immeuble;
 import com.tmk.immobilier.application.exception.RegleMetierException;
 import com.tmk.immobilier.application.exception.ResourceNotFoundException;
 import com.tmk.immobilier.application.ports.persistence.AppartementRepository;
+import com.tmk.immobilier.application.ports.persistence.BailRepository;
 import com.tmk.immobilier.application.ports.persistence.ImmeubleRepository;
 import com.tmk.immobilier.application.ports.persistence.MaintenanceRepository;
 import lombok.RequiredArgsConstructor;
@@ -18,10 +21,13 @@ public class DeleteImmeubleUseCase {
     private final ImmeubleRepository immeubleRepository;
     private final AppartementRepository appartementRepository;
     private final MaintenanceRepository maintenanceRepository;
+    private final BailRepository bailRepository;
 
     @Transactional
     public void execute(Long id) {
-        immeubleRepository.findById(id).orElseThrow(() -> ResourceNotFoundException.of("Immeuble", id));
+        Immeuble immeuble = immeubleRepository.findById(id)
+                .orElseThrow(() -> ResourceNotFoundException.of("Immeuble", id));
+        if (immeuble.estTerrain()) supprimerLocalDuTerrain(id);
         if (appartementRepository.existsByImmeubleId(id)) {
             throw new RegleMetierException("IMMEUBLE_NON_VIDE",
                     "Cet immeuble contient des logements : supprimez-les d'abord.");
@@ -31,5 +37,20 @@ public class DeleteImmeubleUseCase {
                     "Cet immeuble a un historique de maintenances : il ne peut pas être supprimé.");
         }
         immeubleRepository.deleteById(id);
+    }
+
+    /** Le local automatique d'un terrain part avec lui, s'il n'a jamais été loué. */
+    private void supprimerLocalDuTerrain(Long immeubleId) {
+        for (Appartement local : appartementRepository.findByImmeubleId(immeubleId)) {
+            if (bailRepository.existsByAppartementId(local.getId())) {
+                throw new RegleMetierException("TERRAIN_AVEC_BAIL",
+                        "Ce terrain a un historique de baux : il ne peut pas être supprimé.");
+            }
+            if (maintenanceRepository.existsByAppartementId(local.getId())) {
+                throw new RegleMetierException("IMMEUBLE_AVEC_HISTORIQUE",
+                        "Ce terrain a un historique de maintenances : il ne peut pas être supprimé.");
+            }
+            appartementRepository.deleteById(local.getId());
+        }
     }
 }

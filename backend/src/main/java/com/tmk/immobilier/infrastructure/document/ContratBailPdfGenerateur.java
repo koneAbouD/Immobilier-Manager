@@ -124,7 +124,7 @@ public class ContratBailPdfGenerateur implements ContratBailGenerateurPort {
         doc.add(tableau(List.of(
                 new String[]{"Nature", libelle(type)},
                 new String[]{"Référence", logement.getReference()},
-                new String[]{"Immeuble", immeuble.getNom()},
+                new String[]{"Bien", immeuble.getNom()},
                 new String[]{"Adresse", joindre(", ", immeuble.getAdresse(), immeuble.getCommune(), immeuble.getVille())},
                 new String[]{"Étage", etage(logement.getEtage())},
                 new String[]{"Superficie", logement.getSuperficie() != null
@@ -321,6 +321,7 @@ public class ContratBailPdfGenerateur implements ContratBailGenerateurPort {
             case MAGASIN -> "CONTRAT DE BAIL À USAGE COMMERCIAL";
             case BUREAU -> "CONTRAT DE BAIL À USAGE PROFESSIONNEL";
             case APPARTEMENT -> "CONTRAT DE BAIL À USAGE D'HABITATION";
+            case TERRAIN -> "CONTRAT DE BAIL DE TERRAIN";
         };
     }
 
@@ -329,6 +330,7 @@ public class ContratBailPdfGenerateur implements ContratBailGenerateurPort {
             case MAGASIN -> "commercial";
             case BUREAU -> "professionnel (bureaux)";
             case APPARTEMENT -> "d'habitation";
+            case TERRAIN -> "d'occupation du terrain nu, toute construction restant soumise à l'accord écrit du bailleur";
         };
     }
 
@@ -337,6 +339,7 @@ public class ContratBailPdfGenerateur implements ContratBailGenerateurPort {
             case MAGASIN -> "Magasin";
             case BUREAU -> "Bureau";
             case APPARTEMENT -> "Appartement";
+            case TERRAIN -> "Terrain";
         };
     }
 

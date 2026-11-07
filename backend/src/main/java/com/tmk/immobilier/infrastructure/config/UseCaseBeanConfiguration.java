@@ -51,8 +51,9 @@ public class UseCaseBeanConfiguration {
 
     // ----- Immeubles -----
     @Bean
-    public CreateImmeubleUseCase createImmeubleUseCase(ImmeubleRepository immeubleRepo) {
-        return new CreateImmeubleUseCase(immeubleRepo);
+    public CreateImmeubleUseCase createImmeubleUseCase(ImmeubleRepository immeubleRepo,
+                                                       AppartementRepository appartementRepo) {
+        return new CreateImmeubleUseCase(immeubleRepo, appartementRepo);
     }
 
     @Bean
@@ -63,8 +64,9 @@ public class UseCaseBeanConfiguration {
     @Bean
     public DeleteImmeubleUseCase deleteImmeubleUseCase(ImmeubleRepository immeubleRepo,
                                                        AppartementRepository appartementRepo,
-                                                       MaintenanceRepository maintenanceRepo) {
-        return new DeleteImmeubleUseCase(immeubleRepo, appartementRepo, maintenanceRepo);
+                                                       MaintenanceRepository maintenanceRepo,
+                                                       BailRepository bailRepo) {
+        return new DeleteImmeubleUseCase(immeubleRepo, appartementRepo, maintenanceRepo, bailRepo);
     }
 
     @Bean

@@ -85,7 +85,7 @@ class _AppartementFormPageState extends ConsumerState<AppartementFormPage> {
               ChampChoix<TypeLogement>(
                 label: 'Type',
                 valeur: _type,
-                options: TypeLogement.values,
+                options: TypeLogement.saisissables,
                 libelle: (t) => t.libelle,
                 obligatoire: true,
                 onChanged: (t) => setState(() => _type = t),

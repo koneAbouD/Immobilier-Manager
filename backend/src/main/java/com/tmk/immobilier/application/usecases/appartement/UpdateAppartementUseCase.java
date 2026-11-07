@@ -1,6 +1,8 @@
 package com.tmk.immobilier.application.usecases.appartement;
 
 import com.tmk.immobilier.application.domain.appartement.Appartement;
+import com.tmk.immobilier.application.domain.appartement.TypeLogement;
+import com.tmk.immobilier.application.exception.RegleMetierException;
 import com.tmk.immobilier.application.exception.ResourceAlreadyExistsException;
 import com.tmk.immobilier.application.exception.ResourceNotFoundException;
 import com.tmk.immobilier.application.ports.persistence.AppartementRepository;
@@ -30,6 +32,10 @@ public class UpdateAppartementUseCase {
         }
         existant.setReference(reference);
         existant.setEtage(modifications.getEtage());
+        if ((existant.getType() == TypeLogement.TERRAIN) != (modifications.getType() == TypeLogement.TERRAIN)) {
+            throw new RegleMetierException("TYPE_TERRAIN_RESERVE",
+                    "Le type Terrain est réservé au local d'un bien de type terrain et ne change pas.");
+        }
         existant.setType(modifications.getType());
         existant.setSuperficie(modifications.getSuperficie());
         existant.setNombrePieces(modifications.getNombrePieces());

@@ -1,6 +1,7 @@
 package com.tmk.immobilier.application.usecases.immeuble;
 
 import com.tmk.immobilier.application.domain.immeuble.Immeuble;
+import com.tmk.immobilier.application.exception.RegleMetierException;
 import com.tmk.immobilier.application.exception.ResourceAlreadyExistsException;
 import com.tmk.immobilier.application.exception.ResourceNotFoundException;
 import com.tmk.immobilier.application.ports.persistence.ImmeubleRepository;
@@ -21,7 +22,15 @@ public class UpdateImmeubleUseCase {
             throw ResourceAlreadyExistsException.of("Immeuble", "nom", nom);
         }
         existant.setNom(nom);
-        if (modifications.getType() != null) existant.setType(modifications.getType());
+        if (modifications.getType() != null) {
+            // Un terrain porte son local automatique, un immeuble ses locaux saisis :
+            // passer de l'un à l'autre les rendrait incohérents.
+            if (modifications.estTerrain() != existant.estTerrain()) {
+                throw new RegleMetierException("TYPE_TERRAIN_FIGE",
+                        "Le type Terrain se choisit à la création du bien et ne change plus.");
+            }
+            existant.setType(modifications.getType());
+        }
         existant.setAdresse(modifications.getAdresse());
         existant.setLatitude(modifications.getLatitude());
         existant.setLongitude(modifications.getLongitude());

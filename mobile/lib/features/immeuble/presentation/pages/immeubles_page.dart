@@ -39,33 +39,32 @@ class _ImmeublesPageState extends ConsumerState<ImmeublesPage> {
   Widget build(BuildContext context) {
     final repo = ref.watch(immeubleRepositoryProvider);
     return Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-            child: ChampRecherche(
-              hint: 'Nom, commune, ville…',
-              onChanged: (v) => _debounce.run(() => setState(() => _recherche = v.trim())),
-              onAjouter: () => _ouvrir(const ImmeubleFormPage()),
-              ajouterTooltip: 'Ajouter un bien',
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+          child: ChampRecherche(
+            hint: 'Nom, commune, ville…',
+            onChanged: (v) => _debounce.run(() => setState(() => _recherche = v.trim())),
+            onAjouter: () => _ouvrir(const ImmeubleFormPage()),
+            ajouterTooltip: 'Ajouter un bien',
+          ),
+        ),
+        Expanded(
+          child: PagedListView<Immeuble>(
+            key: _listKey,
+            filtresKey: _recherche,
+            fetcher: (page, size) => repo.getPage(page: page, size: size, recherche: _recherche),
+            emptyIcon: Icons.apartment,
+            emptyMessage: 'Aucun bien.\nAjoutez votre premier bien.',
+            emptyActionLabel: 'Ajouter un bien',
+            onEmptyAction: () => _ouvrir(const ImmeubleFormPage()),
+            itemBuilder: (context, i) => _ImmeubleCard(
+              immeuble: i,
+              onTap: () => _ouvrir(ImmeubleDetailPage(immeubleId: i.id!)),
             ),
           ),
-          Expanded(
-            child: PagedListView<Immeuble>(
-              key: _listKey,
-              filtresKey: _recherche,
-              fetcher: (page, size) =>
-                  repo.getPage(page: page, size: size, recherche: _recherche),
-              emptyIcon: Icons.apartment,
-              emptyMessage: 'Aucun bien.\nAjoutez votre premier bien.',
-              emptyActionLabel: 'Ajouter un bien',
-              onEmptyAction: () => _ouvrir(const ImmeubleFormPage()),
-              itemBuilder: (context, i) => _ImmeubleCard(
-                immeuble: i,
-                onTap: () => _ouvrir(ImmeubleDetailPage(immeubleId: i.id!)),
-              ),
-            ),
-          ),
-        ],
+        ),
+      ],
     );
   }
 }
@@ -107,28 +106,40 @@ class _ImmeubleCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(children: [
-                      Expanded(
-                        child: Text(i.nom,
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            i.nom,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
-                                fontWeight: FontWeight.w700,
-                                fontSize: 14.5,
-                                color: AppColors.dark)),
-                      ),
-                      Text('${i.tauxOccupation} %',
+                              fontWeight: FontWeight.w700,
+                              fontSize: 14.5,
+                              color: AppColors.dark,
+                            ),
+                          ),
+                        ),
+                        Text(
+                          i.type == TypeBien.terrain
+                              ? (i.nombreOccupes > 0 ? 'Loué' : 'Libre')
+                              : '${i.tauxOccupation} %',
                           style: TextStyle(
-                              fontWeight: FontWeight.w800,
-                              fontSize: 13,
-                              color: AppColors.primaryDark)),
-                    ]),
+                            fontWeight: FontWeight.w800,
+                            fontSize: 13,
+                            color: AppColors.primaryDark,
+                          ),
+                        ),
+                      ],
+                    ),
                     if (i.localisation.isNotEmpty) ...[
                       const SizedBox(height: 2),
-                      Text(i.localisation,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(fontSize: 12, color: AppColors.grey500)),
+                      Text(
+                        i.localisation,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(fontSize: 12, color: AppColors.grey500),
+                      ),
                     ],
                     const SizedBox(height: 10),
                     ClipRRect(
@@ -142,7 +153,9 @@ class _ImmeubleCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      '${i.nombreOccupes}/${i.nombreAppartements} occupés · ${i.nombreLibres} libre(s)',
+                      i.type == TypeBien.terrain
+                          ? 'Terrain loué nu'
+                          : '${i.nombreOccupes}/${i.nombreAppartements} occupés · ${i.nombreLibres} libre(s)',
                       style: TextStyle(fontSize: 11.5, color: AppColors.label),
                     ),
                   ],

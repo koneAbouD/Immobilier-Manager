@@ -2,6 +2,7 @@ package com.tmk.immobilier.application.usecases.appartement;
 
 import com.tmk.immobilier.application.domain.appartement.Appartement;
 import com.tmk.immobilier.application.domain.appartement.StatutAppartement;
+import com.tmk.immobilier.application.domain.appartement.TypeLogement;
 import com.tmk.immobilier.application.domain.immeuble.Immeuble;
 import com.tmk.immobilier.application.exception.RegleMetierException;
 import com.tmk.immobilier.application.exception.ResourceAlreadyExistsException;
@@ -21,6 +22,14 @@ public class CreateAppartementUseCase {
     public Appartement execute(Long immeubleId, Appartement appartement) {
         Immeuble immeuble = immeubleRepository.findById(immeubleId)
                 .orElseThrow(() -> ResourceNotFoundException.of("Immeuble", immeubleId));
+        if (immeuble.estTerrain()) {
+            throw new RegleMetierException("TERRAIN_SANS_LOCAUX",
+                    "Un terrain se loue tel quel : on n'y ajoute pas de locaux.");
+        }
+        if (appartement.getType() == TypeLogement.TERRAIN) {
+            throw new RegleMetierException("TYPE_TERRAIN_RESERVE",
+                    "Le type Terrain est réservé aux biens de type terrain.");
+        }
         String reference = appartement.getReference().trim();
         if (appartementRepository.existsByImmeubleIdAndReferenceIgnoreCase(immeubleId, reference)) {
             throw ResourceAlreadyExistsException.of("Logement", "référence", reference);

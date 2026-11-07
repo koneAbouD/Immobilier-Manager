@@ -32,4 +32,8 @@ public class Immeuble {
      * recalcule depuis les appartements.
      */
     private OccupationImmeuble occupation;
+
+    public boolean estTerrain() {
+        return type == TypeBien.TERRAIN;
+    }
 }
