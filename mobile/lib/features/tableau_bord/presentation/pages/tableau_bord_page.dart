@@ -10,21 +10,37 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../core/widgets/feedback.dart';
 import '../../../../core/widgets/liste_carte.dart';
-import '../../../bail/presentation/pages/bail_form_page.dart';
+import '../../../../screens/section_page.dart';
+import '../../../immeuble/presentation/pages/immeubles_page.dart';
 import '../../../locataire/presentation/pages/locataire_detail_page.dart';
-import '../../../locataire/presentation/pages/locataire_form_page.dart';
+import '../../../locataire/presentation/pages/locataires_page.dart';
 import '../../../loyer/domain/entities/echeance.dart';
 import '../../../loyer/domain/entities/paiement.dart';
+import '../../../loyer/presentation/pages/loyers_page.dart';
 import '../../../loyer/presentation/widgets/encaissement_sheet.dart';
-import '../../../maintenance/presentation/pages/maintenance_form_page.dart';
+import '../../../maintenance/presentation/pages/maintenances_page.dart';
 import '../../domain/entities/tableau_bord.dart';
 import '../providers/tableau_bord_providers.dart';
 
-/// Index des onglets de la barre de navigation (voir HomeScreen).
-const _biens = 1;
-const _locataires = 2;
-const _loyers = 3;
-const _travaux = 4;
+/// Sections de l'application, ouvertes en pages depuis l'accueil.
+enum _Section {
+  biens('Biens immobiliers', Icons.apartment_rounded, 'Biens'),
+  locataires('Locataires', Icons.people_alt_outlined, 'Locataires'),
+  loyers('Loyers', Icons.account_balance_wallet_outlined, 'Loyers'),
+  travaux('Maintenances', Icons.build_outlined, 'Travaux');
+
+  final String titre;
+  final IconData icone;
+  final String libelle;
+  const _Section(this.titre, this.icone, this.libelle);
+
+  Widget get page => switch (this) {
+        biens => const ImmeublesPage(),
+        locataires => const LocatairesPage(),
+        loyers => const LoyersPage(),
+        travaux => const MaintenancesPage(),
+      };
+}
 
 final _jourDuMois = DateFormat('EEEE d MMMM', 'fr_FR');
 
@@ -32,10 +48,7 @@ final _jourDuMois = DateFormat('EEEE d MMMM', 'fr_FR');
 /// ce qui demande une action (retards, loyers à venir), puis le journal des
 /// derniers encaissements. Le parc ne vient qu'en dernier, en bref.
 class TableauBordPage extends ConsumerWidget {
-  /// Ouvre un autre onglet de l'accueil (index de la barre de navigation).
-  final ValueChanged<int> onNaviguer;
-
-  const TableauBordPage({super.key, required this.onNaviguer});
+  const TableauBordPage({super.key});
 
   void _rafraichir(WidgetRef ref) {
     ref.invalidate(tableauBordProvider);
@@ -59,37 +72,37 @@ class TableauBordPage extends ConsumerWidget {
 
     void ouvrirLocataire(int id) => ouvrir(LocataireDetailPage(locataireId: id));
 
+    // Les sections s'ouvrent par-dessus l'accueil, qui se recharge au retour.
+    void ouvrirSection(_Section s) => ouvrir(SectionPage(titre: s.titre, child: s.page));
+
     return async.when(
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (e, _) => ErrorView(message: '$e', onRetry: () => _rafraichir(ref)),
       data: (t) => RefreshIndicator(
         onRefresh: () async => _rafraichir(ref),
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 2, 16, 110),
+          padding: const EdgeInsets.fromLTRB(16, 2, 16, 32),
           children: [
             _Bienvenue(t: t),
             const SizedBox(height: 16),
-            _CarteLoyers(t: t, onVoirLoyers: () => onNaviguer(_loyers)),
+            _CarteLoyers(t: t, onVoirLoyers: () => ouvrirSection(_Section.loyers)),
             const SizedBox(height: 18),
             _ActionsRapides(actions: [
-              (icon: Icons.payments_outlined, label: 'Encaisser', onTap: () => onNaviguer(_loyers)),
-              (icon: Icons.person_add_alt_outlined, label: 'Locataire', onTap: () => ouvrir(const LocataireFormPage())),
-              (icon: Icons.draw_outlined, label: 'Nouveau bail', onTap: () => ouvrir(const BailFormPage())),
-              (icon: Icons.report_problem_outlined, label: 'Signaler', onTap: () => ouvrir(const MaintenanceFormPage())),
+              for (final s in _Section.values) (icon: s.icone, label: s.libelle, onTap: () => ouvrirSection(s)),
             ]),
             const SizedBox(height: 26),
             _SectionRetards(
               onEncaisser: encaisser,
               onLocataire: ouvrirLocataire,
-              onToutVoir: () => onNaviguer(_loyers),
+              onToutVoir: () => ouvrirSection(_Section.loyers),
             ),
             const SizedBox(height: 26),
             _SectionAEncaisser(
               onEncaisser: encaisser,
-              onToutVoir: () => onNaviguer(_loyers),
+              onToutVoir: () => ouvrirSection(_Section.loyers),
             ),
             const SizedBox(height: 26),
-            _SectionPaiements(onToutVoir: () => onNaviguer(_loyers)),
+            _SectionPaiements(onToutVoir: () => ouvrirSection(_Section.loyers)),
             const SizedBox(height: 26),
             const _EnTeteSection(titre: 'Votre parc'),
             Row(children: [
@@ -99,7 +112,7 @@ class TableauBordPage extends ConsumerWidget {
                   couleur: AppColors.info,
                   valeur: '${t.nombreLocatairesActifs}',
                   libelle: 'Locataires',
-                  onTap: () => onNaviguer(_locataires),
+                  onTap: () => ouvrirSection(_Section.locataires),
                 ),
               ),
               const SizedBox(width: 10),
@@ -109,7 +122,7 @@ class TableauBordPage extends ConsumerWidget {
                   couleur: AppColors.primaryDark,
                   valeur: '${t.tauxOccupation} %',
                   libelle: '${t.nombreAppartementsOccupes}/${t.nombreAppartements} occupés',
-                  onTap: () => onNaviguer(_biens),
+                  onTap: () => ouvrirSection(_Section.biens),
                 ),
               ),
               const SizedBox(width: 10),
@@ -121,7 +134,7 @@ class TableauBordPage extends ConsumerWidget {
                   libelle: t.maintenancesUrgentes > 0
                       ? '${t.maintenancesUrgentes} urgente(s)'
                       : 'Travaux ouverts',
-                  onTap: () => onNaviguer(_travaux),
+                  onTap: () => ouvrirSection(_Section.travaux),
                 ),
               ),
             ]),
@@ -393,7 +406,8 @@ class _Chiffre extends StatelessWidget {
 
 typedef _Action = ({IconData icon, String label, VoidCallback onTap});
 
-/// Rangée de quatre actions : les gestes courants du gestionnaire.
+/// Rangée des quatre sections de l'application, à la place d'une barre de
+/// navigation.
 class _ActionsRapides extends StatelessWidget {
   final List<_Action> actions;
 
@@ -407,7 +421,7 @@ class _ActionsRapides extends StatelessWidget {
           if (i > 0) const SizedBox(width: 10),
           Expanded(
             child: Material(
-              color: i == 0 ? AppColors.primary : AppColors.blanc,
+              color: AppColors.blanc,
               borderRadius: BorderRadius.circular(14),
               child: InkWell(
                 onTap: a.onTap,
@@ -416,13 +430,16 @@ class _ActionsRapides extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(vertical: 12),
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(14),
-                    border: i == 0 ? null : Border.all(color: AppColors.border),
+                    border: Border.all(color: AppColors.border),
                   ),
                   child: Column(
                     children: [
-                      Icon(a.icon,
-                          size: 22,
-                          color: i == 0 ? AppColors.onPrimary : AppColors.primaryDark),
+                      Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(color: AppColors.primaryTint, shape: BoxShape.circle),
+                        child: Icon(a.icon, size: 21, color: AppColors.primaryDark),
+                      ),
                       const SizedBox(height: 6),
                       Text(a.label,
                           maxLines: 1,
@@ -430,7 +447,7 @@ class _ActionsRapides extends StatelessWidget {
                           style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.w600,
-                              color: i == 0 ? AppColors.onPrimary : AppColors.dark)),
+                              color: AppColors.dark)),
                     ],
                   ),
                 ),

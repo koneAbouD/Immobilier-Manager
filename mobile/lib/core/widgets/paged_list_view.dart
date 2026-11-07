@@ -27,7 +27,7 @@ class PagedListView<T> extends StatefulWidget {
     this.emptyMessage = 'Aucun élément.',
     this.emptyIcon = Icons.inbox_outlined,
     this.filtresKey,
-    this.padding = const EdgeInsets.fromLTRB(16, 6, 16, 110),
+    this.padding = const EdgeInsets.fromLTRB(16, 6, 16, 32),
     this.emptyActionLabel,
     this.onEmptyAction,
   });
