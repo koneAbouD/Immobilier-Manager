@@ -2,6 +2,8 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Relever la position GPS d'un bien pour le situer sur la carte.</string>
 	<key>NSCameraUsageDescription</key>
 	<string>Photographier le contrat de bail signé pour l'archiver.</string>
 	<key>NSPhotoLibraryUsageDescription</key>

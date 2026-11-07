@@ -111,7 +111,7 @@ class _BailFormPageState extends ConsumerState<BailFormPage> {
       MaterialPageRoute(
         builder: (_) => SelectionPage<Appartement>(
           titre: 'Logement libre',
-          hintRecherche: 'Référence, immeuble…',
+          hintRecherche: 'Référence, bien…',
           emptyMessage: 'Aucun logement libre.',
           fetcherPour: (r) =>
               (page, size) =>

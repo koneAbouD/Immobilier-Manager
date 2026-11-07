@@ -50,6 +50,9 @@ dependencies:
   # Tiré par pdf : image 4.11 appelle une API d'archive absente de la 4.0.x
   # que pdf impose (< 4.1). À relever quand pdf acceptera archive 4.1+.
   image: ">=4.5.0 <4.11.0"
+  flutter_map: ^8.3.2
+  latlong2: ^0.10.1
+  geolocator: ^14.0.2
 
 dev_dependencies:
   flutter_test:

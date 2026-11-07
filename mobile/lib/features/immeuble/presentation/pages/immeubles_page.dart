@@ -10,7 +10,8 @@ import '../providers/immeuble_providers.dart';
 import 'immeuble_detail_page.dart';
 import 'immeuble_form_page.dart';
 
-/// Onglet « Biens » : la liste des immeubles, porte d'entrée vers les logements.
+/// Section « Biens » : la liste des biens (immeubles, cours basses, terrains),
+/// porte d'entrée vers les logements.
 class ImmeublesPage extends ConsumerStatefulWidget {
   const ImmeublesPage({super.key});
 
@@ -45,7 +46,7 @@ class _ImmeublesPageState extends ConsumerState<ImmeublesPage> {
               hint: 'Nom, commune, ville…',
               onChanged: (v) => _debounce.run(() => setState(() => _recherche = v.trim())),
               onAjouter: () => _ouvrir(const ImmeubleFormPage()),
-              ajouterTooltip: 'Ajouter un immeuble',
+              ajouterTooltip: 'Ajouter un bien',
             ),
           ),
           Expanded(
@@ -55,8 +56,8 @@ class _ImmeublesPageState extends ConsumerState<ImmeublesPage> {
               fetcher: (page, size) =>
                   repo.getPage(page: page, size: size, recherche: _recherche),
               emptyIcon: Icons.apartment,
-              emptyMessage: 'Aucun immeuble.\nAjoutez votre premier bien.',
-              emptyActionLabel: 'Ajouter un immeuble',
+              emptyMessage: 'Aucun bien.\nAjoutez votre premier bien.',
+              emptyActionLabel: 'Ajouter un bien',
               onEmptyAction: () => _ouvrir(const ImmeubleFormPage()),
               itemBuilder: (context, i) => _ImmeubleCard(
                 immeuble: i,
@@ -99,7 +100,7 @@ class _ImmeubleCard extends StatelessWidget {
                   color: AppColors.primaryTint,
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Icon(Icons.apartment_rounded, color: AppColors.primaryDark),
+                child: Icon(immeuble.type.icone, color: AppColors.primaryDark),
               ),
               const SizedBox(width: 14),
               Expanded(

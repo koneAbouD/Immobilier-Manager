@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:latlong2/latlong.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../core/widgets/app_header.dart';
+import '../../../../core/widgets/carte_position.dart';
 import '../../../../core/widgets/detail_carte.dart';
 import '../../../../core/widgets/dialogs.dart';
 import '../../../../core/widgets/feedback.dart';
@@ -41,7 +43,7 @@ class _ImmeubleDetailPageState extends ConsumerState<ImmeubleDetailPage> {
 
   Future<void> _supprimer(Immeuble immeuble) async {
     final ok = await confirmer(context,
-        titre: 'Supprimer l\'immeuble ?',
+        titre: 'Supprimer le bien ?',
         message: '« ${immeuble.nom} » sera définitivement supprimé.',
         action: 'Supprimer',
         destructive: true);
@@ -50,7 +52,7 @@ class _ImmeubleDetailPageState extends ConsumerState<ImmeubleDetailPage> {
     if (!mounted) return;
     result.fold((f) => showError(context, f.message), (_) {
       ref.invalidate(immeublesListeProvider);
-      showSuccess(context, 'Immeuble supprimé.');
+      showSuccess(context, 'Bien supprimé.');
       Navigator.pop(context);
     });
   }
@@ -70,7 +72,7 @@ class _ImmeubleDetailPageState extends ConsumerState<ImmeubleDetailPage> {
       ),
       data: (immeuble) => Scaffold(
         appBar: AppHeader(
-          title: 'Immeuble',
+          title: immeuble.type.libelle,
           action: ActionsDetail(
             onModifier: () => _ouvrir(ImmeubleFormPage(immeuble: immeuble)),
             onSupprimer: () => _supprimer(immeuble),
@@ -83,7 +85,7 @@ class _ImmeubleDetailPageState extends ConsumerState<ImmeubleDetailPage> {
               child: Column(
                 children: [
                   DetailHeroCard(
-                    icon: Icons.apartment_rounded,
+                    icon: immeuble.type.icone,
                     titre: immeuble.nom,
                     sousTitre: immeuble.localisation,
                     statutLabel: '${immeuble.tauxOccupation} % occupé',
@@ -93,9 +95,12 @@ class _ImmeubleDetailPageState extends ConsumerState<ImmeubleDetailPage> {
                     DetailInfoRow(Icons.place_outlined, 'Adresse', immeuble.adresse),
                     DetailInfoRow(Icons.map_outlined, 'Localisation', immeuble.localisation),
                     DetailInfoRow(Icons.layers_outlined, 'Étages', immeuble.nombreEtages?.toString()),
+                    DetailInfoRow(Icons.gps_fixed_rounded, 'Position',
+                        immeuble.position == null ? null : formatPosition(immeuble.position!)),
                     DetailInfoRow(Icons.door_front_door_outlined, 'Logements',
                         '${immeuble.nombreOccupes}/${immeuble.nombreAppartements} occupés · ${immeuble.nombreLibres} libre(s)'),
                   ]),
+                  if (immeuble.position != null) _CarteBien(position: immeuble.position!),
                 ],
               ),
             ),
@@ -117,7 +122,7 @@ class _ImmeubleDetailPageState extends ConsumerState<ImmeubleDetailPage> {
                 fetcher: (page, size) => repoAppartements.getPage(
                     page: page, size: size, immeubleId: widget.immeubleId),
                 emptyIcon: Icons.door_front_door_outlined,
-                emptyMessage: 'Aucun logement dans cet immeuble.',
+                emptyMessage: 'Aucun logement dans ce bien.',
                 emptyActionLabel: 'Ajouter un logement',
                 onEmptyAction: () => _ouvrir(AppartementFormPage(immeubleId: immeuble.id!)),
                 itemBuilder: (context, a) => AppartementTile(
@@ -152,6 +157,38 @@ class AppartementTile extends StatelessWidget {
       detail: 'par mois, charges comprises',
       badge: PastilleStatut(a.statut.libelle, a.statut.couleur),
       onTap: onTap,
+    );
+  }
+}
+
+/// Aperçu de la position du bien, avec l'itinéraire pour s'y rendre.
+class _CarteBien extends StatelessWidget {
+  final LatLng position;
+
+  const _CarteBien({required this.position});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: Stack(children: [
+        CartePosition(position: position, hauteur: 150),
+        // En haut : le bas de la carte porte la mention OpenStreetMap.
+        Positioned(
+          right: 10,
+          top: 10,
+          child: FilledButton.icon(
+            onPressed: () async {
+              if (!await ouvrirItineraire(position) && context.mounted) {
+                showError(context, 'Aucune application de cartes n\'est disponible.');
+              }
+            },
+            icon: const Icon(Icons.directions_rounded, size: 18),
+            label: const Text('Itinéraire'),
+            style: FilledButton.styleFrom(visualDensity: VisualDensity.compact),
+          ),
+        ),
+      ]),
     );
   }
 }

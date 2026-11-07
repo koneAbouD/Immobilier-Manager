@@ -2,6 +2,7 @@ package com.tmk.immobilier.application.usecases.immeuble;
 
 import com.tmk.immobilier.application.domain.immeuble.Immeuble;
 import com.tmk.immobilier.application.domain.immeuble.OccupationImmeuble;
+import com.tmk.immobilier.application.domain.immeuble.TypeBien;
 import com.tmk.immobilier.application.exception.ResourceAlreadyExistsException;
 import com.tmk.immobilier.application.ports.persistence.ImmeubleRepository;
 import lombok.RequiredArgsConstructor;
@@ -20,6 +21,7 @@ public class CreateImmeubleUseCase {
         }
         immeuble.setId(null);
         immeuble.setNom(nom);
+        if (immeuble.getType() == null) immeuble.setType(TypeBien.IMMEUBLE);
         Immeuble saved = immeubleRepository.save(immeuble);
         saved.setOccupation(OccupationImmeuble.VIDE);
         return saved;

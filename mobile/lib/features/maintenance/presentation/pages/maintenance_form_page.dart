@@ -112,7 +112,7 @@ class _MaintenanceFormPageState extends ConsumerState<MaintenanceFormPage> {
                 loading: () => const LinearProgressIndicator(),
                 error: (e, _) => Text('$e', style: TextStyle(color: AppColors.error)),
                 data: (liste) => ChampChoix<int>(
-                  label: 'Immeuble',
+                  label: 'Bien',
                   valeur: _immeubleId,
                   obligatoire: true,
                   options: liste.map((i) => i.id!).toList(),

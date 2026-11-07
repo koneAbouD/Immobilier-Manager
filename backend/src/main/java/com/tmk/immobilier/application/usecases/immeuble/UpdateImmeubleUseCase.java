@@ -21,7 +21,10 @@ public class UpdateImmeubleUseCase {
             throw ResourceAlreadyExistsException.of("Immeuble", "nom", nom);
         }
         existant.setNom(nom);
+        if (modifications.getType() != null) existant.setType(modifications.getType());
         existant.setAdresse(modifications.getAdresse());
+        existant.setLatitude(modifications.getLatitude());
+        existant.setLongitude(modifications.getLongitude());
         existant.setCommune(modifications.getCommune());
         existant.setVille(modifications.getVille());
         existant.setNombreEtages(modifications.getNombreEtages());

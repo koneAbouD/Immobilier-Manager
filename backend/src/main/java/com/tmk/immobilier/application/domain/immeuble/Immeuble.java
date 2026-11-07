@@ -5,6 +5,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
+
 @Data
 @Builder
 @NoArgsConstructor
@@ -13,9 +15,13 @@ public class Immeuble {
 
     private Long id;
     private String nom;
+    private TypeBien type;
     private String adresse;
     private String commune;
     private String ville;
+    /** Position relevée sur place (degrés décimaux, WGS 84) ; nulle si non renseignée. */
+    private BigDecimal latitude;
+    private BigDecimal longitude;
     private Integer nombreEtages;
     private Integer anneeConstruction;
     private String description;
