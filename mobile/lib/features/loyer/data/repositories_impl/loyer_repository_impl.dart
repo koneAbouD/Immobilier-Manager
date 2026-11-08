@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:fpdart/fpdart.dart';
 
 import '../../../../core/error/failure.dart';
@@ -58,4 +60,7 @@ class LoyerRepositoryImpl implements LoyerRepository {
   @override
   Future<Either<Failure, int>> genererEcheances({DateTime? jusquA, int? bailId}) =>
       guard(() => _ds.genererEcheances(jusquA: jusquA, bailId: bailId));
+
+  @override
+  Future<Either<Failure, Uint8List>> quittance(int paiementId) => guard(() => _ds.quittance(paiementId));
 }

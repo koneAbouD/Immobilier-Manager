@@ -2,6 +2,7 @@ package com.tmk.immobilier.infrastructure.config;
 
 import com.tmk.immobilier.application.ports.auth.KeycloakAuthPort;
 import com.tmk.immobilier.application.ports.document.ContratBailGenerateurPort;
+import com.tmk.immobilier.application.ports.document.QuittanceGenerateurPort;
 import com.tmk.immobilier.application.ports.document.StockageDocumentsPort;
 import com.tmk.immobilier.application.ports.persistence.AppartementRepository;
 import com.tmk.immobilier.application.ports.persistence.BailRepository;
@@ -198,6 +199,12 @@ public class UseCaseBeanConfiguration {
     @Bean
     public GetPaiementsUseCase getPaiementsUseCase(PaiementLoyerRepository paiementRepo) {
         return new GetPaiementsUseCase(paiementRepo);
+    }
+
+    @Bean
+    public GenererQuittanceUseCase genererQuittanceUseCase(PaiementLoyerRepository paiementRepo,
+                                                           QuittanceGenerateurPort generateur) {
+        return new GenererQuittanceUseCase(paiementRepo, generateur);
     }
 
     // ----- Baux -----

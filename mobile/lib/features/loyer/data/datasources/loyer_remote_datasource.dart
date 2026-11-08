@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import '../../../../core/network/api_client.dart';
 import '../../../../core/network/page_result.dart';
 import '../../../../core/utils/formatters.dart';
@@ -72,4 +74,7 @@ class LoyerRemoteDatasource {
     final data = await _client.post(chemin) as Map<String, dynamic>;
     return (data['nombreCreees'] as num).toInt();
   }
+
+  /// Quittance PDF d'un paiement, produite à la demande par le serveur.
+  Future<Uint8List> quittance(int paiementId) => _client.getBytes('/loyers/paiements/$paiementId/quittance');
 }

@@ -1,6 +1,7 @@
 package com.tmk.immobilier.interfaces.rest.loyer;
 
 import com.tmk.immobilier.application.usecases.loyer.AnnulerPaiementUseCase;
+import com.tmk.immobilier.application.usecases.loyer.GenererQuittanceUseCase;
 import com.tmk.immobilier.application.usecases.loyer.GetPaiementsUseCase;
 import com.tmk.immobilier.interfaces.rest.common.AnnulationRequest;
 import com.tmk.immobilier.interfaces.rest.common.PageResponse;
@@ -10,9 +11,13 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.core.io.InputStreamResource;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
+
+import static com.tmk.immobilier.interfaces.rest.common.ReponsesFichier.fichier;
 
 @RestController
 @RequestMapping("/api/loyers/paiements")
@@ -22,6 +27,7 @@ public class PaiementLoyerController {
 
     private final GetPaiementsUseCase getPaiementsUseCase;
     private final AnnulerPaiementUseCase annulerPaiementUseCase;
+    private final GenererQuittanceUseCase genererQuittanceUseCase;
     private final LoyerRestMapper mapper;
 
     @GetMapping("/page")
@@ -43,5 +49,12 @@ public class PaiementLoyerController {
             description = "Le paiement reste tracé ; l'échéance redevient due du montant annulé")
     public PaiementResponse annuler(@PathVariable Long id, @Valid @RequestBody AnnulationRequest request) {
         return mapper.toResponse(annulerPaiementUseCase.execute(id, request.motif()));
+    }
+
+    @GetMapping("/{id}/quittance")
+    @Operation(summary = "Quittance du paiement",
+            description = "PDF à remettre au locataire ; refusée pour un paiement annulé")
+    public ResponseEntity<InputStreamResource> quittance(@PathVariable Long id) {
+        return fichier(genererQuittanceUseCase.execute(id));
     }
 }

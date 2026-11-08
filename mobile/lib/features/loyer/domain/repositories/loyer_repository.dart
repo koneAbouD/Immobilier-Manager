@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:fpdart/fpdart.dart';
 
 import '../../../../core/error/failure.dart';
@@ -35,4 +37,7 @@ abstract interface class LoyerRepository {
   /// Émet les loyers manquants jusqu'au mois [jusquA] (par défaut le dernier
   /// mois émis automatiquement), pour un bail ou pour tous ; renvoie le nombre créé.
   Future<Either<Failure, int>> genererEcheances({DateTime? jusquA, int? bailId});
+
+  /// Quittance PDF d'un paiement (refusée pour un paiement annulé).
+  Future<Either<Failure, Uint8List>> quittance(int paiementId);
 }

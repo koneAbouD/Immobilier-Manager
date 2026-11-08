@@ -20,15 +20,12 @@ Future<bool> ouvrirEcheance(BuildContext context, Echeance echeance) async {
   return change ?? false;
 }
 
-/// Formulaire d'encaissement en feuille du bas. Renvoie vrai si le paiement
-/// a été enregistré.
-Future<bool> encaisserEcheance(BuildContext context, Echeance echeance) async {
-  final ok = await afficherFeuille<bool>(
-    context,
-    builder: (_) => _FormulaireEncaissement(echeance: echeance),
-  );
-  return ok ?? false;
-}
+/// Formulaire d'encaissement en feuille du bas. Renvoie le paiement
+/// enregistré, ou null si l'utilisateur renonce.
+Future<Paiement?> encaisserEcheance(BuildContext context, Echeance echeance) => afficherFeuille<Paiement>(
+      context,
+      builder: (_) => _FormulaireEncaissement(echeance: echeance),
+    );
 
 class _FormulaireEncaissement extends ConsumerStatefulWidget {
   final Echeance echeance;
@@ -75,9 +72,9 @@ class _FormulaireEncaissementState extends ConsumerState<_FormulaireEncaissement
         );
     if (!mounted) return;
     setState(() => _envoi = false);
-    result.fold((f) => showError(context, f.message), (_) {
+    result.fold((f) => showError(context, f.message), (paiement) {
       showSuccess(context, 'Paiement de ${formatMontant(montant)} enregistré.');
-      Navigator.pop(context, true);
+      Navigator.pop(context, paiement);
     });
   }
 

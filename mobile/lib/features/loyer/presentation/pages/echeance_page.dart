@@ -12,6 +12,7 @@ import '../../domain/entities/echeance.dart';
 import '../../domain/entities/paiement.dart';
 import '../providers/loyer_providers.dart';
 import '../widgets/encaissement_sheet.dart';
+import '../widgets/quittance.dart';
 
 /// Fiche d'un loyer : où il en est (dû, payé, reste), ses paiements
 /// (annulables) et l'encaissement du reste. Se ferme en renvoyant vrai si un
@@ -45,11 +46,14 @@ class _EcheancePageState extends ConsumerState<EcheancePage> {
     });
   }
 
+  /// Encaisse, recharge le loyer (reste dû à jour), puis propose d'envoyer la
+  /// quittance au locataire.
   Future<void> _encaisser() async {
-    if (await encaisserEcheance(context, _e)) {
-      _change = true;
-      _recharger();
-    }
+    final paiement = await encaisserEcheance(context, _e);
+    if (paiement == null || !mounted) return;
+    _change = true;
+    await _recharger();
+    if (mounted) proposerQuittance(context, ref, _e, paiement);
   }
 
   Future<void> _annuler(Paiement p) async {
@@ -144,7 +148,12 @@ class _EcheancePageState extends ConsumerState<EcheancePage> {
                     for (final p in liste)
                       Padding(
                         padding: const EdgeInsets.only(bottom: 10),
-                        child: _CartePaiement(paiement: p, onAnnuler: () => _annuler(p)),
+                        child: _CartePaiement(
+                          paiement: p,
+                          onAnnuler: () => _annuler(p),
+                          onEnvoyerQuittance: () => envoyerQuittanceWhatsApp(context, ref, _e, p),
+                          onVoirQuittance: () => voirQuittance(context, ref, _e, p),
+                        ),
                       ),
                   ]);
                 },
@@ -262,8 +271,15 @@ class _CarteLoyer extends StatelessWidget {
 class _CartePaiement extends StatelessWidget {
   final Paiement paiement;
   final VoidCallback onAnnuler;
+  final VoidCallback onEnvoyerQuittance;
+  final VoidCallback onVoirQuittance;
 
-  const _CartePaiement({required this.paiement, required this.onAnnuler});
+  const _CartePaiement({
+    required this.paiement,
+    required this.onAnnuler,
+    required this.onEnvoyerQuittance,
+    required this.onVoirQuittance,
+  });
 
   IconData get _icone => switch (paiement.modePaiement) {
         ModePaiement.especes => Icons.payments_outlined,
@@ -324,9 +340,51 @@ class _CartePaiement extends StatelessWidget {
                   : 'Encaissé par ${p.encaissePar ?? '—'}',
               style: TextStyle(fontSize: 11.5, color: p.annule ? AppColors.error : AppColors.grey500),
             ),
+            // Quittance : seul un paiement maintenu en délivre une.
+            if (!p.annule) ...[
+              const SizedBox(height: 10),
+              Row(children: [
+                _ActionQuittance(
+                  icone: Icons.send_rounded,
+                  libelle: 'Quittance WhatsApp',
+                  onTap: onEnvoyerQuittance,
+                ),
+                const SizedBox(width: 8),
+                _ActionQuittance(icone: Icons.picture_as_pdf_outlined, libelle: 'Voir', onTap: onVoirQuittance),
+              ]),
+            ],
           ]),
         ),
       ]),
+    );
+  }
+}
+
+class _ActionQuittance extends StatelessWidget {
+  final IconData icone;
+  final String libelle;
+  final VoidCallback onTap;
+
+  const _ActionQuittance({required this.icone, required this.libelle, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: AppColors.primary.withValues(alpha: 0.08),
+      borderRadius: BorderRadius.circular(20),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(20),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          child: Row(mainAxisSize: MainAxisSize.min, children: [
+            Icon(icone, size: 14, color: AppColors.primaryDark),
+            const SizedBox(width: 5),
+            Text(libelle,
+                style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700, color: AppColors.primaryDark)),
+          ]),
+        ),
+      ),
     );
   }
 }
