@@ -14,7 +14,8 @@ import java.math.BigDecimal;
 /**
  * Met à jour la fiche d'un logement. L'immeuble de rattachement ne change pas
  * (un logement ne déménage pas), et le statut OCCUPE reste l'affaire des baux.
- * Modifier le loyer affiché ne touche pas aux baux en cours.
+ * Le loyer indicatif n'est modifié que s'il est fourni ; il ne touche jamais
+ * aux baux en cours.
  */
 @RequiredArgsConstructor
 public class UpdateAppartementUseCase {
@@ -39,8 +40,8 @@ public class UpdateAppartementUseCase {
         existant.setType(modifications.getType());
         existant.setSuperficie(modifications.getSuperficie());
         existant.setNombrePieces(modifications.getNombrePieces());
-        existant.setLoyerMensuel(modifications.getLoyerMensuel());
-        existant.setCharges(modifications.getCharges() != null ? modifications.getCharges() : BigDecimal.ZERO);
+        if (modifications.getLoyerMensuel() != null) existant.setLoyerMensuel(modifications.getLoyerMensuel());
+        if (modifications.getCharges() != null) existant.setCharges(modifications.getCharges());
         existant.setDescription(modifications.getDescription());
         existant.changerStatutManuellement(modifications.getStatut());
         return appartementRepository.save(existant);

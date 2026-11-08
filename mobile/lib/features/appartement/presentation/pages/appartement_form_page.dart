@@ -29,8 +29,6 @@ class _AppartementFormPageState extends ConsumerState<AppartementFormPage> {
   late final _etage = TextEditingController(text: a?.etage?.toString());
   late final _superficie = TextEditingController(text: a?.superficie?.toStringAsFixed(0));
   late final _pieces = TextEditingController(text: a?.nombrePieces?.toString());
-  late final _loyer = TextEditingController(text: a?.loyerMensuel.toStringAsFixed(0));
-  late final _charges = TextEditingController(text: a?.charges.toStringAsFixed(0));
   late final _description = TextEditingController(text: a?.description);
   late TypeLogement? _type = a?.type;
   late StatutAppartement _statut = a?.statut ?? StatutAppartement.libre;
@@ -47,7 +45,7 @@ class _AppartementFormPageState extends ConsumerState<AppartementFormPage> {
 
   @override
   void dispose() {
-    for (final c in [_reference, _etage, _superficie, _pieces, _loyer, _charges, _description]) {
+    for (final c in [_reference, _etage, _superficie, _pieces, _description]) {
       c.dispose();
     }
     super.dispose();
@@ -63,8 +61,10 @@ class _AppartementFormPageState extends ConsumerState<AppartementFormPage> {
       type: _type!,
       superficie: parseMontantSaisi(_superficie.text),
       nombrePieces: int.tryParse(_pieces.text),
-      loyerMensuel: parseMontantSaisi(_loyer.text)!,
-      charges: parseMontantSaisi(_charges.text) ?? 0,
+      // Le loyer et les charges se fixent au bail : on garde ceux déjà
+      // enregistrés sur le local, ou rien pour un local neuf.
+      loyerMensuel: a?.loyerMensuel ?? 0,
+      charges: a?.charges ?? 0,
       statut: _statut,
       description: _description.text.trim().isEmpty ? null : _description.text.trim(),
     );
@@ -113,12 +113,6 @@ class _AppartementFormPageState extends ConsumerState<AppartementFormPage> {
                 const SizedBox(width: 12),
                 Expanded(child: ChampEntier(controller: _pieces, label: 'Pièces')),
               ]),
-            ]),
-            GroupeChamps(titre: 'Loyer', icone: Icons.payments_outlined, couleur: AppColors.positive, children: [
-              ChampMontant(
-                  controller: _loyer, label: 'Loyer mensuel', obligatoire: true, strictementPositif: true),
-              kGapChamps,
-              ChampMontant(controller: _charges, label: 'Charges mensuelles'),
             ]),
             GroupeChamps(titre: 'Statut et description', icone: Icons.tune_rounded, couleur: AppColors.info, children: [
               if (_statutModifiable)

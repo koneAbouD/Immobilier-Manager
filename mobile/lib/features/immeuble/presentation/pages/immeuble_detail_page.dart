@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart';
 
 import '../../../../core/theme/app_colors.dart';
-import '../../../../core/utils/formatters.dart';
 import '../../../../core/widgets/app_header.dart';
 import '../../../../core/widgets/carte_position.dart';
 import '../../../../core/widgets/detail_carte.dart';
@@ -65,6 +64,40 @@ class _ImmeubleDetailPageState extends ConsumerState<ImmeubleDetailPage> {
     _rafraichir();
   }
 
+  /// Relève la position du téléphone et l'enregistre sur le bien : à faire
+  /// sur place, devant le bien.
+  Future<bool> _releverPosition(Immeuble i) async {
+    final LatLng position;
+    try {
+      position = await positionActuelle();
+    } catch (e) {
+      if (mounted) showError(context, '$e');
+      return false;
+    }
+    final maj = Immeuble(
+      nom: i.nom,
+      type: i.type,
+      adresse: i.adresse,
+      commune: i.commune,
+      ville: i.ville,
+      latitude: position.latitude,
+      longitude: position.longitude,
+      nombreEtages: i.nombreEtages,
+      anneeConstruction: i.anneeConstruction,
+      description: i.description,
+    );
+    final result = await ref.read(immeubleRepositoryProvider).update(i.id!, maj);
+    if (!mounted) return false;
+    return result.fold((f) {
+      showError(context, f.message);
+      return false;
+    }, (_) {
+      showSuccess(context, 'Position GPS enregistrée : ${formatPosition(position)}.');
+      _rafraichir();
+      return true;
+    });
+  }
+
   Future<void> _supprimer(Immeuble immeuble) async {
     final ok = await confirmer(context,
         titre: 'Supprimer le bien ?',
@@ -120,13 +153,25 @@ class _ImmeubleDetailPageState extends ConsumerState<ImmeubleDetailPage> {
                 DetailInfoRow(Icons.place_outlined, 'Adresse', immeuble.adresse),
                 DetailInfoRow(Icons.map_outlined, 'Localisation', immeuble.localisation),
                 DetailInfoRow(Icons.layers_outlined, 'Étages', immeuble.nombreEtages?.toString()),
-                DetailInfoRow(Icons.gps_fixed_rounded, 'Position',
-                    immeuble.position == null ? null : formatPosition(immeuble.position!)),
                 if (immeuble.type != TypeBien.terrain)
                   DetailInfoRow(Icons.door_front_door_outlined, 'Locaux',
                       '${immeuble.nombreOccupes}/${immeuble.nombreAppartements} occupés · ${immeuble.nombreLibres} libre(s)'),
               ]),
-              if (immeuble.position != null) _CarteBien(position: immeuble.position!),
+              SectionTitre('Position GPS',
+                  action: immeuble.position == null
+                      ? null
+                      : BoutonTexte(
+                          label: 'Ajuster',
+                          icon: Icons.edit_location_alt_outlined,
+                          onTap: () => _ouvrir(ImmeubleFormPage(immeuble: immeuble)),
+                        )),
+              if (immeuble.position != null)
+                _CarteBien(position: immeuble.position!)
+              else
+                _PositionAbsente(
+                  onRelever: () => _releverPosition(immeuble),
+                  onPlacer: () => _ouvrir(ImmeubleFormPage(immeuble: immeuble)),
+                ),
               const SizedBox(height: 4),
               GaleriePhotosBien(immeubleId: immeuble.id!),
               // Les locaux n'existent que pour un immeuble ou une cour basse ; un
@@ -207,9 +252,7 @@ class AppartementTile extends StatelessWidget {
       icon: a.type.icone,
       couleur: a.statut.couleur,
       titre: '${a.reference} · ${a.type.libelle}',
-      valeur: formatMontant(a.montantMensuel),
       sousTitre: a.libelleEtage,
-      detail: 'par mois, charges comprises',
       badge: PastilleStatut(a.statut.libelle, a.statut.couleur),
       onTap: onTap,
     );
@@ -278,8 +321,17 @@ class _CarteBienState extends State<_CarteBien> {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 4),
-      child: Column(children: [
+      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         CartePosition(position: widget.position, hauteur: 150),
+        const SizedBox(height: 8),
+        Row(children: [
+          Icon(Icons.gps_fixed_rounded, size: 15, color: AppColors.label),
+          const SizedBox(width: 6),
+          Expanded(
+            child: SelectableText(formatPosition(widget.position),
+                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.dark)),
+          ),
+        ]),
         const SizedBox(height: 10),
         Row(children: [
           Expanded(
@@ -378,5 +430,71 @@ class _LocationTerrain extends ConsumerWidget {
             ],
           ),
         );
+  }
+}
+
+/// Bien sans position : la relever sur place, ou la placer sur la carte.
+class _PositionAbsente extends StatefulWidget {
+  final Future<bool> Function() onRelever;
+  final VoidCallback onPlacer;
+
+  const _PositionAbsente({required this.onRelever, required this.onPlacer});
+
+  @override
+  State<_PositionAbsente> createState() => _PositionAbsenteState();
+}
+
+class _PositionAbsenteState extends State<_PositionAbsente> {
+  bool _localisation = false;
+
+  Future<void> _relever() async {
+    setState(() => _localisation = true);
+    await widget.onRelever();
+    if (mounted) setState(() => _localisation = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        Row(children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(color: AppColors.warning.withValues(alpha: 0.12), shape: BoxShape.circle),
+            child: Icon(Icons.location_off_outlined, color: AppColors.warning, size: 20),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text('Aucune position GPS',
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.dark)),
+              const SizedBox(height: 2),
+              Text('Sur place, relevez la position du téléphone ; sinon placez le bien sur la carte.',
+                  style: TextStyle(fontSize: 12, color: AppColors.label)),
+            ]),
+          ),
+        ]),
+        const SizedBox(height: 12),
+        BoutonPrincipal(
+          label: 'Relever ma position',
+          icon: Icons.my_location_rounded,
+          loading: _localisation,
+          onPressed: _relever,
+        ),
+        const SizedBox(height: 8),
+        BoutonSecondaire(
+          label: 'Placer sur la carte',
+          icon: Icons.map_outlined,
+          onPressed: _localisation ? null : widget.onPlacer,
+        ),
+      ]),
+    );
   }
 }

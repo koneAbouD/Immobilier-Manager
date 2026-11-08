@@ -23,7 +23,10 @@ public class Appartement {
     private TypeLogement type;
     private BigDecimal superficie;
     private Integer nombrePieces;
-    /** Loyer proposé ; recopié dans le bail à sa signature, qui fait ensuite foi. */
+    /**
+     * Loyer indicatif, facultatif (zéro par défaut) : le loyer se fixe au bail,
+     * qui fait seul foi ; s'il est renseigné, l'assistant de bail le propose.
+     */
     private BigDecimal loyerMensuel;
     private BigDecimal charges;
     private StatutAppartement statut;
@@ -32,6 +35,7 @@ public class Appartement {
     public void initializeDefaults() {
         if (statut == null) statut = StatutAppartement.LIBRE;
         if (charges == null) charges = BigDecimal.ZERO;
+        if (loyerMensuel == null) loyerMensuel = BigDecimal.ZERO;
     }
 
     public boolean estLibre() {

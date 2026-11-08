@@ -4,7 +4,6 @@ import com.tmk.immobilier.application.domain.appartement.StatutAppartement;
 import com.tmk.immobilier.application.domain.appartement.TypeLogement;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.PositiveOrZero;
 import jakarta.validation.constraints.Size;
 
@@ -20,8 +19,8 @@ public record AppartementRequest(
         @NotNull(message = "Le type de logement est obligatoire.") TypeLogement type,
         @PositiveOrZero(message = "La superficie ne peut pas être négative.") BigDecimal superficie,
         @PositiveOrZero(message = "Le nombre de pièces ne peut pas être négatif.") Integer nombrePieces,
-        @NotNull(message = "Le loyer mensuel est obligatoire.")
-        @Positive(message = "Le loyer mensuel doit être strictement positif.")
+        /** Facultatif : le loyer se fixe au bail. Conservé tel quel en modification s'il est absent. */
+        @PositiveOrZero(message = "Le loyer mensuel ne peut pas être négatif.")
         BigDecimal loyerMensuel,
         @PositiveOrZero(message = "Les charges ne peuvent pas être négatives.") BigDecimal charges,
         /** LIBRE ou EN_TRAVAUX ; OCCUPE est géré par les baux. */

@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../core/theme/app_colors.dart';
-import '../../../../core/utils/formatters.dart';
 import '../../../../core/widgets/app_header.dart';
 import '../../../../core/widgets/detail_carte.dart';
 import '../../../../core/widgets/dialogs.dart';
@@ -88,10 +86,6 @@ class _AppartementDetailPageState extends ConsumerState<AppartementDetailPage> {
                 DetailInfoRow(Icons.square_foot_outlined, 'Superficie',
                     a.superficie == null ? null : '${a.superficie!.toStringAsFixed(0)} m²'),
                 DetailInfoRow(Icons.meeting_room_outlined, 'Pièces', a.nombrePieces?.toString()),
-                DetailInfoRow(Icons.payments_outlined, 'Loyer', formatMontant(a.loyerMensuel)),
-                DetailInfoRow(Icons.receipt_outlined, 'Charges', formatMontant(a.charges)),
-                DetailInfoRow(Icons.summarize_outlined, 'Total mensuel', formatMontant(a.montantMensuel),
-                    valueColor: AppColors.primaryDark),
                 DetailInfoRow(Icons.notes_rounded, 'Description', a.description),
               ]),
               Row(children: [
