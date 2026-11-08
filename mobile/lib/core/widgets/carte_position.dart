@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
@@ -76,22 +78,45 @@ class _CartePositionState extends State<CartePosition> {
 }
 
 /// Position actuelle du téléphone, après accord de l'utilisateur. Lève un
-/// message lisible si la localisation est coupée ou refusée.
+/// message lisible si la localisation est coupée, refusée, muette ou
+/// indisponible sur cet appareil.
 Future<LatLng> positionActuelle() async {
-  if (!await Geolocator.isLocationServiceEnabled()) {
-    throw 'La localisation du téléphone est désactivée. Activez-la, puis réessayez.';
+  try {
+    if (!await Geolocator.isLocationServiceEnabled()) {
+      throw const _ErreurPosition('La localisation du téléphone est désactivée. Activez-la, puis réessayez.');
+    }
+    var permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+    }
+    if (permission == LocationPermission.denied || permission == LocationPermission.deniedForever) {
+      throw const _ErreurPosition(
+          'L\'accès à la position a été refusé. Autorisez-le dans les réglages du téléphone.');
+    }
+    final p = await Geolocator.getCurrentPosition(
+      locationSettings: const LocationSettings(accuracy: LocationAccuracy.high, timeLimit: Duration(seconds: 20)),
+    );
+    return LatLng(p.latitude, p.longitude);
+  } on _ErreurPosition {
+    rethrow;
+  } on TimeoutException {
+    throw const _ErreurPosition(
+        'Position introuvable pour l\'instant : réessayez à découvert, ou placez le bien sur la carte.');
+  } catch (_) {
+    // Plugin absent (navigateur), service en panne… : un message lisible
+    // plutôt que l'exception brute.
+    throw const _ErreurPosition(
+        'La position GPS est indisponible sur cet appareil : placez le bien sur la carte.');
   }
-  var permission = await Geolocator.checkPermission();
-  if (permission == LocationPermission.denied) {
-    permission = await Geolocator.requestPermission();
-  }
-  if (permission == LocationPermission.denied || permission == LocationPermission.deniedForever) {
-    throw 'L\'accès à la position a été refusé. Autorisez-le dans les réglages du téléphone.';
-  }
-  final p = await Geolocator.getCurrentPosition(
-    locationSettings: const LocationSettings(accuracy: LocationAccuracy.high, timeLimit: Duration(seconds: 20)),
-  );
-  return LatLng(p.latitude, p.longitude);
+}
+
+/// Erreur de localisation, rédigée pour l'écran.
+class _ErreurPosition implements Exception {
+  final String message;
+  const _ErreurPosition(this.message);
+
+  @override
+  String toString() => message;
 }
 
 /// Ouvre dans Google Maps l'itinéraire vers [destination], au départ de
