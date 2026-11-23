@@ -158,6 +158,13 @@ class _Bienvenue extends StatelessWidget {
   Widget build(BuildContext context) {
     final jour = _jourDuMois.format(DateTime.now());
     final aJour = t.nombreEcheancesEnRetard == 0;
+    // Sans bail en cours, « à jour » ne veut rien dire : on invite à démarrer.
+    final sansLocataire = aJour && t.nombreLocatairesActifs == 0;
+    final titre = sansLocataire
+        ? 'Bonjour, aucun bail en cours'
+        : aJour
+            ? 'Tous vos locataires sont à jour'
+            : 'Bonjour, voici vos loyers';
     return Padding(
       padding: const EdgeInsets.only(left: 2, top: 6),
       child: Column(
@@ -168,13 +175,22 @@ class _Bienvenue extends StatelessWidget {
                   fontSize: 12.5, color: AppColors.label, fontWeight: FontWeight.w500)),
           const SizedBox(height: 4),
           Text(
-            aJour ? 'Tous vos locataires sont à jour' : 'Bonjour, voici vos loyers',
+            titre,
             style: TextStyle(
                 fontSize: 22,
                 fontWeight: FontWeight.w800,
                 color: AppColors.dark,
                 letterSpacing: -0.5),
           ),
+          if (sansLocataire) ...[
+            const SizedBox(height: 6),
+            Text(
+              t.nombreAppartements == 0
+                  ? 'Ajoutez un premier bien pour commencer.'
+                  : 'Signez un premier bail pour suivre vos loyers.',
+              style: TextStyle(fontSize: 13, color: AppColors.label, fontWeight: FontWeight.w500),
+            ),
+          ],
           if (!aJour) ...[
             const SizedBox(height: 6),
             Row(children: [
