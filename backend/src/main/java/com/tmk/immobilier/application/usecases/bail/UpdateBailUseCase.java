@@ -28,6 +28,15 @@ public class UpdateBailUseCase {
         if (modifications.getLoyerMensuel() != null) existant.setLoyerMensuel(modifications.getLoyerMensuel());
         if (modifications.getCharges() != null) existant.setCharges(modifications.getCharges());
         if (modifications.getDepotGarantie() != null) existant.setDepotGarantie(modifications.getDepotGarantie());
+        if (modifications.getMoisCaution() != null) {
+            // Recalculé seulement sur demande : une révision du loyer ne touche pas
+            // à la caution déjà versée.
+            existant.setMoisCaution(modifications.getMoisCaution());
+            existant.appliquerCaution();
+        } else if (modifications.getDepotGarantie() != null) {
+            // Montant saisi librement : il ne dérive plus d'un nombre de mois.
+            existant.setMoisCaution(null);
+        }
         if (modifications.getJourEcheance() != null) existant.setJourEcheance(modifications.getJourEcheance());
         existant.valider();
         return bailRepository.save(existant);

@@ -45,9 +45,13 @@ class _BailFormPageState extends ConsumerState<BailFormPage> {
   late Locataire? _locataire = widget.locataireInitial;
   DateTime? _dateDebut = DateTime.now();
   DateTime? _dateFin;
+
+  /// Bail sans date de fin : il court jusqu'à résiliation.
+  bool _dureeIndeterminee = false;
   final _loyer = TextEditingController();
   final _charges = TextEditingController();
-  final _depot = TextEditingController();
+  // Usage courant : deux mois de loyer en caution.
+  final _moisCaution = TextEditingController(text: '2');
   final _jour = TextEditingController(text: '5');
   bool _envoi = false;
 
@@ -69,7 +73,7 @@ class _BailFormPageState extends ConsumerState<BailFormPage> {
 
   @override
   void dispose() {
-    for (final c in [_loyer, _charges, _depot, _jour]) {
+    for (final c in [_loyer, _charges, _moisCaution, _jour]) {
       c.dispose();
     }
     super.dispose();
@@ -80,8 +84,13 @@ class _BailFormPageState extends ConsumerState<BailFormPage> {
     final aLoyer = a.loyerMensuel > 0;
     _loyer.text = aLoyer ? a.loyerMensuel.toStringAsFixed(0) : '';
     _charges.text = a.charges.toStringAsFixed(0);
-    // Usage courant : deux mois de loyer en caution.
-    _depot.text = aLoyer ? (a.loyerMensuel * 2).toStringAsFixed(0) : '';
+  }
+
+  /// Dépôt de garantie : mois de caution × loyer mensuel.
+  double? get _depotCalcule {
+    final loyer = parseMontantSaisi(_loyer.text);
+    final mois = int.tryParse(_moisCaution.text);
+    return loyer == null || mois == null ? null : loyer * mois;
   }
 
   /// Moment du dernier changement d'étape : les boutons de la barre changent
@@ -156,10 +165,12 @@ class _BailFormPageState extends ConsumerState<BailFormPage> {
       appartementId: _appartement!.id!,
       locataireId: _locataire!.id!,
       dateDebut: _dateDebut!,
-      dateFin: _dateFin,
+      dateFin: _dureeIndeterminee ? null : _dateFin,
       loyerMensuel: parseMontantSaisi(_loyer.text),
       charges: parseMontantSaisi(_charges.text),
-      depotGarantie: parseMontantSaisi(_depot.text),
+      // Recalculé par le backend à partir du nombre de mois.
+      depotGarantie: _depotCalcule,
+      moisCaution: int.tryParse(_moisCaution.text),
       jourEcheance: int.tryParse(_jour.text),
     );
     final result = await ref.read(bailRepositoryProvider).create(bail);
@@ -277,6 +288,14 @@ class _BailFormPageState extends ConsumerState<BailFormPage> {
       icone: Icons.event_outlined,
       couleur: AppColors.info,
       children: [
+        _InterrupteurDuree(
+          valeur: _dureeIndeterminee,
+          onChanged: (v) => setState(() {
+            _dureeIndeterminee = v;
+            if (v) _dateFin = null;
+          }),
+        ),
+        kGapChamps,
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -288,15 +307,17 @@ class _BailFormPageState extends ConsumerState<BailFormPage> {
                 onChanged: (d) => setState(() => _dateDebut = d),
               ),
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: ChampDate(
-                label: 'Fin',
-                valeur: _dateFin,
-                premiere: _dateDebut,
-                onChanged: (d) => setState(() => _dateFin = d),
+            if (!_dureeIndeterminee) ...[
+              const SizedBox(width: 12),
+              Expanded(
+                child: ChampDate(
+                  label: 'Fin',
+                  valeur: _dateFin,
+                  premiere: _dateDebut,
+                  onChanged: (d) => setState(() => _dateFin = d),
+                ),
               ),
-            ),
+            ],
           ],
         ),
         kGapChamps,
@@ -322,7 +343,22 @@ class _BailFormPageState extends ConsumerState<BailFormPage> {
         kGapChamps,
         ChampMontant(controller: _charges, label: 'Charges mensuelles'),
         kGapChamps,
-        ChampMontant(controller: _depot, label: 'Dépôt de garantie'),
+        ChampEntier(
+          controller: _moisCaution,
+          label: 'Mois de caution',
+          hint: '2',
+          obligatoire: true,
+          aide: 'Nombre de mois de loyer versés en dépôt de garantie (0 à 24)',
+          validator: (v) {
+            final m = int.tryParse(v ?? '');
+            return m == null || m < 0 || m > 24 ? 'Entre 0 et 24.' : null;
+          },
+        ),
+        kGapChamps,
+        ListenableBuilder(
+          listenable: Listenable.merge([_loyer, _moisCaution]),
+          builder: (context, _) => _DepotCalcule(montant: _depotCalcule, mois: int.tryParse(_moisCaution.text)),
+        ),
       ],
     ),
   ];
@@ -791,6 +827,96 @@ class _BoutonRetour extends StatelessWidget {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
         ),
         child: Icon(Icons.arrow_back_rounded, color: AppColors.dark),
+      ),
+    );
+  }
+}
+
+/// Bascule « durée indéterminée » : masque la date de fin.
+class _InterrupteurDuree extends StatelessWidget {
+  final bool valeur;
+  final ValueChanged<bool> onChanged;
+
+  const _InterrupteurDuree({required this.valeur, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: valeur ? AppColors.primaryTint : AppColors.cardTint,
+      borderRadius: BorderRadius.circular(14),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(14),
+        onTap: () => onChanged(!valeur),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(14, 8, 8, 8),
+          child: Row(
+            children: [
+              Icon(Icons.all_inclusive_rounded, size: 20, color: AppColors.primaryDark),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Durée indéterminée',
+                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.dark),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      valeur ? 'Le bail court jusqu\'à résiliation' : 'Le bail prend fin à la date indiquée',
+                      style: TextStyle(fontSize: 12, color: AppColors.label),
+                    ),
+                  ],
+                ),
+              ),
+              Switch.adaptive(
+                value: valeur,
+                activeTrackColor: AppColors.primary,
+                onChanged: onChanged,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Dépôt de garantie déduit du loyer et du nombre de mois de caution.
+class _DepotCalcule extends StatelessWidget {
+  final double? montant;
+  final int? mois;
+
+  const _DepotCalcule({required this.montant, required this.mois});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: AppColors.cardTint,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.savings_outlined, size: 20, color: AppColors.positive),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Dépôt de garantie', style: TextStyle(fontSize: 12, color: AppColors.label)),
+                if (mois != null && mois! > 0)
+                  Text('$mois mois × loyer', style: TextStyle(fontSize: 11.5, color: AppColors.label)),
+              ],
+            ),
+          ),
+          Text(
+            formatMontant(montant),
+            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: AppColors.dark),
+          ),
+        ],
       ),
     );
   }

@@ -18,6 +18,7 @@ abstract final class BailModel {
         charges: parseNum(json['charges']),
         montantMensuel: parseNum(json['montantMensuel']),
         depotGarantie: parseNum(json['depotGarantie']),
+        moisCaution: (json['moisCaution'] as num?)?.toInt(),
         jourEcheance: json['jourEcheance'] as int?,
         statut: StatutBail.fromCode(json['statut'] as String?),
         dateResiliation: parseDate(json['dateResiliation']),
@@ -41,6 +42,7 @@ abstract final class BailModel {
         'loyerMensuel': b.loyerMensuel,
         'charges': b.charges,
         'depotGarantie': b.depotGarantie,
+        'moisCaution': b.moisCaution,
         'jourEcheance': b.jourEcheance,
       };
 }

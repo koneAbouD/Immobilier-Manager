@@ -63,4 +63,32 @@ class BailTest {
 
         assertThat(bail.dateEcheancePour(YearMonth.of(2026, 2))).isEqualTo(LocalDate.of(2026, 2, 10));
     }
+
+    @Test
+    void leDepotDeGarantieVautLesMoisDeCautionFoisLeLoyer() {
+        Bail bail = bail(LocalDate.of(2026, 1, 15));
+        bail.setMoisCaution(3);
+
+        bail.appliquerCaution();
+
+        assertThat(bail.getDepotGarantie()).isEqualByComparingTo("300000");
+    }
+
+    @Test
+    void sansMoisDeCautionLeMontantSaisiEstConserve() {
+        Bail bail = bail(LocalDate.of(2026, 1, 15));
+        bail.setDepotGarantie(new BigDecimal("150000"));
+
+        bail.appliquerCaution();
+
+        assertThat(bail.getDepotGarantie()).isEqualByComparingTo("150000");
+    }
+
+    @Test
+    void unNombreDeMoisDeCautionHorsBornesEstRefuse() {
+        Bail bail = bail(LocalDate.of(2026, 1, 15));
+        bail.setMoisCaution(25);
+
+        assertThatThrownBy(bail::valider).isInstanceOf(RegleMetierException.class);
+    }
 }

@@ -49,6 +49,9 @@ public class BailEntity extends AbstractAuditEntity {
     @Column(name = "depot_garantie", nullable = false, precision = 19, scale = 2)
     private BigDecimal depotGarantie;
 
+    @Column(name = "mois_caution")
+    private Integer moisCaution;
+
     @Column(name = "jour_echeance", nullable = false)
     private Integer jourEcheance;
 

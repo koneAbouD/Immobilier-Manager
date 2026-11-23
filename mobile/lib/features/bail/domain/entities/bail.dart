@@ -64,6 +64,9 @@ class Bail {
   final double? charges;
   final double? montantMensuel;
   final double? depotGarantie;
+
+  /// Mois de loyer exigés en caution ; le dépôt de garantie en découle.
+  final int? moisCaution;
   final int? jourEcheance;
   final StatutBail statut;
   final DateTime? dateResiliation;
@@ -94,6 +97,7 @@ class Bail {
     this.charges,
     this.montantMensuel,
     this.depotGarantie,
+    this.moisCaution,
     this.jourEcheance,
     this.statut = StatutBail.actif,
     this.dateResiliation,

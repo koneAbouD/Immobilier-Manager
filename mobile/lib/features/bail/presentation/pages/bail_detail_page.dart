@@ -92,7 +92,10 @@ class _BailDetailPageState extends ConsumerState<BailDetailPage> {
                 DetailInfoRow(Icons.receipt_outlined, 'Charges', formatMontant(b.charges)),
                 DetailInfoRow(Icons.summarize_outlined, 'Total mensuel', formatMontant(b.montantMensuel),
                     valueColor: AppColors.primaryDark),
-                DetailInfoRow(Icons.savings_outlined, 'Dépôt de garantie', formatMontant(b.depotGarantie)),
+                DetailInfoRow(Icons.savings_outlined, 'Dépôt de garantie',
+                    b.moisCaution != null && b.moisCaution! > 0
+                        ? '${formatMontant(b.depotGarantie)} (${b.moisCaution} mois)'
+                        : formatMontant(b.depotGarantie)),
               ]),
               if (!b.estActif)
                 DetailInfoCard(titre: 'Résiliation', icon: Icons.logout_rounded, children: [

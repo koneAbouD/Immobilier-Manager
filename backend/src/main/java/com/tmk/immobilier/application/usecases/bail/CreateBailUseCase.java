@@ -48,6 +48,7 @@ public class CreateBailUseCase {
         bail.setStatut(StatutBail.ACTIF);
         bail.setAppartement(appartement);
         bail.setLocataire(locataire);
+        bail.appliquerCaution();
         bail.initializeDefaults();
         bail.valider();
 

@@ -156,8 +156,10 @@ public class ContratBailPdfGenerateur implements ContratBailGenerateurPort {
         doc.add(titreArticle(n++, "Dépôt de garantie"));
         BigDecimal depot = bail.getDepotGarantie();
         doc.add(paragraphe(depot != null && depot.signum() > 0
-                ? "Le preneur verse ce jour au bailleur la somme de " + montant(depot) + " à titre de dépôt "
-                  + "de garantie. Non productive d'intérêts, elle lui sera restituée en fin de bail, déduction "
+                ? "Le preneur verse ce jour au bailleur la somme de " + montant(depot)
+                  + (bail.getMoisCaution() != null && bail.getMoisCaution() > 0
+                        ? ", soit " + bail.getMoisCaution() + " mois de loyer," : "")
+                  + " à titre de dépôt de garantie. Non productive d'intérêts, elle lui sera restituée en fin de bail, déduction "
                   + "faite des sommes restant dues et du coût des réparations locatives constatées à l'état "
                   + "des lieux de sortie."
                 : "Aucun dépôt de garantie n'est exigé du preneur."));

@@ -25,6 +25,7 @@ import java.time.YearMonth;
 public class Bail {
 
     public static final int JOUR_ECHEANCE_PAR_DEFAUT = 5;
+    public static final int MOIS_CAUTION_MAX = 24;
 
     private Long id;
     private String reference;
@@ -37,6 +38,8 @@ public class Bail {
     private BigDecimal charges;
     /** Caution versée à l'entrée, restituable à la sortie. */
     private BigDecimal depotGarantie;
+    /** Nombre de mois de loyer exigés en caution ; le dépôt de garantie en découle. */
+    private Integer moisCaution;
     /** Jour du mois où le loyer est exigible (1 à 28, pour exister chaque mois). */
     private Integer jourEcheance;
     private StatutBail statut;
@@ -60,6 +63,16 @@ public class Bail {
         if (charges == null) charges = BigDecimal.ZERO;
         if (depotGarantie == null) depotGarantie = BigDecimal.ZERO;
         if (jourEcheance == null) jourEcheance = JOUR_ECHEANCE_PAR_DEFAUT;
+    }
+
+    /**
+     * Dépôt de garantie = mois de caution × loyer mensuel. Sans nombre de mois,
+     * le montant saisi est conservé tel quel.
+     */
+    public void appliquerCaution() {
+        if (moisCaution != null && loyerMensuel != null) {
+            depotGarantie = loyerMensuel.multiply(BigDecimal.valueOf(moisCaution));
+        }
     }
 
     public boolean estActif() {
@@ -112,6 +125,10 @@ public class Bail {
         }
         if (loyerMensuel == null || loyerMensuel.signum() <= 0) {
             throw new RegleMetierException("LOYER_INVALIDE", "Le loyer mensuel doit être strictement positif.");
+        }
+        if (moisCaution != null && (moisCaution < 0 || moisCaution > MOIS_CAUTION_MAX)) {
+            throw new RegleMetierException("MOIS_CAUTION_INVALIDE",
+                    "Le nombre de mois de caution doit être compris entre 0 et " + MOIS_CAUTION_MAX + ".");
         }
         if (jourEcheance != null && (jourEcheance < 1 || jourEcheance > 28)) {
             throw new RegleMetierException("JOUR_ECHEANCE_INVALIDE", "Le jour d'échéance doit être compris entre 1 et 28.");

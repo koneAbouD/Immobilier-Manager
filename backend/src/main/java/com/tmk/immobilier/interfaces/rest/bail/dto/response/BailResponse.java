@@ -23,6 +23,7 @@ public record BailResponse(
         BigDecimal charges,
         BigDecimal montantMensuel,
         BigDecimal depotGarantie,
+        Integer moisCaution,
         Integer jourEcheance,
         StatutBail statut,
         LocalDate dateResiliation,
