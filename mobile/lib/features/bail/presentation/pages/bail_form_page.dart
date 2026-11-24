@@ -53,8 +53,9 @@ class _BailFormPageState extends ConsumerState<BailFormPage> {
   final _charges = TextEditingController();
   // Usage courant : deux mois de loyer en caution.
   final _moisCaution = TextEditingController(text: '2');
-  // Loyers réglés à la signature, non restitués : ils repoussent le premier loyer facturé.
-  final _moisAvance = TextEditingController(text: '0');
+  // Usage courant : deux mois de loyer d'avance, réglés à la signature et non
+  // restitués ; ils repoussent le premier loyer facturé.
+  final _moisAvance = TextEditingController(text: '2');
   final _jour = TextEditingController(text: '5');
   bool _envoi = false;
 
@@ -367,7 +368,7 @@ class _BailFormPageState extends ConsumerState<BailFormPage> {
         ChampEntier(
           controller: _moisAvance,
           label: 'Mois d\'avance',
-          hint: '0',
+          hint: '2',
           obligatoire: true,
           aide: 'Loyers réglés à la signature, non restitués : ces mois ne sont pas facturés (0 à 24)',
           validator: (v) {
