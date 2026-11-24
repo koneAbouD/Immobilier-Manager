@@ -8,6 +8,13 @@ public interface UtilisateurRepository {
 
     Utilisateur save(Utilisateur utilisateur);
 
+    /**
+     * Crée le compte s'il n'existe pas encore (même identifiant Keycloak), sans
+     * jamais échouer sur un doublon : plusieurs requêtes simultanées d'un même
+     * utilisateur à sa première connexion obtiennent toutes la même ligne.
+     */
+    Utilisateur creerSiAbsent(Utilisateur utilisateur);
+
     Optional<Utilisateur> findById(Long id);
 
     Optional<Utilisateur> findByKeycloakId(String keycloakId);

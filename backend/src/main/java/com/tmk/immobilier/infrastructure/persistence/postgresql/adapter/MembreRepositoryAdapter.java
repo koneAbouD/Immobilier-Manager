@@ -9,6 +9,8 @@ import com.tmk.immobilier.infrastructure.persistence.postgresql.jpa.Organisation
 import com.tmk.immobilier.infrastructure.persistence.postgresql.jpa.UtilisateurJpaRepository;
 import com.tmk.immobilier.infrastructure.persistence.postgresql.mapper.OrganisationPersistenceMapper;
 import lombok.RequiredArgsConstructor;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Component;
 
 import java.util.Comparator;
@@ -23,6 +25,23 @@ public class MembreRepositoryAdapter implements MembreRepository {
     private final OrganisationJpaRepository organisationJpaRepository;
     private final UtilisateurJpaRepository utilisateurJpaRepository;
     private final OrganisationPersistenceMapper mapper;
+    private final NamedParameterJdbcTemplate jdbc;
+
+    private static final String AJOUTER_SI_ABSENTE = """
+            INSERT INTO membres (organisation_id, utilisateur_id, role, actif, created_at, updated_at, created_by, updated_by)
+            VALUES (:organisation, :utilisateur, :role, :actif, now(), now(), 'system', 'system')
+            ON CONFLICT DO NOTHING
+            """;
+
+    @Override
+    public Optional<Membre> ajouterSiAbsente(Membre membre) {
+        jdbc.update(AJOUTER_SI_ABSENTE, new MapSqlParameterSource()
+                .addValue("organisation", membre.getOrganisationId())
+                .addValue("utilisateur", membre.getUtilisateur().getId())
+                .addValue("role", membre.getRole().name())
+                .addValue("actif", membre.isActif()));
+        return findByOrganisationIdAndUtilisateurId(membre.getOrganisationId(), membre.getUtilisateur().getId());
+    }
 
     /**
      * Écrit immédiatement (flush) : l'index unique « un propriétaire par

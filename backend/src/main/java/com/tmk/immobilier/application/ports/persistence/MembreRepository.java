@@ -11,6 +11,13 @@ public interface MembreRepository {
 
     Membre save(Membre membre);
 
+    /**
+     * Ajoute l'adhésion sauf si elle existe déjà (ou si elle violerait l'unicité
+     * du propriétaire) ; idempotent face aux requêtes simultanées.
+     * @return l'adhésion de l'utilisateur à l'organisation, si elle existe
+     */
+    Optional<Membre> ajouterSiAbsente(Membre membre);
+
     Optional<Membre> findById(Long id);
 
     /** Adhésions d'un utilisateur, organisation jointe. */

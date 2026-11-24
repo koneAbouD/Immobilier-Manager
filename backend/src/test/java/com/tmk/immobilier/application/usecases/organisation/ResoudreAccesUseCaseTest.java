@@ -146,12 +146,12 @@ class ResoudreAccesUseCaseTest {
         when(organisationRepository.findHistorique())
                 .thenReturn(Optional.of(Organisation.builder().id(1L).historique(true).build()));
         when(membreRepository.existsByOrganisationIdAndRole(1L, RoleMembre.PROPRIETAIRE)).thenReturn(false);
-        when(membreRepository.findByOrganisationIdAndUtilisateurId(1L, 5L)).thenReturn(Optional.of(rattache));
+        when(membreRepository.ajouterSiAbsente(any())).thenReturn(Optional.of(rattache));
 
         AccesResolu acces = useCase.execute(jeton("ADMIN"), null, true);
 
         assertThat(acces.role()).isEqualTo(RoleMembre.PROPRIETAIRE);
-        verify(membreRepository).save(argThat(m -> m.getRole() == RoleMembre.PROPRIETAIRE && m.getOrganisationId() == 1L));
+        verify(membreRepository).ajouterSiAbsente(argThat(m -> m.getRole() == RoleMembre.PROPRIETAIRE && m.getOrganisationId() == 1L));
     }
 
     @Test
@@ -161,6 +161,20 @@ class ResoudreAccesUseCaseTest {
         assertThatThrownBy(() -> useCase.execute(jeton(), null, false))
                 .isInstanceOf(AccesOrganisationException.class);
         verify(organisationRepository, never()).findHistorique();
-        verify(membreRepository, never()).save(any());
+        verify(membreRepository, never()).ajouterSiAbsente(any());
+    }
+
+    @Test
+    void lePremierPassageCreeLeCompteSansRisqueDeDoublon() {
+        when(utilisateurRepository.findByKeycloakId("kc-5")).thenReturn(Optional.empty());
+        when(utilisateurRepository.findByEmail("moi@agence.ci")).thenReturn(Optional.empty());
+        when(utilisateurRepository.creerSiAbsent(any())).thenReturn(moi);
+        when(membreRepository.findByUtilisateurId(5L))
+                .thenReturn(new ArrayList<>(List.of(adhesion(1, RoleMembre.GESTIONNAIRE, StatutAbonnement.ACTIF))));
+
+        useCase.execute(jeton(), null, false);
+
+        verify(utilisateurRepository).creerSiAbsent(argThat(u -> "kc-5".equals(u.getKeycloakId())));
+        verify(utilisateurRepository, never()).save(any());
     }
 }

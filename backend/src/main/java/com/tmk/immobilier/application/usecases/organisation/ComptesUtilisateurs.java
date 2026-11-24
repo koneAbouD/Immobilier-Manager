@@ -55,7 +55,11 @@ public class ComptesUtilisateurs {
         if (jeton.prenom() != null) utilisateur.setPrenom(jeton.prenom());
         if (jeton.nom() != null) utilisateur.setNom(jeton.nom());
         utilisateur.setDerniereConnexion(maintenant);
-        return utilisateurRepository.save(utilisateur);
+        // Première connexion : plusieurs requêtes partent en même temps, une
+        // seule ligne doit naître.
+        return utilisateur.getId() == null
+                ? utilisateurRepository.creerSiAbsent(utilisateur)
+                : utilisateurRepository.save(utilisateur);
     }
 
     /**
@@ -81,12 +85,12 @@ public class ComptesUtilisateurs {
         RoleMembre role = !admin ? RoleMembre.GESTIONNAIRE
                 : membreRepository.existsByOrganisationIdAndRole(organisationId, RoleMembre.PROPRIETAIRE)
                 ? RoleMembre.ADMIN : RoleMembre.PROPRIETAIRE;
-        membreRepository.save(Membre.builder()
+        // Idempotent : deux requêtes simultanées ne créent qu'une adhésion.
+        return membreRepository.ajouterSiAbsente(Membre.builder()
                 .organisationId(organisationId)
                 .utilisateur(utilisateur)
                 .role(role)
                 .actif(true)
                 .build());
-        return membreRepository.findByOrganisationIdAndUtilisateurId(organisationId, utilisateur.getId());
     }
 }
