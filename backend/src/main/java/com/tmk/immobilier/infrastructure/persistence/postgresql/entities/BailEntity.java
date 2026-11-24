@@ -52,6 +52,12 @@ public class BailEntity extends AbstractTenantEntity {
     @Column(name = "mois_caution")
     private Integer moisCaution;
 
+    @Column(name = "mois_avance", nullable = false)
+    private Integer moisAvance;
+
+    @Column(name = "premier_mois_facture", nullable = false)
+    private LocalDate premierMoisFacture;
+
     @Column(name = "jour_echeance", nullable = false)
     private Integer jourEcheance;
 

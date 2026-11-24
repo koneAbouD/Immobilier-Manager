@@ -310,8 +310,8 @@ public class UseCaseBeanConfiguration {
     }
 
     @Bean
-    public UpdateBailUseCase updateBailUseCase(BailRepository bailRepo) {
-        return new UpdateBailUseCase(bailRepo);
+    public UpdateBailUseCase updateBailUseCase(BailRepository bailRepo, EcheanceLoyerRepository echeanceRepo) {
+        return new UpdateBailUseCase(bailRepo, echeanceRepo);
     }
 
     @Bean

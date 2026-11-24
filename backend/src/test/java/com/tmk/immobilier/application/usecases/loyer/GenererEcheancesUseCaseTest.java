@@ -82,4 +82,20 @@ class GenererEcheancesUseCaseTest {
                 .hasMessageContaining("12 mois");
         verifyNoInteractions(bailRepository, echeanceLoyerRepository);
     }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void commenceAuPremierMoisFacture() {
+        Bail bail = bail();
+        bail.definirPremierMoisFacture(LocalDate.of(2026, 9, 1));
+        when(echeanceLoyerRepository.findByBailId(7L)).thenReturn(List.of());
+
+        int creees = useCase.executePourBail(bail, YearMonth.of(2026, 10));
+
+        ArgumentCaptor<List<EcheanceLoyer>> captor = ArgumentCaptor.forClass(List.class);
+        verify(echeanceLoyerRepository).saveAll(captor.capture());
+        assertThat(creees).isEqualTo(2);
+        assertThat(captor.getValue()).extracting(EcheanceLoyer::getPeriode)
+                .containsExactly(LocalDate.of(2026, 9, 1), LocalDate.of(2026, 10, 1));
+    }
 }

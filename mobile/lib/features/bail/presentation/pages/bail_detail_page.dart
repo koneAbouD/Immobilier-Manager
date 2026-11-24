@@ -96,6 +96,10 @@ class _BailDetailPageState extends ConsumerState<BailDetailPage> {
                     b.moisCaution != null && b.moisCaution! > 0
                         ? '${formatMontant(b.depotGarantie)} (${b.moisCaution} mois)'
                         : formatMontant(b.depotGarantie)),
+                if (b.moisAvance != null && b.moisAvance! > 0)
+                  DetailInfoRow(Icons.fast_forward_outlined, 'Avance réglée',
+                      '${formatMontant(b.montantAvance)} (${b.moisAvance} mois)'),
+                DetailInfoRow(Icons.event_available_outlined, '1er loyer facturé', formatMois(b.premierMoisFacture)),
               ]),
               if (!b.estActif)
                 DetailInfoCard(titre: 'Résiliation', icon: Icons.logout_rounded, children: [

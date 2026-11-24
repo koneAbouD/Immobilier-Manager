@@ -69,6 +69,9 @@ class CreateBailUseCaseTest {
         assertThat(bail.getReference()).isEqualTo("BAIL-00007");
         // Sans conditions propres, le bail reprend celles du logement.
         assertThat(bail.montantMensuel()).isEqualByComparingTo("125000");
+        // Premier loyer : le mois suivant l'enregistrement au plus tôt.
+        assertThat(bail.getPremierMoisFacture()).isEqualTo(Bail.calculerPremierMoisFacture(
+                LocalDate.of(2026, 9, 1), 0, LocalDate.now()).atDay(1));
         verify(genererEcheancesUseCase).executePourBail(eq(bail),
                 eq(GenererEcheancesUseCase.dernierMoisEmis(LocalDate.now())));
     }

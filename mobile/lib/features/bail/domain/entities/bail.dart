@@ -67,6 +67,13 @@ class Bail {
 
   /// Mois de loyer exigés en caution ; le dépôt de garantie en découle.
   final int? moisCaution;
+
+  /// Mois de loyer réglés d'avance à la signature : ils ne sont pas facturés.
+  final int? moisAvance;
+  final double? montantAvance;
+
+  /// Premier mois pour lequel un loyer est émis (premier jour du mois).
+  final DateTime? premierMoisFacture;
   final int? jourEcheance;
   final StatutBail statut;
   final DateTime? dateResiliation;
@@ -98,6 +105,9 @@ class Bail {
     this.montantMensuel,
     this.depotGarantie,
     this.moisCaution,
+    this.moisAvance,
+    this.montantAvance,
+    this.premierMoisFacture,
     this.jourEcheance,
     this.statut = StatutBail.actif,
     this.dateResiliation,
@@ -113,6 +123,14 @@ class Bail {
   });
 
   bool get estActif => statut == StatutBail.actif;
+
+  /// Premier mois facturé = le plus tardif du mois suivant l'enregistrement et
+  /// du mois de début + les mois d'avance. Même règle que le backend.
+  static DateTime calculerPremierMoisFacture(DateTime dateDebut, int moisAvance, DateTime creation) {
+    final apresCreation = DateTime(creation.year, creation.month + 1);
+    final apresAvance = DateTime(dateDebut.year, dateDebut.month + moisAvance);
+    return apresCreation.isAfter(apresAvance) ? apresCreation : apresAvance;
+  }
 
   String get logement => [appartementReference, immeubleNom]
       .where((s) => s != null && s.isNotEmpty)

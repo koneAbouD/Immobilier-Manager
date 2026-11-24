@@ -29,6 +29,7 @@ import java.io.ByteArrayOutputStream;
 import java.math.BigDecimal;
 import java.text.NumberFormat;
 import java.time.LocalDate;
+import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
@@ -46,6 +47,7 @@ public class ContratBailPdfGenerateur implements ContratBailGenerateurPort {
 
     private static final Locale FR = Locale.FRANCE;
     private static final DateTimeFormatter DATE = DateTimeFormatter.ofPattern("d MMMM yyyy", FR);
+    private static final DateTimeFormatter MOIS = DateTimeFormatter.ofPattern("MMMM yyyy", FR);
     private static final Color ACCENT = new Color(0x1F, 0x6F, 0x5C);
     private static final Color GRIS = new Color(0x5F, 0x5E, 0x5A);
     private static final Color FOND = new Color(0xF1, 0xEF, 0xE8);
@@ -153,6 +155,11 @@ public class ContratBailPdfGenerateur implements ContratBailGenerateurPort {
                 + "par virement ou par chèque. Tout paiement donne lieu à la délivrance d'une quittance. "
                 + "Le loyer pourra être révisé d'un commun accord ; les nouvelles conditions s'appliqueront "
                 + "aux échéances suivantes."));
+        if (bail.getMoisAvance() != null && bail.getMoisAvance() > 0) {
+            doc.add(paragraphe("Le preneur règle ce jour " + bail.getMoisAvance() + " mois de loyer et charges "
+                    + "d'avance, soit " + montant(bail.montantAvance()) + ", imputés sur les premiers mois du bail. "
+                    + "Le premier loyer exigible est celui de " + mois(bail.premierMois()) + "."));
+        }
 
         doc.add(titreArticle(n++, "Dépôt de garantie"));
         BigDecimal depot = bail.getDepotGarantie();
@@ -373,6 +380,10 @@ public class ContratBailPdfGenerateur implements ContratBailGenerateurPort {
         // Espace insécable fine du format français → espace simple, mieux rendue par la police PDF.
         return format.format(valeur != null ? valeur : BigDecimal.ZERO).replace(' ', ' ').replace(' ', ' ')
                 + " FCFA";
+    }
+
+    private static String mois(YearMonth mois) {
+        return mois.format(MOIS);
     }
 
     private static String date(LocalDate date) {

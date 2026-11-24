@@ -80,7 +80,7 @@ Règles clés :
 
 - **Le bail porte le loyer exigible**, pas le logement : modifier le loyer affiché d'un logement ne réécrit pas les baux en cours.
 - **Un seul bail actif par logement** (vérifié par le use case et par un index unique partiel en base). Le statut `OCCUPE` d'un logement est posé et levé par les baux uniquement.
-- **Échéances de loyer** : une par bail et par mois, émises à la signature (rattrapage depuis la date de début) puis chaque nuit par un scheduler idempotent. Le statut (`A_PAYER`, `PARTIEL`, `PAYEE`, `ANNULEE`) se déduit toujours des montants.
+- **Échéances de loyer** : une par bail et par mois, à partir du **premier mois facturé** = max(mois suivant l'enregistrement du bail, mois de début + mois d'avance) — rien de rétroactif, les mois réglés d'avance ne sont pas facturés ; la caution reste un dépôt restituable. Le premier mois est stocké sur le bail et modifiable. Émission chaque nuit par un scheduler idempotent (le mois courant à partir du 25). Le statut (`A_PAYER`, `PARTIEL`, `PAYEE`, `ANNULEE`) se déduit toujours des montants.
 - **Paiements** : partiels autorisés, plafonnés au reste dû. Un paiement ne se supprime jamais : il s'annule avec motif et auteur.
 - **Résiliation** : libère le logement ; le mois de résiliation et les impayés antérieurs restent dus, les loyers des mois suivants sont annulés.
 - **Maintenances** : `SIGNALEE → PLANIFIEE → EN_COURS → TERMINEE`, ou `ANNULEE` (motif obligatoire). Une intervention close ne change plus d'état.

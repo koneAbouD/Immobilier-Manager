@@ -19,6 +19,12 @@ public record BailConditionsRequest(
         @Min(value = 0, message = "Le nombre de mois de caution doit être compris entre 0 et 24.")
         @Max(value = 24, message = "Le nombre de mois de caution doit être compris entre 0 et 24.")
         Integer moisCaution,
+        /** Mois de loyer réglés à la signature : ils ne sont pas facturés. */
+        @Min(value = 0, message = "Le nombre de mois d'avance doit être compris entre 0 et 24.")
+        @Max(value = 24, message = "Le nombre de mois d'avance doit être compris entre 0 et 24.")
+        Integer moisAvance,
+        /** Facultatif : à défaut, calculé (mois suivant la création, après l'avance). Seul le mois compte. */
+        LocalDate premierMoisFacture,
         @Min(value = 1, message = "Le jour d'échéance doit être compris entre 1 et 28.")
         @Max(value = 28, message = "Le jour d'échéance doit être compris entre 1 et 28.")
         Integer jourEcheance

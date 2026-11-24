@@ -17,9 +17,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 
 /**
- * Signature d'un bail : le logement passe occupé et les loyers dus depuis le
- * début du bail jusqu'au mois courant sont générés aussitôt — un bail saisi
- * avec retard rattrape ainsi ses échéances passées.
+ * Signature d'un bail : le logement passe occupé et le premier mois facturé est
+ * fixé — le mois suivant l'enregistrement au plus tôt, après les mois réglés
+ * d'avance. Un gestionnaire peut l'imposer pour un cas particulier.
  */
 @RequiredArgsConstructor
 public class CreateBailUseCase {
@@ -54,6 +54,11 @@ public class CreateBailUseCase {
         bail.setLocataire(locataire);
         bail.appliquerCaution();
         bail.initializeDefaults();
+        if (bail.getPremierMoisFacture() == null) {
+            bail.recalculerPremierMoisFacture();
+        } else {
+            bail.definirPremierMoisFacture(bail.getPremierMoisFacture());
+        }
         bail.valider();
 
         appartement.occuper();

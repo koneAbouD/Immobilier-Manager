@@ -91,4 +91,45 @@ class BailTest {
 
         assertThatThrownBy(bail::valider).isInstanceOf(RegleMetierException.class);
     }
+
+    @Test
+    void lePremierMoisFactureSuitLaCreationSansAvance() {
+        assertThat(Bail.calculerPremierMoisFacture(LocalDate.of(2026, 11, 15), 0, LocalDate.of(2026, 11, 24)))
+                .isEqualTo(YearMonth.of(2026, 12));
+    }
+
+    @Test
+    void lesMoisDAvanceRepoussentLePremierMoisFacture() {
+        assertThat(Bail.calculerPremierMoisFacture(LocalDate.of(2026, 12, 1), 2, LocalDate.of(2026, 11, 24)))
+                .isEqualTo(YearMonth.of(2027, 2));
+        assertThat(Bail.calculerPremierMoisFacture(LocalDate.of(2027, 3, 1), 1, LocalDate.of(2026, 11, 24)))
+                .isEqualTo(YearMonth.of(2027, 4));
+    }
+
+    @Test
+    void unBailAncienNEstPasFactureRetroactivement() {
+        assertThat(Bail.calculerPremierMoisFacture(LocalDate.of(2024, 1, 1), 2, LocalDate.of(2026, 11, 24)))
+                .isEqualTo(YearMonth.of(2026, 12));
+    }
+
+    @Test
+    void aucunLoyerNEstDuAvantLePremierMoisFacture() {
+        Bail bail = Bail.builder().dateDebut(LocalDate.of(2026, 12, 1)).moisAvance(2)
+                .loyerMensuel(new BigDecimal("100000")).charges(new BigDecimal("5000")).build();
+        bail.setCreeLe(LocalDate.of(2026, 11, 24));
+        bail.recalculerPremierMoisFacture();
+
+        assertThat(bail.getPremierMoisFacture()).isEqualTo(LocalDate.of(2027, 2, 1));
+        assertThat(bail.couvre(YearMonth.of(2027, 1))).isFalse();
+        assertThat(bail.couvre(YearMonth.of(2027, 2))).isTrue();
+        assertThat(bail.montantAvance()).isEqualByComparingTo("210000");
+    }
+
+    @Test
+    void lePremierMoisFactureNePeutPrecederLeDebut() {
+        Bail bail = Bail.builder().dateDebut(LocalDate.of(2026, 12, 10))
+                .loyerMensuel(new BigDecimal("100000")).build();
+        bail.definirPremierMoisFacture(LocalDate.of(2026, 11, 20));
+        assertThatThrownBy(bail::valider).hasMessageContaining("premier loyer");
+    }
 }

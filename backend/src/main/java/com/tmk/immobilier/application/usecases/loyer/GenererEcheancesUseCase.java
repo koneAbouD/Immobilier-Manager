@@ -25,6 +25,10 @@ import java.util.stream.Collectors;
  * sont. Les mois suivants se créent à la main, pour un bail ou pour tous,
  * jusqu'à {@value #MOIS_ANTICIPATION_MAX} mois d'avance.
  *
+ * <p>Un bail n'est facturé qu'à partir de son premier mois facturé (voir
+ * {@link Bail#calculerPremierMoisFacture}) : ni rétroactivement, ni pour les
+ * mois réglés d'avance.
+ *
  * <p>Idempotent : un mois déjà émis pour un bail n'est jamais recréé (contrainte
  * unique bail/période en base, et filtrage ici). Le scheduler peut donc
  * l'appeler chaque jour sans risque, et un trou — serveur arrêté un mois —
@@ -88,7 +92,7 @@ public class GenererEcheancesUseCase {
                 .collect(Collectors.toSet());
 
         List<EcheanceLoyer> nouvelles = new ArrayList<>();
-        for (YearMonth mois = YearMonth.from(bail.getDateDebut()); !mois.isAfter(jusquA); mois = mois.plusMonths(1)) {
+        for (YearMonth mois = bail.premierMois(); !mois.isAfter(jusquA); mois = mois.plusMonths(1)) {
             if (bail.couvre(mois) && !dejaEmises.contains(mois.atDay(1))) {
                 nouvelles.add(EcheanceLoyer.pour(bail, mois));
             }

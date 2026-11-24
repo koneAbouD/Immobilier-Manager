@@ -52,6 +52,8 @@ class _BailFormPageState extends ConsumerState<BailFormPage> {
   final _charges = TextEditingController();
   // Usage courant : deux mois de loyer en caution.
   final _moisCaution = TextEditingController(text: '2');
+  // Loyers réglés à la signature, non restitués : ils repoussent le premier loyer facturé.
+  final _moisAvance = TextEditingController(text: '0');
   final _jour = TextEditingController(text: '5');
   bool _envoi = false;
 
@@ -73,7 +75,7 @@ class _BailFormPageState extends ConsumerState<BailFormPage> {
 
   @override
   void dispose() {
-    for (final c in [_loyer, _charges, _moisCaution, _jour]) {
+    for (final c in [_loyer, _charges, _moisCaution, _moisAvance, _jour]) {
       c.dispose();
     }
     super.dispose();
@@ -171,6 +173,7 @@ class _BailFormPageState extends ConsumerState<BailFormPage> {
       // Recalculé par le backend à partir du nombre de mois.
       depotGarantie: _depotCalcule,
       moisCaution: int.tryParse(_moisCaution.text),
+      moisAvance: int.tryParse(_moisAvance.text) ?? 0,
       jourEcheance: int.tryParse(_jour.text),
     );
     final result = await ref.read(bailRepositoryProvider).create(bail);
@@ -358,6 +361,33 @@ class _BailFormPageState extends ConsumerState<BailFormPage> {
         ListenableBuilder(
           listenable: Listenable.merge([_loyer, _moisCaution]),
           builder: (context, _) => _DepotCalcule(montant: _depotCalcule, mois: int.tryParse(_moisCaution.text)),
+        ),
+        kGapChamps,
+        ChampEntier(
+          controller: _moisAvance,
+          label: 'Mois d\'avance',
+          hint: '0',
+          obligatoire: true,
+          aide: 'Loyers réglés à la signature, non restitués : ces mois ne sont pas facturés (0 à 24)',
+          validator: (v) {
+            final m = int.tryParse(v ?? '');
+            return m == null || m < 0 || m > 24 ? 'Entre 0 et 24.' : null;
+          },
+        ),
+        kGapChamps,
+        ListenableBuilder(
+          listenable: Listenable.merge([_loyer, _charges, _moisAvance]),
+          builder: (context, _) {
+            final avance = int.tryParse(_moisAvance.text) ?? 0;
+            final mensuel = (parseMontantSaisi(_loyer.text) ?? 0) + (parseMontantSaisi(_charges.text) ?? 0);
+            return _PremierLoyer(
+              premierMois: _dateDebut == null
+                  ? null
+                  : Bail.calculerPremierMoisFacture(_dateDebut!, avance, DateTime.now()),
+              moisAvance: avance,
+              montantAvance: mensuel * avance,
+            );
+          },
         ),
       ],
     ),
@@ -877,6 +907,48 @@ class _InterrupteurDuree extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Aperçu du premier loyer facturé et de l'avance à encaisser à la signature.
+class _PremierLoyer extends StatelessWidget {
+  final DateTime? premierMois;
+  final int moisAvance;
+  final double montantAvance;
+
+  const _PremierLoyer({required this.premierMois, required this.moisAvance, required this.montantAvance});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: AppColors.cardTint,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.event_available_outlined, size: 20, color: AppColors.primaryDark),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Premier loyer facturé', style: TextStyle(fontSize: 12, color: AppColors.label)),
+                if (moisAvance > 0)
+                  Text('Avance à la signature : ${formatMontant(montantAvance)}',
+                      style: TextStyle(fontSize: 11.5, color: AppColors.label)),
+              ],
+            ),
+          ),
+          Text(
+            formatMois(premierMois),
+            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: AppColors.dark),
+          ),
+        ],
       ),
     );
   }

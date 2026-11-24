@@ -26,6 +26,7 @@ public class Bail {
 
     public static final int JOUR_ECHEANCE_PAR_DEFAUT = 5;
     public static final int MOIS_CAUTION_MAX = 24;
+    public static final int MOIS_AVANCE_MAX = 24;
 
     private Long id;
     private String reference;
@@ -40,6 +41,20 @@ public class Bail {
     private BigDecimal depotGarantie;
     /** Nombre de mois de loyer exigés en caution ; le dépôt de garantie en découle. */
     private Integer moisCaution;
+    /**
+     * Nombre de mois de loyer réglés d'avance à la signature. Contrairement à
+     * la caution, ils ne sont pas restitués : ils paient les premiers mois du
+     * bail, qui ne sont donc pas facturés.
+     */
+    private Integer moisAvance;
+    /**
+     * Premier jour du premier mois pour lequel un loyer est émis. Calculé à la
+     * création (voir {@link #calculerPremierMoisFacture}), puis conservé :
+     * modifiable par un gestionnaire pour un cas particulier.
+     */
+    private LocalDate premierMoisFacture;
+    /** Date d'enregistrement du bail dans l'application ; lecture seule. */
+    private LocalDate creeLe;
     /** Jour du mois où le loyer est exigible (1 à 28, pour exister chaque mois). */
     private Integer jourEcheance;
     private StatutBail statut;
@@ -63,6 +78,43 @@ public class Bail {
         if (charges == null) charges = BigDecimal.ZERO;
         if (depotGarantie == null) depotGarantie = BigDecimal.ZERO;
         if (jourEcheance == null) jourEcheance = JOUR_ECHEANCE_PAR_DEFAUT;
+        if (moisAvance == null) moisAvance = 0;
+    }
+
+    /**
+     * Premier mois facturé = le plus tardif de :
+     * <ul>
+     *   <li>le mois qui suit l'enregistrement du bail — rien n'est facturé
+     *       rétroactivement, le passé d'un bail existant est réputé réglé ;</li>
+     *   <li>le mois de début + les mois d'avance — ces mois sont déjà payés.</li>
+     * </ul>
+     */
+    public static YearMonth calculerPremierMoisFacture(LocalDate dateDebut, Integer moisAvance, LocalDate creation) {
+        YearMonth apresCreation = YearMonth.from(creation).plusMonths(1);
+        YearMonth apresAvance = YearMonth.from(dateDebut).plusMonths(moisAvance != null ? moisAvance : 0);
+        return apresCreation.isAfter(apresAvance) ? apresCreation : apresAvance;
+    }
+
+    /** Recalcule le premier mois facturé, la création valant à défaut aujourd'hui. */
+    public void recalculerPremierMoisFacture() {
+        LocalDate creation = creeLe != null ? creeLe : LocalDate.now();
+        premierMoisFacture = calculerPremierMoisFacture(dateDebut, moisAvance, creation).atDay(1);
+    }
+
+    /** Ramène une date saisie au premier jour de son mois. */
+    public void definirPremierMoisFacture(LocalDate mois) {
+        premierMoisFacture = mois != null ? YearMonth.from(mois).atDay(1) : null;
+    }
+
+    /** Premier mois facturé ; à défaut, le mois de début. */
+    public YearMonth premierMois() {
+        return premierMoisFacture != null ? YearMonth.from(premierMoisFacture) : YearMonth.from(dateDebut);
+    }
+
+    /** Montant réglé d'avance à la signature : mois d'avance × loyer et charges. */
+    public BigDecimal montantAvance() {
+        int mois = moisAvance != null ? moisAvance : 0;
+        return montantMensuel().multiply(BigDecimal.valueOf(mois));
     }
 
     /**
@@ -90,12 +142,11 @@ public class Bail {
     }
 
     /**
-     * Vrai si le bail court sur au moins une partie du mois : un loyer est dû
-     * pour ce mois. Le mois de résiliation reste dû ; les suivants non.
+     * Vrai si un loyer est dû pour ce mois : à partir du premier mois facturé,
+     * jusqu'au mois de résiliation (ou de fin) inclus.
      */
     public boolean couvre(YearMonth periode) {
-        YearMonth debut = YearMonth.from(dateDebut);
-        if (periode.isBefore(debut)) return false;
+        if (periode.isBefore(premierMois())) return false;
         LocalDate fin = dateResiliation != null ? dateResiliation : dateFin;
         return fin == null || !periode.isAfter(YearMonth.from(fin));
     }
@@ -129,6 +180,14 @@ public class Bail {
         if (moisCaution != null && (moisCaution < 0 || moisCaution > MOIS_CAUTION_MAX)) {
             throw new RegleMetierException("MOIS_CAUTION_INVALIDE",
                     "Le nombre de mois de caution doit être compris entre 0 et " + MOIS_CAUTION_MAX + ".");
+        }
+        if (moisAvance != null && (moisAvance < 0 || moisAvance > MOIS_AVANCE_MAX)) {
+            throw new RegleMetierException("MOIS_AVANCE_INVALIDE",
+                    "Le nombre de mois d'avance doit être compris entre 0 et " + MOIS_AVANCE_MAX + ".");
+        }
+        if (premierMoisFacture != null && YearMonth.from(premierMoisFacture).isBefore(YearMonth.from(dateDebut))) {
+            throw new RegleMetierException("PREMIER_MOIS_INVALIDE",
+                    "Le premier loyer facturé ne peut pas précéder le mois de début du bail.");
         }
         if (jourEcheance != null && (jourEcheance < 1 || jourEcheance > 28)) {
             throw new RegleMetierException("JOUR_ECHEANCE_INVALIDE", "Le jour d'échéance doit être compris entre 1 et 28.");

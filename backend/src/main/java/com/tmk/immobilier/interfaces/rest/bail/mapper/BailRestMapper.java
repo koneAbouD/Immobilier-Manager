@@ -28,6 +28,7 @@ public interface BailRestMapper {
     @Mapping(target = "contratSigneTaille", ignore = true)
     @Mapping(target = "contratSigneLe", ignore = true)
     @Mapping(target = "contratSignePar", ignore = true)
+    @Mapping(target = "creeLe", ignore = true)
     Bail toDomain(BailRequest request);
 
     @Mapping(target = "id", ignore = true)
@@ -45,6 +46,7 @@ public interface BailRestMapper {
     @Mapping(target = "contratSigneTaille", ignore = true)
     @Mapping(target = "contratSigneLe", ignore = true)
     @Mapping(target = "contratSignePar", ignore = true)
+    @Mapping(target = "creeLe", ignore = true)
     Bail toDomain(BailConditionsRequest request);
 
     @Mapping(target = "appartementId", source = "appartement.id")
@@ -56,5 +58,6 @@ public interface BailRestMapper {
     @Mapping(target = "locataireTelephone", source = "locataire.telephone")
     @Mapping(target = "montantMensuel", expression = "java(domain.montantMensuel())")
     @Mapping(target = "statutContrat", expression = "java(domain.statutContrat())")
+    @Mapping(target = "montantAvance", expression = "java(domain.montantAvance())")
     BailResponse toResponse(Bail domain);
 }
