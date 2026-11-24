@@ -52,6 +52,10 @@ public class CreateBailUseCase {
         bail.setStatut(StatutBail.ACTIF);
         bail.setAppartement(appartement);
         bail.setLocataire(locataire);
+        // Ni nombre de mois ni montant libre : la caution d'usage s'applique.
+        if (bail.getMoisCaution() == null && bail.getDepotGarantie() == null) {
+            bail.setMoisCaution(Bail.MOIS_CAUTION_PAR_DEFAUT);
+        }
         bail.appliquerCaution();
         bail.initializeDefaults();
         if (bail.getPremierMoisFacture() == null) {

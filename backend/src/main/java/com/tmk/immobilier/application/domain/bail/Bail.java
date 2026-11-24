@@ -26,6 +26,8 @@ public class Bail {
 
     public static final int JOUR_ECHEANCE_PAR_DEFAUT = 5;
     public static final int MOIS_CAUTION_MAX = 24;
+    /** Usage courant : deux mois de loyer en caution. */
+    public static final int MOIS_CAUTION_PAR_DEFAUT = 2;
     public static final int MOIS_AVANCE_MAX = 24;
 
     private Long id;

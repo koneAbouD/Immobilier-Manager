@@ -18,7 +18,7 @@ public record BailRequest(
         @Positive(message = "Le loyer mensuel doit être strictement positif.") BigDecimal loyerMensuel,
         @PositiveOrZero(message = "Les charges ne peuvent pas être négatives.") BigDecimal charges,
         @PositiveOrZero(message = "Le dépôt de garantie ne peut pas être négatif.") BigDecimal depotGarantie,
-        /** Si renseigné, le dépôt de garantie vaut ce nombre de mois × le loyer mensuel. */
+        /** Si renseigné, le dépôt de garantie vaut ce nombre de mois × le loyer mensuel. Sans lui ni montant : 2 mois. */
         @Min(value = 0, message = "Le nombre de mois de caution doit être compris entre 0 et 24.")
         @Max(value = 24, message = "Le nombre de mois de caution doit être compris entre 0 et 24.")
         Integer moisCaution,

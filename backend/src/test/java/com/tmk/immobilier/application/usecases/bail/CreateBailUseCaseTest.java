@@ -69,6 +69,9 @@ class CreateBailUseCaseTest {
         assertThat(bail.getReference()).isEqualTo("BAIL-00007");
         // Sans conditions propres, le bail reprend celles du logement.
         assertThat(bail.montantMensuel()).isEqualByComparingTo("125000");
+        // Ni mois ni montant de caution : deux mois de loyer par défaut.
+        assertThat(bail.getMoisCaution()).isEqualTo(2);
+        assertThat(bail.getDepotGarantie()).isEqualByComparingTo("240000");
         // Premier loyer : le mois suivant l'enregistrement au plus tôt.
         assertThat(bail.getPremierMoisFacture()).isEqualTo(Bail.calculerPremierMoisFacture(
                 LocalDate.of(2026, 9, 1), 0, LocalDate.now()).atDay(1));
@@ -96,5 +99,20 @@ class CreateBailUseCaseTest {
         assertThatThrownBy(() -> useCase.execute(1L, 2L, Bail.builder().dateDebut(LocalDate.now()).build()))
                 .isInstanceOf(RegleMetierException.class);
         verify(bailRepository, never()).save(any());
+    }
+
+    @Test
+    void unMontantDeCautionLibreEstConserve() {
+        when(appartementRepository.findById(1L)).thenReturn(Optional.of(appartement(StatutAppartement.LIBRE)));
+        when(locataireRepository.findById(2L)).thenReturn(Optional.of(Locataire.builder().id(2L).build()));
+        when(bailRepository.existsByAppartementIdAndStatut(1L, StatutBail.ACTIF)).thenReturn(false);
+        when(bailRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(numeroteur.prochain(CreateBailUseCase.COMPTEUR_BAUX)).thenReturn(8L);
+
+        Bail bail = useCase.execute(1L, 2L, Bail.builder().dateDebut(LocalDate.of(2026, 9, 1))
+                .depotGarantie(new BigDecimal("50000")).build());
+
+        assertThat(bail.getMoisCaution()).isNull();
+        assertThat(bail.getDepotGarantie()).isEqualByComparingTo("50000");
     }
 }
