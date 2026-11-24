@@ -13,6 +13,7 @@ import '../../../loyer/presentation/widgets/creation_loyers_sheet.dart';
 import '../../../loyer/presentation/widgets/echeances_liste.dart';
 import '../../domain/entities/bail.dart';
 import '../providers/bail_providers.dart';
+import 'bail_modifier_page.dart';
 import '../widgets/contrat_bail.dart';
 
 class BailDetailPage extends ConsumerStatefulWidget {
@@ -55,6 +56,12 @@ class _BailDetailPageState extends ConsumerState<BailDetailPage> {
     });
   }
 
+  Future<void> _modifier(Bail bail) async {
+    final maj = await Navigator.push<Bail>(
+        context, MaterialPageRoute(builder: (_) => BailModifierPage(bail: bail)));
+    if (maj != null && mounted) _rafraichir();
+  }
+
   @override
   Widget build(BuildContext context) {
     final async = ref.watch(bailDetailProvider(widget.bailId));
@@ -66,7 +73,11 @@ class _BailDetailPageState extends ConsumerState<BailDetailPage> {
           appBar: const AppHeader(title: ''),
           body: ErrorView(message: '$e', onRetry: _rafraichir)),
       data: (b) => Scaffold(
-        appBar: AppHeader(title: b.reference ?? 'Bail'),
+        appBar: AppHeader(
+          title: b.reference ?? 'Bail',
+          // Un bail résilié ne se modifie plus.
+          action: b.estActif ? ActionsDetail(onModifier: () => _modifier(b)) : null,
+        ),
         body: RefreshIndicator(
           onRefresh: () async => _rafraichir(),
           child: ListView(

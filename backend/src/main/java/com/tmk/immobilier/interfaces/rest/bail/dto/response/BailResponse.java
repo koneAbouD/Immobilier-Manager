@@ -27,6 +27,8 @@ public record BailResponse(
         Integer moisAvance,
         BigDecimal montantAvance,
         LocalDate premierMoisFacture,
+        /** Date d'enregistrement : base du calcul du premier mois facturé. */
+        LocalDate creeLe,
         Integer jourEcheance,
         StatutBail statut,
         LocalDate dateResiliation,

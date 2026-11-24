@@ -22,6 +22,7 @@ abstract final class BailModel {
         moisAvance: (json['moisAvance'] as num?)?.toInt(),
         montantAvance: parseNum(json['montantAvance']),
         premierMoisFacture: parseDate(json['premierMoisFacture']),
+        creeLe: parseDate(json['creeLe']),
         jourEcheance: json['jourEcheance'] as int?,
         statut: StatutBail.fromCode(json['statut'] as String?),
         dateResiliation: parseDate(json['dateResiliation']),

@@ -74,6 +74,9 @@ class Bail {
 
   /// Premier mois pour lequel un loyer est émis (premier jour du mois).
   final DateTime? premierMoisFacture;
+
+  /// Date d'enregistrement du bail : base du calcul du premier mois facturé.
+  final DateTime? creeLe;
   final int? jourEcheance;
   final StatutBail statut;
   final DateTime? dateResiliation;
@@ -108,6 +111,7 @@ class Bail {
     this.moisAvance,
     this.montantAvance,
     this.premierMoisFacture,
+    this.creeLe,
     this.jourEcheance,
     this.statut = StatutBail.actif,
     this.dateResiliation,
