@@ -38,7 +38,7 @@ class UpdateBailUseCaseTest {
     @BeforeEach
     void setUp() {
         bail = Bail.builder().id(3L).statut(StatutBail.ACTIF).dateDebut(LocalDate.of(2026, 12, 1))
-                .loyerMensuel(new BigDecimal("100000")).creeLe(LocalDate.of(2026, 11, 24)).build();
+                .loyerMensuel(new BigDecimal("100000")).moisAvance(0).creeLe(LocalDate.of(2026, 11, 24)).build();
         bail.initializeDefaults();
         bail.recalculerPremierMoisFacture();
         when(bailRepository.findById(3L)).thenReturn(Optional.of(bail));

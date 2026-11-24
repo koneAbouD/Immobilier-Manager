@@ -29,6 +29,8 @@ public class Bail {
     /** Usage courant : deux mois de loyer en caution. */
     public static final int MOIS_CAUTION_PAR_DEFAUT = 2;
     public static final int MOIS_AVANCE_MAX = 24;
+    /** Usage courant : deux mois de loyer réglés d'avance à la signature. */
+    public static final int MOIS_AVANCE_PAR_DEFAUT = 2;
 
     private Long id;
     private String reference;
@@ -80,7 +82,7 @@ public class Bail {
         if (charges == null) charges = BigDecimal.ZERO;
         if (depotGarantie == null) depotGarantie = BigDecimal.ZERO;
         if (jourEcheance == null) jourEcheance = JOUR_ECHEANCE_PAR_DEFAUT;
-        if (moisAvance == null) moisAvance = 0;
+        if (moisAvance == null) moisAvance = MOIS_AVANCE_PAR_DEFAUT;
     }
 
     /**

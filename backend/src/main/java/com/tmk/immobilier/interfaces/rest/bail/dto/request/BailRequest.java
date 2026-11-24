@@ -22,7 +22,7 @@ public record BailRequest(
         @Min(value = 0, message = "Le nombre de mois de caution doit être compris entre 0 et 24.")
         @Max(value = 24, message = "Le nombre de mois de caution doit être compris entre 0 et 24.")
         Integer moisCaution,
-        /** Mois de loyer réglés à la signature : ils ne sont pas facturés. */
+        /** Mois de loyer réglés à la signature : ils ne sont pas facturés. 2 par défaut. */
         @Min(value = 0, message = "Le nombre de mois d'avance doit être compris entre 0 et 24.")
         @Max(value = 24, message = "Le nombre de mois d'avance doit être compris entre 0 et 24.")
         Integer moisAvance,
