@@ -47,8 +47,8 @@ class _BailFormPageState extends ConsumerState<BailFormPage> {
   DateTime? _dateDebut = DateTime.now();
   DateTime? _dateFin;
 
-  /// Bail sans date de fin : il court jusqu'à résiliation.
-  bool _dureeIndeterminee = false;
+  /// Bail sans date de fin : il court jusqu'à résiliation. Cas le plus courant, donc par défaut.
+  bool _dureeIndeterminee = true;
   final _loyer = TextEditingController();
   final _charges = TextEditingController();
   // Usage courant : deux mois de loyer en caution.
