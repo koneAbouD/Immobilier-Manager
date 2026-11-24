@@ -410,6 +410,8 @@ InputDecoration authInputDecoration({
   required String label,
   required IconData icon,
   Widget? suffixIcon,
+  /// Champ plus bas, pour les formulaires qui doivent tenir sur un écran.
+  bool compact = false,
 }) {
   OutlineInputBorder border(Color c, [double w = 1.2]) => OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
@@ -424,8 +426,10 @@ InputDecoration authInputDecoration({
     labelStyle: TextStyle(color: kAuthHint, fontSize: 14),
     floatingLabelStyle:
         TextStyle(color: kAuthPrimary, fontWeight: FontWeight.w600),
+    isDense: compact,
     contentPadding:
-        const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        EdgeInsets.symmetric(horizontal: 16, vertical: compact ? 13 : 16),
+    errorStyle: compact ? const TextStyle(fontSize: 11, height: 1.1) : null,
     enabledBorder: border(kAuthBorder),
     border: border(kAuthBorder),
     focusedBorder: border(kAuthPrimary, 1.6),

@@ -8,6 +8,11 @@ import '../widgets/auth_ui.dart';
 /// Création d'un compte organisation en libre-service : l'agence (ou le
 /// bailleur) et son propriétaire. L'essai gratuit démarre aussitôt et la
 /// session s'ouvre directement.
+///
+/// Conçue pour tenir sur un écran sans défiler : en-tête compact, champs
+/// resserrés, et deux colonnes dès que la largeur le permet (téléphone pliant
+/// ouvert, tablette). Le défilement ne reste qu'en secours, clavier ouvert ou
+/// très petit écran.
 class InscriptionPage extends ConsumerStatefulWidget {
   const InscriptionPage({super.key});
 
@@ -16,14 +21,16 @@ class InscriptionPage extends ConsumerStatefulWidget {
 }
 
 class _InscriptionPageState extends ConsumerState<InscriptionPage> {
+  /// Largeur à partir de laquelle les champs vont deux par ligne.
+  static const _largeurDeuxColonnes = 600.0;
+
   final _formKey = GlobalKey<FormState>();
   final _organisation = TextEditingController();
   final _prenom = TextEditingController();
   final _nom = TextEditingController();
-  final _email = TextEditingController();
   final _telephone = TextEditingController();
+  final _email = TextEditingController();
   final _motDePasse = TextEditingController();
-  final _confirmation = TextEditingController();
   bool _masque = true;
   bool _envoi = false;
   String? _erreur;
@@ -34,7 +41,7 @@ class _InscriptionPageState extends ConsumerState<InscriptionPage> {
 
   @override
   void dispose() {
-    for (final c in [_organisation, _prenom, _nom, _email, _telephone, _motDePasse, _confirmation]) {
+    for (final c in [_organisation, _prenom, _nom, _telephone, _email, _motDePasse]) {
       c.dispose();
     }
     super.dispose();
@@ -66,7 +73,18 @@ class _InscriptionPageState extends ConsumerState<InscriptionPage> {
 
   String? _obligatoire(String? v, String quoi) => v == null || v.trim().isEmpty ? '$quoi obligatoire.' : null;
 
-  String? _robustesse(String? v) {
+  String? _verifierTelephone(String? v) {
+    final t = (v ?? '').trim();
+    if (t.isEmpty) return 'Téléphone obligatoire.';
+    return _telephoneValide.hasMatch(t) ? null : 'Numéro invalide (ex. 07 07 12 34 56).';
+  }
+
+  String? _verifierEmail(String? v) {
+    final e = (v ?? '').trim();
+    return e.isEmpty || _emailValide.hasMatch(e) ? null : 'Adresse e-mail invalide.';
+  }
+
+  String? _verifierMotDePasse(String? v) {
     if (v == null || v.length < 8) return 'Au moins 8 caractères.';
     if (!v.contains(RegExp(r'[A-Za-z]')) || !v.contains(RegExp(r'\d'))) {
       return 'Au moins une lettre et un chiffre.';
@@ -79,160 +97,169 @@ class _InscriptionPageState extends ConsumerState<InscriptionPage> {
           TextInputType? clavier,
           bool masque = false,
           Widget? suffixe,
+          TextInputAction action = TextInputAction.next,
+          ValueChanged<String>? onSubmitted,
           TextCapitalization majuscules = TextCapitalization.none}) =>
-      Padding(
-        padding: const EdgeInsets.only(bottom: 14),
-        child: TextFormField(
-          controller: c,
-          keyboardType: clavier,
-          obscureText: masque,
-          autocorrect: false,
-          textCapitalization: majuscules,
-          textInputAction: TextInputAction.next,
-          decoration: authInputDecoration(label: label, icon: icone, suffixIcon: suffixe),
-          validator: validator,
-        ),
+      TextFormField(
+        controller: c,
+        keyboardType: clavier,
+        obscureText: masque,
+        autocorrect: false,
+        textCapitalization: majuscules,
+        textInputAction: action,
+        onFieldSubmitted: onSubmitted,
+        decoration: authInputDecoration(label: label, icon: icone, suffixIcon: suffixe, compact: true),
+        validator: validator,
       );
+
+  /// Deux champs côte à côte.
+  Widget _paire(Widget a, Widget b) => Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Expanded(child: a),
+        const SizedBox(width: 10),
+        Expanded(child: b),
+      ]);
+
+  List<Widget> _lignes(bool large) {
+    final organisation = _champ(_organisation, 'Nom de l\'agence ou du bailleur', Icons.business_rounded,
+        majuscules: TextCapitalization.words, validator: (v) => _obligatoire(v, 'Nom'));
+    final prenom = _champ(_prenom, 'Prénom', Icons.person_outline_rounded,
+        majuscules: TextCapitalization.words, validator: (v) => _obligatoire(v, 'Prénom'));
+    final nom = _champ(_nom, 'Nom', Icons.badge_outlined,
+        majuscules: TextCapitalization.words, validator: (v) => _obligatoire(v, 'Nom'));
+    final telephone = _champ(_telephone, 'Téléphone (identifiant)', Icons.phone_outlined,
+        clavier: TextInputType.phone, validator: _verifierTelephone);
+    final email = _champ(_email, 'E-mail (facultatif)', Icons.alternate_email_rounded,
+        clavier: TextInputType.emailAddress, validator: _verifierEmail);
+    final motDePasse = _champ(_motDePasse, 'Mot de passe', Icons.lock_outline_rounded,
+        masque: _masque,
+        action: TextInputAction.done,
+        onSubmitted: (_) => _creer(),
+        validator: _verifierMotDePasse,
+        suffixe: IconButton(
+          visualDensity: VisualDensity.compact,
+          tooltip: _masque ? 'Afficher' : 'Masquer',
+          icon: Icon(_masque ? Icons.visibility_outlined : Icons.visibility_off_outlined, color: kAuthHint, size: 20),
+          onPressed: () => setState(() => _masque = !_masque),
+        ));
+    return large
+        ? [_paire(organisation, telephone), _paire(prenom, nom), _paire(email, motDePasse)]
+        : [organisation, _paire(prenom, nom), telephone, email, motDePasse];
+  }
 
   @override
   Widget build(BuildContext context) {
-    final oeil = IconButton(
-      icon: Icon(_masque ? Icons.visibility_outlined : Icons.visibility_off_outlined, color: kAuthHint, size: 20),
-      onPressed: () => setState(() => _masque = !_masque),
-    );
-    return AuthScaffold(
-      showBack: true,
-      child: Form(
-        key: _formKey,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const AuthBrand(
-              assetLogo: 'assets/images/logo_tmk.png',
-              compact: true,
-              subtitle: 'Créez l\'espace de votre agence en une minute',
-            ),
-            const SizedBox(height: 16),
-            const _AtoutsEssai(),
-            const SizedBox(height: 20),
-            AuthCard(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  AuthMessage(message: _erreur, tick: _tick),
-                  const _Rubrique('Votre organisation'),
-                  _champ(_organisation, 'Nom de l\'agence ou du bailleur', Icons.business_rounded,
-                      majuscules: TextCapitalization.words,
-                      validator: (v) => _obligatoire(v, 'Nom')),
-                  const _Rubrique('Vous'),
-                  Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Expanded(
-                      child: _champ(_prenom, 'Prénom', Icons.person_outline_rounded,
-                          majuscules: TextCapitalization.words, validator: (v) => _obligatoire(v, 'Prénom')),
+    return Scaffold(
+      backgroundColor: AppColors.scaffold,
+      body: SafeArea(
+        child: LayoutBuilder(builder: (context, contraintes) {
+          final large = contraintes.maxWidth >= _largeurDeuxColonnes;
+          final lignes = _lignes(large);
+          return SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+            child: ConstrainedBox(
+              // Centré verticalement quand tout tient, défilable sinon.
+              constraints: BoxConstraints(minHeight: contraintes.maxHeight - 20),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(maxWidth: large ? 720 : 460),
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        const _Entete(),
+                        const SizedBox(height: 14),
+                        AuthCard(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              AuthMessage(message: _erreur, tick: _tick, margin: const EdgeInsets.only(bottom: 12)),
+                              for (var i = 0; i < lignes.length; i++) ...[
+                                if (i > 0) const SizedBox(height: 10),
+                                lignes[i],
+                              ],
+                              const SizedBox(height: 16),
+                              AuthPrimaryButton(
+                                label: 'Créer mon compte',
+                                icon: Icons.rocket_launch_outlined,
+                                loading: _envoi,
+                                onPressed: _envoi ? null : _creer,
+                              ),
+                              const SizedBox(height: 10),
+                              Text(
+                                'En créant un compte, vous acceptez les conditions d\'utilisation du service.',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(fontSize: 11, height: 1.3, color: kAuthHint),
+                              ),
+                            ],
+                          ),
+                        ),
+                        TextButton(
+                          onPressed: () => Navigator.of(context).maybePop(),
+                          child: Text.rich(TextSpan(
+                            text: 'Déjà un compte ? ',
+                            style: TextStyle(color: kAuthHint, fontSize: 13.5),
+                            children: [
+                              TextSpan(
+                                text: 'Se connecter',
+                                style: TextStyle(color: kAuthPrimary, fontWeight: FontWeight.w700),
+                              ),
+                            ],
+                          )),
+                        ),
+                      ],
                     ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: _champ(_nom, 'Nom', Icons.badge_outlined,
-                          majuscules: TextCapitalization.words, validator: (v) => _obligatoire(v, 'Nom')),
-                    ),
-                  ]),
-                  _champ(_telephone, 'Téléphone', Icons.phone_outlined,
-                      clavier: TextInputType.phone,
-                      validator: (v) {
-                        final t = (v ?? '').trim();
-                        if (t.isEmpty) return 'Téléphone obligatoire : c\'est votre identifiant.';
-                        return _telephoneValide.hasMatch(t) ? null : 'Numéro invalide (ex. 07 07 12 34 56).';
-                      }),
-                  _champ(_email, 'Adresse e-mail (facultatif)', Icons.alternate_email_rounded,
-                      clavier: TextInputType.emailAddress,
-                      validator: (v) {
-                        final e = (v ?? '').trim();
-                        return e.isEmpty || _emailValide.hasMatch(e) ? null : 'Adresse e-mail invalide.';
-                      }),
-                  _champ(_motDePasse, 'Mot de passe', Icons.lock_outline_rounded,
-                      masque: _masque, suffixe: oeil, validator: _robustesse),
-                  _champ(_confirmation, 'Confirmer le mot de passe', Icons.lock_reset_rounded,
-                      masque: _masque,
-                      validator: (v) => v != _motDePasse.text ? 'Les mots de passe diffèrent.' : null),
-                  const SizedBox(height: 6),
-                  AuthPrimaryButton(
-                    label: 'Créer mon compte',
-                    icon: Icons.rocket_launch_outlined,
-                    loading: _envoi,
-                    onPressed: _envoi ? null : _creer,
                   ),
-                  const SizedBox(height: 12),
-                  Text(
-                    'En créant un compte, vous acceptez les conditions d\'utilisation du service. '
-                    'Votre numéro de téléphone sera votre identifiant de connexion.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 11.5, height: 1.4, color: kAuthHint),
-                  ),
-                ],
+                ),
               ),
             ),
-            const SizedBox(height: 16),
-            TextButton(
-              onPressed: () => Navigator.of(context).maybePop(),
-              child: Text.rich(TextSpan(
-                text: 'Déjà un compte ? ',
-                style: TextStyle(color: kAuthHint, fontSize: 13.5),
-                children: [
-                  TextSpan(
-                    text: 'Se connecter',
-                    style: TextStyle(color: kAuthPrimary, fontWeight: FontWeight.w700),
-                  ),
-                ],
-              )),
-            ),
-          ],
-        ),
+          );
+        }),
       ),
     );
   }
 }
 
-class _Rubrique extends StatelessWidget {
-  final String titre;
-  const _Rubrique(this.titre);
-
-  @override
-  Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.only(bottom: 10, top: 2),
-        child: Text(titre.toUpperCase(),
-            style: TextStyle(
-                fontSize: 11, letterSpacing: 0.8, fontWeight: FontWeight.w800, color: AppColors.label)),
-      );
-}
-
-/// Ce que l'essai apporte, en trois pastilles.
-class _AtoutsEssai extends StatelessWidget {
-  const _AtoutsEssai();
+/// En-tête compact : retour, logo, titre et promesse de l'essai, sur une ligne.
+class _Entete extends StatelessWidget {
+  const _Entete();
 
   @override
   Widget build(BuildContext context) {
-    Widget pastille(IconData icone, String texte) => Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-          decoration: BoxDecoration(
-            color: AppColors.primaryTint,
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Row(mainAxisSize: MainAxisSize.min, children: [
-            Icon(icone, size: 14, color: AppColors.primaryDark),
-            const SizedBox(width: 6),
-            Text(texte,
-                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.primaryDark)),
+    return Row(children: [
+      IconButton(
+        onPressed: () => Navigator.of(context).maybePop(),
+        icon: Icon(Icons.arrow_back_rounded, color: kAuthDark),
+        style: IconButton.styleFrom(backgroundColor: AppColors.blanc),
+        tooltip: 'Retour',
+      ),
+      const SizedBox(width: 8),
+      Container(
+        width: 48,
+        height: 48,
+        padding: const EdgeInsets.all(6),
+        decoration: BoxDecoration(color: AppColors.blanc, borderRadius: BorderRadius.circular(14)),
+        child: Image.asset('assets/images/logo_tmk.png', fit: BoxFit.contain),
+      ),
+      const SizedBox(width: 12),
+      Expanded(
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text('Créer votre espace',
+              style: TextStyle(fontSize: 19, fontWeight: FontWeight.w800, color: kAuthDark, letterSpacing: -0.3)),
+          const SizedBox(height: 3),
+          Row(children: [
+            Icon(Icons.card_giftcard_rounded, size: 14, color: AppColors.primaryDark),
+            const SizedBox(width: 5),
+            Flexible(
+              child: Text('Essai gratuit de 30 jours, sans engagement',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: AppColors.primaryDark)),
+            ),
           ]),
-        );
-    return Wrap(
-      alignment: WrapAlignment.center,
-      spacing: 8,
-      runSpacing: 8,
-      children: [
-        pastille(Icons.card_giftcard_rounded, '30 jours offerts'),
-        pastille(Icons.credit_card_off_outlined, 'Sans carte bancaire'),
-        pastille(Icons.groups_2_outlined, 'Jusqu\'à 10 collaborateurs'),
-      ],
-    );
+        ]),
+      ),
+    ]);
   }
 }

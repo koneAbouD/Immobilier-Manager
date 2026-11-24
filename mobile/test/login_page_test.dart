@@ -52,7 +52,7 @@ void main() {
     await tester.tap(find.textContaining('Créer un compte', findRichText: true));
     await tester.pumpAndSettle();
     expect(find.text('Créer mon compte'), findsOneWidget);
-    expect(find.text('30 jours offerts'), findsOneWidget);
+    expect(find.text('Essai gratuit de 30 jours, sans engagement'), findsOneWidget);
   });
 
   testWidgets('un refus du serveur affiche son message', (tester) async {
