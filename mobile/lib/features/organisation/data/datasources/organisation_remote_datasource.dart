@@ -84,10 +84,11 @@ class OrganisationRemoteDatasource {
 
   static Profil _profil(Map<String, dynamic> j) => Profil(
         id: j['id'] as int,
-        email: j['email'] as String,
+        email: j['email'] as String?,
+        telephone: j['telephone'] as String?,
         prenom: j['prenom'] as String?,
         nom: j['nom'] as String?,
-        nomComplet: j['nomComplet'] as String? ?? j['email'] as String,
+        nomComplet: j['nomComplet'] as String? ?? j['email'] as String? ?? j['telephone'] as String? ?? '',
         superAdmin: j['superAdmin'] as bool? ?? false,
         organisations: (j['organisations'] as List? ?? const [])
             .map((e) => e as Map<String, dynamic>)
@@ -141,7 +142,8 @@ class OrganisationRemoteDatasource {
   static MembreEquipe _membre(Map<String, dynamic> j) => MembreEquipe(
         id: j['id'] as int,
         utilisateurId: j['utilisateurId'] as int,
-        email: j['email'] as String,
+        email: j['email'] as String?,
+        telephone: j['telephone'] as String?,
         prenom: j['prenom'] as String?,
         nom: j['nom'] as String?,
         role: RoleMembre.fromCode(j['role'] as String?),

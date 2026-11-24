@@ -30,6 +30,7 @@ class _InscriptionPageState extends ConsumerState<InscriptionPage> {
   int _tick = 0;
 
   static final _emailValide = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
+  static final _telephoneValide = RegExp(r'^\+?[0-9 .\-()]{8,20}$');
 
   @override
   void dispose() {
@@ -135,10 +136,19 @@ class _InscriptionPageState extends ConsumerState<InscriptionPage> {
                           majuscules: TextCapitalization.words, validator: (v) => _obligatoire(v, 'Nom')),
                     ),
                   ]),
-                  _champ(_email, 'Adresse e-mail', Icons.alternate_email_rounded,
+                  _champ(_telephone, 'Téléphone', Icons.phone_outlined,
+                      clavier: TextInputType.phone,
+                      validator: (v) {
+                        final t = (v ?? '').trim();
+                        if (t.isEmpty) return 'Téléphone obligatoire : c\'est votre identifiant.';
+                        return _telephoneValide.hasMatch(t) ? null : 'Numéro invalide (ex. 07 07 12 34 56).';
+                      }),
+                  _champ(_email, 'Adresse e-mail (facultatif)', Icons.alternate_email_rounded,
                       clavier: TextInputType.emailAddress,
-                      validator: (v) => _emailValide.hasMatch((v ?? '').trim()) ? null : 'Adresse e-mail invalide.'),
-                  _champ(_telephone, 'Téléphone (facultatif)', Icons.phone_outlined, clavier: TextInputType.phone),
+                      validator: (v) {
+                        final e = (v ?? '').trim();
+                        return e.isEmpty || _emailValide.hasMatch(e) ? null : 'Adresse e-mail invalide.';
+                      }),
                   _champ(_motDePasse, 'Mot de passe', Icons.lock_outline_rounded,
                       masque: _masque, suffixe: oeil, validator: _robustesse),
                   _champ(_confirmation, 'Confirmer le mot de passe', Icons.lock_reset_rounded,
@@ -154,7 +164,7 @@ class _InscriptionPageState extends ConsumerState<InscriptionPage> {
                   const SizedBox(height: 12),
                   Text(
                     'En créant un compte, vous acceptez les conditions d\'utilisation du service. '
-                    'Votre adresse e-mail sera votre identifiant de connexion.',
+                    'Votre numéro de téléphone sera votre identifiant de connexion.',
                     textAlign: TextAlign.center,
                     style: TextStyle(fontSize: 11.5, height: 1.4, color: kAuthHint),
                   ),

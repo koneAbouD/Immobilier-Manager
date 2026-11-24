@@ -17,8 +17,8 @@ class _FauxAuthRepository implements AuthRepository {
     required String organisation,
     required String prenom,
     required String nom,
-    required String email,
-    String? telephone,
+    String? email,
+    required String telephone,
     required String motDePasse,
   }) async =>
       const Left(ConflictFailure('Un compte existe déjà avec cette adresse e-mail.', code: 'COMPTE_EXISTANT'));

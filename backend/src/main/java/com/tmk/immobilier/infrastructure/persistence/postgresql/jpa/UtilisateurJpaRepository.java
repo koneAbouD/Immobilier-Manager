@@ -12,4 +12,6 @@ public interface UtilisateurJpaRepository extends JpaRepository<UtilisateurEntit
     Optional<UtilisateurEntity> findByKeycloakId(String keycloakId);
 
     Optional<UtilisateurEntity> findByEmailIgnoreCase(String email);
+
+    Optional<UtilisateurEntity> findByTelephone(String telephone);
 }

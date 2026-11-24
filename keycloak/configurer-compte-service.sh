@@ -5,7 +5,10 @@
 #     realm-management manage-users / view-users / query-users (création des
 #     comptes à l'inscription et à l'invitation) ;
 #   • crée le rôle SUPER_ADMIN (back-office de la plateforme) ;
-#   • ferme l'inscription libre côté Keycloak (seul le backend crée des comptes).
+#   • ferme l'inscription libre côté Keycloak (seul le backend crée des comptes) ;
+#   • rend l'e-mail facultatif dans le profil utilisateur : les comptes se
+#     connectent avec leur numéro de téléphone (Keycloak ≥ 24 exige sinon un
+#     e-mail et refuse la connexion : « Account is not fully set up »).
 # Idempotent : peut être relancé sans risque.
 #
 #   ./keycloak/configurer-compte-service.sh                  # local (docker compose)
@@ -24,7 +27,7 @@ CLIENT_ID="${CLIENT_ID:-immobilier-manager-backend}"
 if [[ -n "${KC_URL_DISTANT:-}" || "$KC_URL" != http://localhost:* ]]; then
   KCADM=(kcadm.sh)
 else
-  KCADM=(docker exec "$KC_CONTAINER" /opt/keycloak/bin/kcadm.sh)
+  KCADM=(docker exec -i "$KC_CONTAINER" /opt/keycloak/bin/kcadm.sh)
   KC_URL="http://localhost:8180"
 fi
 
@@ -45,6 +48,17 @@ echo "✔ Rôle SUPER_ADMIN"
 
 "${KCADM[@]}" update "realms/$REALM" -s registrationAllowed=false -s loginWithEmailAllowed=true -s duplicateEmailsAllowed=false
 echo "✔ Inscription libre fermée côté Keycloak, connexion par e-mail autorisée"
+
+PROFIL=$("${KCADM[@]}" get users/profile -r "$REALM")
+echo "$PROFIL" | python3 -c '
+import json, sys
+profil = json.load(sys.stdin)
+for attribut in profil.get("attributes", []):
+    if attribut.get("name") == "email":
+        attribut.pop("required", None)
+json.dump(profil, sys.stdout)
+' | "${KCADM[@]}" update users/profile -r "$REALM" -f - >/dev/null
+echo "✔ E-mail facultatif (connexion par numéro de téléphone)"
 
 if [[ -n "${SUPER_ADMIN_USER:-}" ]]; then
   "${KCADM[@]}" add-roles -r "$REALM" --uusername "$SUPER_ADMIN_USER" --rolename SUPER_ADMIN

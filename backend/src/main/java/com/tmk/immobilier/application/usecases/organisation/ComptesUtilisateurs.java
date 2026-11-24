@@ -51,7 +51,6 @@ public class ComptesUtilisateurs {
 
         utilisateur.setKeycloakId(jeton.keycloakId());
         if (jeton.email() != null) utilisateur.setEmail(jeton.email().trim().toLowerCase());
-        if (utilisateur.getEmail() == null) utilisateur.setEmail(jeton.keycloakId() + "@inconnu.local");
         if (jeton.prenom() != null) utilisateur.setPrenom(jeton.prenom());
         if (jeton.nom() != null) utilisateur.setNom(jeton.nom());
         utilisateur.setDerniereConnexion(maintenant);

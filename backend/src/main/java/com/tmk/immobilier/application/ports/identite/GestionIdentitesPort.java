@@ -9,10 +9,19 @@ import java.util.Optional;
  */
 public interface GestionIdentitesPort {
 
-    /** Crée un compte actif, identifiant = e-mail ; @return son identifiant (« sub » des jetons) */
-    String creerCompte(String email, String prenom, String nom, String motDePasse);
+    /**
+     * Crée un compte actif.
+     *
+     * @param identifiant identifiant de connexion (numéro de téléphone canonique, ou e-mail)
+     * @param email       facultatif
+     * @return l'identifiant technique du compte (« sub » des jetons)
+     */
+    String creerCompte(String identifiant, String email, String prenom, String nom, String motDePasse);
 
     Optional<String> trouverParEmail(String email);
+
+    /** Compte dont l'identifiant de connexion est exactement [identifiant]. */
+    Optional<String> trouverParIdentifiant(String identifiant);
 
     void definirMotDePasse(String identifiant, String motDePasse);
 

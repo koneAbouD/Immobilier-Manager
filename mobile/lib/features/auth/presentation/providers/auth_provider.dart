@@ -47,16 +47,16 @@ class AuthNotifier extends StateNotifier<AuthState> {
     required String organisation,
     required String prenom,
     required String nom,
-    required String email,
-    String? telephone,
+    String? email,
+    required String telephone,
     required String motDePasse,
   }) async {
     final result = await _repository.inscrire(
       organisation: organisation.trim(),
       prenom: prenom.trim(),
       nom: nom.trim(),
-      email: email.trim().toLowerCase(),
-      telephone: telephone?.trim(),
+      email: email == null || email.trim().isEmpty ? null : email.trim().toLowerCase(),
+      telephone: telephone.trim(),
       motDePasse: motDePasse,
     );
     return result.fold((failure) => failure.message, (_) {

@@ -25,6 +25,7 @@ public class Utilisateur {
 
     public String nomComplet() {
         String complet = ((prenom != null ? prenom : "") + " " + (nom != null ? nom : "")).trim();
-        return complet.isEmpty() ? email : complet;
+        if (!complet.isEmpty()) return complet;
+        return email != null ? email : telephone;
     }
 }

@@ -25,7 +25,7 @@ public class UtilisateurRepositoryAdapter implements UtilisateurRepository {
             INSERT INTO utilisateurs (keycloak_id, email, prenom, nom, telephone, derniere_connexion,
                                       created_at, updated_at, created_by, updated_by)
             VALUES (:keycloakId, :email, :prenom, :nom, :telephone, :derniereConnexion,
-                    now(), now(), :email, :email)
+                    now(), now(), :auteur, :auteur)
             ON CONFLICT DO NOTHING
             """;
 
@@ -37,9 +37,11 @@ public class UtilisateurRepositoryAdapter implements UtilisateurRepository {
                 .addValue("prenom", utilisateur.getPrenom())
                 .addValue("nom", utilisateur.getNom())
                 .addValue("telephone", utilisateur.getTelephone())
-                .addValue("derniereConnexion", utilisateur.getDerniereConnexion()));
+                .addValue("derniereConnexion", utilisateur.getDerniereConnexion())
+                .addValue("auteur", utilisateur.getEmail() != null ? utilisateur.getEmail()
+                        : utilisateur.getTelephone() != null ? utilisateur.getTelephone() : "system"));
         return findByKeycloakId(utilisateur.getKeycloakId()).orElseThrow(() -> new IllegalStateException(
-                "Compte " + utilisateur.getEmail() + " impossible à créer : adresse déjà liée à un autre compte"));
+                "Compte " + utilisateur.nomComplet() + " impossible à créer : e-mail ou téléphone déjà lié à un autre compte"));
     }
 
     @Override
@@ -57,6 +59,11 @@ public class UtilisateurRepositoryAdapter implements UtilisateurRepository {
     @Override
     public Optional<Utilisateur> findByKeycloakId(String keycloakId) {
         return jpaRepository.findByKeycloakId(keycloakId).map(mapper::toDomain);
+    }
+
+    @Override
+    public Optional<Utilisateur> findByTelephone(String telephone) {
+        return jpaRepository.findByTelephone(telephone).map(mapper::toDomain);
     }
 
     @Override

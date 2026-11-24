@@ -82,7 +82,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                     autocorrect: false,
                     textInputAction: TextInputAction.next,
                     decoration: authInputDecoration(
-                      label: 'E-mail ou identifiant',
+                      label: 'Téléphone ou e-mail',
                       icon: Icons.person_outline_rounded,
                     ),
                     validator: (v) =>

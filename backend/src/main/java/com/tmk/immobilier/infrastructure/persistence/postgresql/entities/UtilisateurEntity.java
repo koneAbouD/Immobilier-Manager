@@ -22,7 +22,8 @@ public class UtilisateurEntity extends AbstractAuditEntity {
     @Column(name = "keycloak_id", nullable = false, length = 64)
     private String keycloakId;
 
-    @Column(nullable = false, length = 150)
+    /** Facultatif : un compte peut n'avoir que son numéro de téléphone. */
+    @Column(length = 150)
     private String email;
 
     @Column(length = 100)

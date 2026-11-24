@@ -8,6 +8,7 @@ public record MembreResponse(
         Long id,
         Long utilisateurId,
         String email,
+        String telephone,
         String prenom,
         String nom,
         String role,
@@ -24,6 +25,7 @@ public record MembreResponse(
 
     public static MembreResponse from(Membre m, String motDePasseTemporaire) {
         return new MembreResponse(m.getId(), m.getUtilisateur().getId(), m.getUtilisateur().getEmail(),
+                m.getUtilisateur().getTelephone(),
                 m.getUtilisateur().getPrenom(), m.getUtilisateur().getNom(), m.getRole().name(), m.isActif(),
                 m.getAjouteLe(), m.getUtilisateur().getDerniereConnexion(), motDePasseTemporaire);
     }

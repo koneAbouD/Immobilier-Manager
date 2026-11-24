@@ -20,6 +20,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
 import java.time.Instant;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -45,15 +46,17 @@ public class KeycloakIdentitesAdapter implements GestionIdentitesPort {
     }
 
     @Override
-    public String creerCompte(String email, String prenom, String nom, String motDePasse) {
-        Map<String, Object> compte = Map.of(
-                "username", email,
-                "email", email,
-                "firstName", prenom,
-                "lastName", nom,
-                "enabled", true,
-                "emailVerified", true,
-                "credentials", List.of(Map.of("type", "password", "value", motDePasse, "temporary", false)));
+    public String creerCompte(String identifiant, String email, String prenom, String nom, String motDePasse) {
+        Map<String, Object> compte = new HashMap<>();
+        compte.put("username", identifiant);
+        if (email != null) {
+            compte.put("email", email);
+            compte.put("emailVerified", true);
+        }
+        compte.put("firstName", prenom);
+        compte.put("lastName", nom);
+        compte.put("enabled", true);
+        compte.put("credentials", List.of(Map.of("type", "password", "value", motDePasse, "temporary", false)));
         try {
             ResponseEntity<Void> reponse = restClient.post().uri(properties.usersEndpoint())
                     .header(HttpHeaders.AUTHORIZATION, "Bearer " + jetonService())
@@ -66,11 +69,11 @@ public class KeycloakIdentitesAdapter implements GestionIdentitesPort {
                 String chemin = location.getPath();
                 return chemin.substring(chemin.lastIndexOf('/') + 1);
             }
-            return trouverParEmail(email).orElseThrow(() ->
+            return trouverParIdentifiant(identifiant).orElseThrow(() ->
                     new AuthServiceUnavailableException("Compte créé mais introuvable.", null));
         } catch (HttpClientErrorException e) {
             if (e.getStatusCode() == HttpStatus.CONFLICT) {
-                throw new RegleMetierException("COMPTE_EXISTANT", "Un compte existe déjà avec cette adresse e-mail.");
+                throw new RegleMetierException("COMPTE_EXISTANT", "Un compte existe déjà avec cet identifiant ou cette adresse e-mail.");
             }
             if (e.getStatusCode() == HttpStatus.BAD_REQUEST && e.getResponseBodyAsString().contains("assword")) {
                 throw new RegleMetierException("MOT_DE_PASSE_REFUSE",
@@ -96,6 +99,27 @@ public class KeycloakIdentitesAdapter implements GestionIdentitesPort {
             if (comptes == null) return Optional.empty();
             for (CompteKeycloak compte : comptes) {
                 if (email.equalsIgnoreCase(compte.email())) return Optional.of(compte.id());
+            }
+            return Optional.empty();
+        } catch (RestClientException e) {
+            throw indisponible("recherche de compte", e);
+        }
+    }
+
+    @Override
+    public Optional<String> trouverParIdentifiant(String identifiant) {
+        URI uri = UriComponentsBuilder.fromHttpUrl(properties.usersEndpoint())
+                .queryParam("username", identifiant)
+                .queryParam("exact", true)
+                .encode().build().toUri();
+        try {
+            CompteKeycloak[] comptes = restClient.get().uri(uri)
+                    .header(HttpHeaders.AUTHORIZATION, "Bearer " + jetonService())
+                    .retrieve()
+                    .body(CompteKeycloak[].class);
+            if (comptes == null) return Optional.empty();
+            for (CompteKeycloak compte : comptes) {
+                if (identifiant.equalsIgnoreCase(compte.username())) return Optional.of(compte.id());
             }
             return Optional.empty();
         } catch (RestClientException e) {
@@ -185,6 +209,6 @@ public class KeycloakIdentitesAdapter implements GestionIdentitesPort {
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
-    private record CompteKeycloak(String id, String email) {
+    private record CompteKeycloak(String id, String username, String email) {
     }
 }

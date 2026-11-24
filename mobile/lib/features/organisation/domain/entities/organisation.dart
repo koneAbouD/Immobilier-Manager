@@ -102,7 +102,10 @@ class Adhesion {
 /// L'utilisateur connecté et ses organisations.
 class Profil {
   final int id;
-  final String email;
+
+  /// Facultatif : un compte peut n'avoir que son numéro de téléphone.
+  final String? email;
+  final String? telephone;
   final String? prenom;
   final String? nom;
   final String nomComplet;
@@ -111,13 +114,17 @@ class Profil {
 
   const Profil({
     required this.id,
-    required this.email,
     required this.nomComplet,
     required this.superAdmin,
     required this.organisations,
+    this.email,
+    this.telephone,
     this.prenom,
     this.nom,
   });
+
+  /// Identifiant de connexion : le téléphone, à défaut l'e-mail.
+  String? get identifiant => telephone ?? email;
 
   Adhesion? adhesion(int? organisationId) {
     for (final a in organisations) {
@@ -191,7 +198,8 @@ class OrganisationCourante {
 class MembreEquipe {
   final int id;
   final int utilisateurId;
-  final String email;
+  final String? email;
+  final String? telephone;
   final String? prenom;
   final String? nom;
   final RoleMembre role;
@@ -205,9 +213,10 @@ class MembreEquipe {
   const MembreEquipe({
     required this.id,
     required this.utilisateurId,
-    required this.email,
     required this.role,
     required this.actif,
+    this.email,
+    this.telephone,
     this.prenom,
     this.nom,
     this.ajouteLe,
@@ -215,15 +224,18 @@ class MembreEquipe {
     this.motDePasseTemporaire,
   });
 
+  /// Identifiant de connexion : l'e-mail pour un invité, le téléphone sinon.
+  String get identifiant => email ?? telephone ?? '';
+
   String get nomComplet {
     final complet = '${prenom ?? ''} ${nom ?? ''}'.trim();
-    return complet.isEmpty ? email : complet;
+    return complet.isEmpty ? identifiant : complet;
   }
 
   String get initiales {
     final p = (prenom ?? '').trim();
     final n = (nom ?? '').trim();
     final i = '${p.isNotEmpty ? p[0] : ''}${n.isNotEmpty ? n[0] : ''}'.toUpperCase();
-    return i.isEmpty ? email[0].toUpperCase() : i;
+    return i.isEmpty ? (identifiant.isEmpty ? '?' : identifiant[0].toUpperCase()) : i;
   }
 }

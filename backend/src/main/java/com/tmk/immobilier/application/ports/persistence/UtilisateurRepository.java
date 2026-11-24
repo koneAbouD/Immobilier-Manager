@@ -20,4 +20,6 @@ public interface UtilisateurRepository {
     Optional<Utilisateur> findByKeycloakId(String keycloakId);
 
     Optional<Utilisateur> findByEmail(String email);
+
+    Optional<Utilisateur> findByTelephone(String telephone);
 }

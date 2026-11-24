@@ -58,7 +58,7 @@ class GestionMembresUseCaseTest {
     void creeLeCompteDUnInconnuAvecUnMotDePasseProvisoire() {
         when(utilisateurRepository.findByEmail("awa@agence.ci")).thenReturn(Optional.empty());
         when(identites.trouverParEmail("awa@agence.ci")).thenReturn(Optional.empty());
-        when(identites.creerCompte(eq("awa@agence.ci"), eq("Awa"), eq("Koné"), anyString())).thenReturn("kc-9");
+        when(identites.creerCompte(eq("awa@agence.ci"), eq("awa@agence.ci"), eq("Awa"), eq("Koné"), anyString())).thenReturn("kc-9");
         when(utilisateurRepository.save(any())).thenAnswer(inv -> {
             Utilisateur u = inv.getArgument(0);
             u.setId(9L);
@@ -78,7 +78,7 @@ class GestionMembresUseCaseTest {
     void annuleLeCompteCreeSiLEnregistrementEchoue() {
         when(utilisateurRepository.findByEmail(anyString())).thenReturn(Optional.empty());
         when(identites.trouverParEmail(anyString())).thenReturn(Optional.empty());
-        when(identites.creerCompte(anyString(), anyString(), anyString(), anyString())).thenReturn("kc-9");
+        when(identites.creerCompte(anyString(), anyString(), anyString(), anyString(), anyString())).thenReturn("kc-9");
         when(utilisateurRepository.save(any())).thenThrow(new IllegalStateException("base indisponible"));
 
         assertThatThrownBy(() -> useCase.ajouter("awa@agence.ci", "Awa", "Koné", RoleMembre.LECTEUR))

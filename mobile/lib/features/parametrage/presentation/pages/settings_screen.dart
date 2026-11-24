@@ -107,7 +107,7 @@ class SettingsScreen extends ConsumerWidget {
                     SettingsTile(
                       icon: Icons.lock_outline_rounded,
                       title: 'Mot de passe',
-                      description: session?.profil.email,
+                      description: session?.profil.identifiant,
                       onTap: () => _ouvrir(context, const MotDePassePage()),
                     ),
                     if (session?.profil.superAdmin ?? false)

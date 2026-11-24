@@ -33,7 +33,7 @@ public class MoiController {
                                    String acces) {
     }
 
-    public record ProfilResponse(Long id, String email, String prenom, String nom, String nomComplet,
+    public record ProfilResponse(Long id, String email, String telephone, String prenom, String nom, String nomComplet,
                                  boolean superAdmin, List<AdhesionResponse> organisations) {
     }
 
@@ -47,6 +47,7 @@ public class MoiController {
         ProfilUtilisateur profil = getMonProfilUseCase.execute(IdentitesJeton.depuis(authentication));
         LocalDate aujourdhui = LocalDate.now();
         return new ProfilResponse(profil.utilisateur().getId(), profil.utilisateur().getEmail(),
+                profil.utilisateur().getTelephone(),
                 profil.utilisateur().getPrenom(), profil.utilisateur().getNom(), profil.utilisateur().nomComplet(),
                 profil.superAdmin(),
                 profil.adhesions().stream().map(m -> adhesion(m, aujourdhui)).toList());

@@ -77,7 +77,7 @@ public class GestionMembresUseCase {
         boolean cree = keycloakId == null;
         if (cree) {
             motDePasse = MotsDePasse.generer();
-            keycloakId = identites.creerCompte(adresse, prenom.trim(), nom.trim(), motDePasse);
+            keycloakId = identites.creerCompte(adresse, adresse, prenom.trim(), nom.trim(), motDePasse);
         }
         try {
             Utilisateur utilisateur = utilisateurRepository.save(Utilisateur.builder()

@@ -47,6 +47,7 @@ public class GlobalExceptionHandler {
             Map.entry("chk_paiements_montant_positif", "Le montant du paiement doit être strictement positif."),
             Map.entry("chk_baux_jour_echeance", "Le jour d'échéance doit être compris entre 1 et 28."),
             Map.entry("uk_utilisateurs_email", "Un compte existe déjà avec cette adresse e-mail."),
+            Map.entry("uk_utilisateurs_telephone", "Un compte existe déjà avec ce numéro de téléphone."),
             Map.entry("uk_membres_organisation_utilisateur", "Cette personne fait déjà partie de l'équipe."),
             Map.entry("uk_membres_proprietaire", "L'organisation a déjà un propriétaire.")
     );

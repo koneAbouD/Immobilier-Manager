@@ -30,8 +30,8 @@ class AuthRepositoryImpl implements AuthRepository {
     required String organisation,
     required String prenom,
     required String nom,
-    required String email,
-    String? telephone,
+    String? email,
+    required String telephone,
     required String motDePasse,
   }) =>
       guard(() async {
@@ -39,8 +39,8 @@ class AuthRepositoryImpl implements AuthRepository {
           'organisation': organisation,
           'prenom': prenom,
           'nom': nom,
-          'email': email,
-          if (telephone != null && telephone.isNotEmpty) 'telephone': telephone,
+          'email': ?email,
+          'telephone': telephone,
           'motDePasse': motDePasse,
         });
         await _storage.clearOrganisationId();
@@ -48,7 +48,8 @@ class AuthRepositoryImpl implements AuthRepository {
           accessToken: tokens['accessToken'] as String,
           refreshToken: tokens['refreshToken'] as String?,
         );
-        await _storage.saveUsername(email);
+        // Le téléphone est l'identifiant de connexion.
+        await _storage.saveUsername(telephone);
       });
 
   @override

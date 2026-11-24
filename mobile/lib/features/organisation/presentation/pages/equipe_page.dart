@@ -35,7 +35,7 @@ class EquipePage extends ConsumerWidget {
   /// Le mot de passe provisoire n'est montré qu'une fois : on le rend facile à transmettre.
   Future<void> _identifiants(BuildContext context, MembreEquipe membre) {
     final texte = 'Bonjour ${membre.prenom ?? ''}, votre accès à Immobilier Manager est prêt.\n'
-        'Identifiant : ${membre.email}\nMot de passe provisoire : ${membre.motDePasseTemporaire}\n'
+        'Identifiant : ${membre.identifiant}\nMot de passe provisoire : ${membre.motDePasseTemporaire}\n'
         'Pensez à le changer depuis Réglages › Mot de passe.';
     return informer(
       context,
@@ -45,7 +45,7 @@ class EquipePage extends ConsumerWidget {
         Text('Transmettez ces identifiants à ${membre.nomComplet}. Le mot de passe ne sera plus affiché.',
             style: TextStyle(fontSize: 13.5, height: 1.4, color: AppColors.label)),
         const SizedBox(height: 14),
-        LigneInfo('Identifiant', membre.email),
+        LigneInfo('Identifiant', membre.identifiant),
         LigneInfo('Mot de passe', membre.motDePasseTemporaire, fort: true),
         const SizedBox(height: 10),
         BoutonSecondaire(
@@ -130,7 +130,7 @@ class _LigneMembre extends ConsumerWidget {
         child: Column(mainAxisSize: MainAxisSize.min, children: [
           ListTile(
             title: Text(membre.nomComplet, style: const TextStyle(fontWeight: FontWeight.w800)),
-            subtitle: Text(membre.email),
+            subtitle: Text(membre.identifiant),
           ),
           const Divider(height: 1),
           ListTile(
@@ -236,7 +236,7 @@ class _LigneMembre extends ConsumerWidget {
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: AppColors.dark)),
                     const SizedBox(height: 2),
-                    Text(membre.email,
+                    Text(membre.identifiant,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(fontSize: 12.5, color: AppColors.label)),

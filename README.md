@@ -51,7 +51,7 @@ Organisation 1──* Membre *──1 Utilisateur (compte Keycloak, peut servir 
      └──* toutes les données métier (organisation_id)
 ```
 
-- **Inscription en libre-service** : crée le compte Keycloak (API d'administration), l'organisation en **essai gratuit de 30 jours** (formule Professionnel) et l'adhésion de propriétaire, puis ouvre la session. En cas d'échec en base, le compte Keycloak est supprimé (compensation).
+- **Inscription en libre-service** : identifiant de connexion = **numéro de téléphone** (forme canonique : `07 07 12 34 56`, `+225 0707123456`… ouvrent le même compte), e-mail facultatif. Crée le compte Keycloak (API d'administration), l'organisation en **essai gratuit de 30 jours** (formule Professionnel) et l'adhésion de propriétaire, puis ouvre la session. En cas d'échec en base, le compte Keycloak est supprimé (compensation).
 - **Organisation de travail** : en-tête `X-Organisation-Id` sur chaque requête (le mobile le pose seul ; facultatif si l'utilisateur n'a qu'une organisation). `ContexteOrganisationFilter` vérifie l'adhésion, l'état de l'abonnement et pose le rôle.
 - **Rôles par organisation** (emboîtés) : `PROPRIETAIRE` ⊃ `ADMIN` (équipe, réglages) ⊃ `GESTIONNAIRE` (écriture métier) ⊃ `LECTEUR` (consultation). Les rôles Keycloak ne donnent aucun droit métier ; seul `SUPER_ADMIN` ouvre `/api/plateforme`.
 - **Cloisonnement**, en quatre couches :
