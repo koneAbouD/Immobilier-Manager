@@ -1,6 +1,6 @@
 package com.tmk.immobilier.infrastructure.persistence.postgresql.mapper;
 
-import com.tmk.immobilier.infrastructure.persistence.postgresql.entities.AbstractAuditEntity;
+import com.tmk.immobilier.infrastructure.persistence.postgresql.entities.AbstractTenantEntity;
 import org.mapstruct.Builder;
 import org.mapstruct.MapperConfig;
 import org.mapstruct.Mapping;
@@ -13,7 +13,8 @@ import org.mapstruct.MappingInheritanceStrategy;
  * sont désactivés pour que MapStruct passe par les setters, et que les champs
  * d'audit soient visibles. Ceux-ci appartiennent à l'auditing JPA, jamais au
  * domaine : tout mapping vers une entité les ignore par héritage de ce
- * prototype.
+ * prototype. Il en va de même de l'organisation, posée par Hibernate depuis le
+ * contexte : le domaine ne la porte jamais, il ne peut donc pas la falsifier.
  */
 @MapperConfig(
         componentModel = "spring",
@@ -26,5 +27,6 @@ public interface PersistenceMapperConfig {
     @Mapping(target = "updatedAt", ignore = true)
     @Mapping(target = "createdBy", ignore = true)
     @Mapping(target = "updatedBy", ignore = true)
-    AbstractAuditEntity versEntite(Object domaine);
+    @Mapping(target = "organisationId", ignore = true)
+    AbstractTenantEntity versEntite(Object domaine);
 }

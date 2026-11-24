@@ -16,11 +16,39 @@ class AuthRepositoryImpl implements AuthRepository {
   Future<Either<Failure, void>> login(String username, String password) =>
       guard(() async {
         final tokens = await _datasource.login(username, password);
+        // Nouvelle session : l'organisation du compte précédent est oubliée.
+        if (await _storage.getUsername() != username) await _storage.clearOrganisationId();
         await _storage.saveTokens(
           accessToken: tokens['accessToken'] as String,
           refreshToken: tokens['refreshToken'] as String?,
         );
         await _storage.saveUsername(username);
+      });
+
+  @override
+  Future<Either<Failure, void>> inscrire({
+    required String organisation,
+    required String prenom,
+    required String nom,
+    required String email,
+    String? telephone,
+    required String motDePasse,
+  }) =>
+      guard(() async {
+        final tokens = await _datasource.inscrire({
+          'organisation': organisation,
+          'prenom': prenom,
+          'nom': nom,
+          'email': email,
+          if (telephone != null && telephone.isNotEmpty) 'telephone': telephone,
+          'motDePasse': motDePasse,
+        });
+        await _storage.clearOrganisationId();
+        await _storage.saveTokens(
+          accessToken: tokens['accessToken'] as String,
+          refreshToken: tokens['refreshToken'] as String?,
+        );
+        await _storage.saveUsername(email);
       });
 
   @override

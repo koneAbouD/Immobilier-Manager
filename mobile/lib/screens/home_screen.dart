@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/theme/app_colors.dart';
 import '../core/widgets/app_header.dart';
+import '../features/organisation/presentation/providers/organisation_providers.dart';
+import '../features/organisation/presentation/widgets/bandeau_abonnement.dart';
 import '../features/parametrage/presentation/pages/settings_screen.dart';
 import '../features/tableau_bord/presentation/pages/tableau_bord_page.dart';
 
@@ -17,7 +20,7 @@ class HomeScreen extends StatelessWidget {
       appBar: AppHeader(
         title: '',
         showBack: false,
-        // Menu, qui ouvre les réglages (apparence, déconnexion).
+        // Menu, qui ouvre les réglages (organisation, équipe, apparence…).
         leading: AppHeaderAction(
           icon: Icons.menu_rounded,
           onTap: () => Navigator.push(
@@ -27,19 +30,27 @@ class HomeScreen extends StatelessWidget {
         ),
         center: const _Salutation(),
       ),
-      body: const SafeArea(top: false, child: TableauBordPage()),
+      body: const SafeArea(
+        top: false,
+        child: Column(children: [
+          BandeauAbonnement(),
+          Expanded(child: TableauBordPage()),
+        ]),
+      ),
     );
   }
 }
 
-/// Nom de l'application au centre de l'en-tête de l'accueil.
-class _Salutation extends StatelessWidget {
+/// Nom de l'organisation active au centre de l'en-tête : on sait toujours
+/// dans quel espace on travaille.
+class _Salutation extends ConsumerWidget {
   const _Salutation();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final organisation = ref.watch(sessionOrganisationProvider).valueOrNull?.active?.organisation;
     return Text(
-      'Immobilier Manager',
+      organisation ?? 'Immobilier Manager',
       maxLines: 1,
       overflow: TextOverflow.ellipsis,
       style: TextStyle(

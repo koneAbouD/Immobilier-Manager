@@ -56,6 +56,8 @@ app:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:*}
 
   # Le backend est le seul interlocuteur de Keycloak : le mobile ne lui parle jamais.
+  # Le client doit avoir « Service accounts » activé, avec les rôles realm-management
+  # manage-users, view-users et query-users (création des comptes à l'inscription).
   keycloak:
     auth-server-url: ${KEYCLOAK_AUTH_SERVER_URL:http://localhost:8180}
     realm: ${KEYCLOAK_REALM:immobilier-manager}
@@ -69,15 +71,9 @@ app:
     secret-key: ${STOCKAGE_SECRET_KEY:immo_minio_password}
     bucket: ${STOCKAGE_BUCKET:immobilier-documents}
 
-  # Bailleur imprimé sur les contrats de bail. Les champs vides laissent une
-  # ligne à compléter à la main sur le PDF.
-  bailleur:
-    nom: ${BAILLEUR_NOM:TMK}
-    representant: ${BAILLEUR_REPRESENTANT:}
-    adresse: ${BAILLEUR_ADRESSE:}
-    telephone: ${BAILLEUR_TELEPHONE:}
-    email: ${BAILLEUR_EMAIL:}
-    ville: ${BAILLEUR_VILLE:Abidjan}
+  # Inscription en libre-service : tentatives par adresse IP et par heure.
+  inscription:
+    max-par-heure: ${INSCRIPTION_MAX_PAR_HEURE:5}
 
 logging:
   level:

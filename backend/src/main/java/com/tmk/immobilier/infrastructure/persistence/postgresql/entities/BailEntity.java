@@ -15,7 +15,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class BailEntity extends AbstractAuditEntity {
+public class BailEntity extends AbstractTenantEntity {
 
     public static final String TABLE_NAME = "baux";
 
@@ -23,7 +23,7 @@ public class BailEntity extends AbstractAuditEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(length = 30, unique = true)
+    @Column(length = 30)
     private String reference;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
@@ -88,4 +88,9 @@ public class BailEntity extends AbstractAuditEntity {
 
     @Column(name = "contrat_signe_par", length = 100)
     private String contratSignePar;
+
+    @Override
+    protected Object identifiant() {
+        return id;
+    }
 }

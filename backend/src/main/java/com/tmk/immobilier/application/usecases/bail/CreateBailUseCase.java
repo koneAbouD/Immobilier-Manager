@@ -6,6 +6,7 @@ import com.tmk.immobilier.application.domain.bail.StatutBail;
 import com.tmk.immobilier.application.domain.locataire.Locataire;
 import com.tmk.immobilier.application.exception.RegleMetierException;
 import com.tmk.immobilier.application.exception.ResourceNotFoundException;
+import com.tmk.immobilier.application.ports.organisation.NumeroteurPort;
 import com.tmk.immobilier.application.ports.persistence.AppartementRepository;
 import com.tmk.immobilier.application.ports.persistence.BailRepository;
 import com.tmk.immobilier.application.ports.persistence.LocataireRepository;
@@ -23,10 +24,13 @@ import java.time.LocalDate;
 @RequiredArgsConstructor
 public class CreateBailUseCase {
 
+    public static final String COMPTEUR_BAUX = "BAIL";
+
     private final BailRepository bailRepository;
     private final AppartementRepository appartementRepository;
     private final LocataireRepository locataireRepository;
     private final GenererEcheancesUseCase genererEcheancesUseCase;
+    private final NumeroteurPort numeroteur;
 
     @Transactional
     public Bail execute(Long appartementId, Long locataireId, Bail bail) {
@@ -55,10 +59,9 @@ public class CreateBailUseCase {
         appartement.occuper();
         appartementRepository.save(appartement);
 
+        // Numérotation continue propre à l'organisation : BAIL-00001, BAIL-00002…
+        bail.setReference(String.format("BAIL-%05d", numeroteur.prochain(COMPTEUR_BAUX)));
         Bail saved = bailRepository.save(bail);
-        // La référence dérive de l'identifiant, connu seulement après insertion.
-        saved.setReference(String.format("BAIL-%05d", saved.getId()));
-        saved = bailRepository.save(saved);
 
         // Mêmes règles que l'émission automatique : le mois en cours attend le 25.
         genererEcheancesUseCase.executePourBail(saved, GenererEcheancesUseCase.dernierMoisEmis(LocalDate.now()));

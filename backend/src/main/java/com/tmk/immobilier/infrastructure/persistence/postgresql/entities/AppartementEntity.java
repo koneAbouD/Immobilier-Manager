@@ -14,7 +14,7 @@ import java.math.BigDecimal;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class AppartementEntity extends AbstractAuditEntity {
+public class AppartementEntity extends AbstractTenantEntity {
 
     public static final String TABLE_NAME = "appartements";
 
@@ -53,4 +53,9 @@ public class AppartementEntity extends AbstractAuditEntity {
 
     @Column(columnDefinition = "TEXT")
     private String description;
+
+    @Override
+    protected Object identifiant() {
+        return id;
+    }
 }

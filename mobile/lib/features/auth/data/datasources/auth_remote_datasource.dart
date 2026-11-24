@@ -11,6 +11,10 @@ class AuthRemoteDatasource {
     return data as Map<String, dynamic>;
   }
 
+  /// POST /auth/inscription → mêmes jetons que la connexion.
+  Future<Map<String, dynamic>> inscrire(Map<String, dynamic> inscription) async =>
+      await _client.postPublic('/auth/inscription', inscription) as Map<String, dynamic>;
+
   Future<void> logout(String refreshToken) async {
     await _client.postPublic('/auth/logout', {'refreshToken': refreshToken});
   }

@@ -38,6 +38,13 @@ class ConflictFailure extends Failure {
   const ConflictFailure(super.message, {this.code});
 }
 
+/// Refus lié à l'abonnement (402) : limite de la formule atteinte, essai
+/// terminé ou abonnement suspendu.
+class AbonnementFailure extends Failure {
+  final String? code;
+  const AbonnementFailure(super.message, {this.code});
+}
+
 /// Erreur inconnue / non catégorisée
 class UnknownFailure extends Failure {
   const UnknownFailure(

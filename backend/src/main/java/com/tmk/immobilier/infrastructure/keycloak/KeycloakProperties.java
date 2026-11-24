@@ -16,4 +16,9 @@ public record KeycloakProperties(
     public String logoutEndpoint() {
         return authServerUrl + "/realms/" + realm + "/protocol/openid-connect/logout";
     }
+
+    /** API d'administration des comptes du realm (compte de service du client backend). */
+    public String usersEndpoint() {
+        return authServerUrl + "/admin/realms/" + realm + "/users";
+    }
 }

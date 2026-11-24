@@ -15,7 +15,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class PaiementLoyerEntity extends AbstractAuditEntity {
+public class PaiementLoyerEntity extends AbstractTenantEntity {
 
     public static final String TABLE_NAME = "paiements_loyer";
 
@@ -54,4 +54,9 @@ public class PaiementLoyerEntity extends AbstractAuditEntity {
 
     @Column(name = "annule_le")
     private LocalDateTime annuleLe;
+
+    @Override
+    protected Object identifiant() {
+        return id;
+    }
 }

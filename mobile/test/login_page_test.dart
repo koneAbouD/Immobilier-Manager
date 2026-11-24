@@ -13,6 +13,17 @@ class _FauxAuthRepository implements AuthRepository {
       const Left(AuthFailure('Identifiant ou mot de passe incorrect.'));
 
   @override
+  Future<Either<Failure, void>> inscrire({
+    required String organisation,
+    required String prenom,
+    required String nom,
+    required String email,
+    String? telephone,
+    required String motDePasse,
+  }) async =>
+      const Left(ConflictFailure('Un compte existe déjà avec cette adresse e-mail.', code: 'COMPTE_EXISTANT'));
+
+  @override
   Future<void> logout() async {}
 
   @override
@@ -34,6 +45,14 @@ void main() {
     await tester.pump();
     expect(find.text('Identifiant obligatoire.'), findsOneWidget);
     expect(find.text('Mot de passe obligatoire.'), findsOneWidget);
+  });
+
+  testWidgets('la connexion propose de créer un compte organisation', (tester) async {
+    await tester.pumpWidget(app());
+    await tester.tap(find.textContaining('Créer un compte', findRichText: true));
+    await tester.pumpAndSettle();
+    expect(find.text('Créer mon compte'), findsOneWidget);
+    expect(find.text('30 jours offerts'), findsOneWidget);
   });
 
   testWidgets('un refus du serveur affiche son message', (tester) async {

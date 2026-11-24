@@ -9,6 +9,11 @@ import java.time.LocalDate;
  * Requêtes SQL du résumé des locataires. Trop d'agrégats croisés (baux actifs,
  * loyers échus, logement courant) pour une Specification : on les écrit en SQL
  * et on recharge ensuite les locataires de la page par leurs identifiants.
+ *
+ * <p>SQL natif : le filtre d'organisation d'Hibernate ne s'y applique pas. La
+ * condition {@code l.organisation_id = :organisation} est donc posée ici, à la
+ * racine ; baux, échéances et logements joints en héritent par les clés
+ * étrangères composites (id, organisation_id).
  */
 final class LocataireResumeQueries {
 
@@ -33,7 +38,7 @@ final class LocataireResumeQueries {
                          WHERE b.locataire_id = l.id AND e.statut IN ('A_PAYER', 'PARTIEL')
                            AND e.date_echeance < :aujourdhui) AS plus_ancien_retard
                   FROM locataires l
-                 WHERE %s
+                 WHERE l.organisation_id = :organisation AND (%s)
             ), situations AS (
                 SELECT s.*,
                        CASE WHEN s.montant_retard > 0 THEN 'EN_RETARD'
@@ -83,8 +88,10 @@ final class LocataireResumeQueries {
         return situations(avecRecherche) + "SELECT s.situation, count(*) AS nombre FROM situations s GROUP BY s.situation";
     }
 
-    static MapSqlParameterSource parametres(String recherche, SituationLocataire situation, LocalDate aujourdhui) {
-        MapSqlParameterSource params = new MapSqlParameterSource("aujourdhui", aujourdhui);
+    static MapSqlParameterSource parametres(Long organisationId, String recherche, SituationLocataire situation,
+                                            LocalDate aujourdhui) {
+        MapSqlParameterSource params = new MapSqlParameterSource("aujourdhui", aujourdhui)
+                .addValue("organisation", organisationId);
         if (aRecherche(recherche)) params.addValue("motif", motif(recherche));
         if (situation != null) params.addValue("situation", situation.name());
         return params;

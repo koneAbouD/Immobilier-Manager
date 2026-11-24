@@ -20,8 +20,8 @@ import com.tmk.immobilier.application.domain.appartement.TypeLogement;
 import com.tmk.immobilier.application.domain.bail.Bail;
 import com.tmk.immobilier.application.domain.immeuble.Immeuble;
 import com.tmk.immobilier.application.domain.locataire.Locataire;
+import com.tmk.immobilier.application.domain.organisation.Organisation;
 import com.tmk.immobilier.application.ports.document.ContratBailGenerateurPort;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.stereotype.Component;
 
 import java.awt.Color;
@@ -42,7 +42,6 @@ import java.util.stream.Stream;
  * elles sont à relire et à ajuster au modèle de l'entreprise.
  */
 @Component
-@EnableConfigurationProperties(BailleurProperties.class)
 public class ContratBailPdfGenerateur implements ContratBailGenerateurPort {
 
     private static final Locale FR = Locale.FRANCE;
@@ -51,7 +50,7 @@ public class ContratBailPdfGenerateur implements ContratBailGenerateurPort {
     private static final Color GRIS = new Color(0x5F, 0x5E, 0x5A);
     private static final Color FOND = new Color(0xF1, 0xEF, 0xE8);
 
-    private final BailleurProperties bailleur;
+    private final LogoBailleur logo;
 
     private final Font titre = police(15, Font.BOLD, ACCENT);
     private final Font sousTitre = police(9.5f, Font.NORMAL, GRIS);
@@ -60,21 +59,21 @@ public class ContratBailPdfGenerateur implements ContratBailGenerateurPort {
     private final Font gras = police(9.5f, Font.BOLD, Color.BLACK);
     private final Font petit = police(8, Font.NORMAL, GRIS);
 
-    public ContratBailPdfGenerateur(BailleurProperties bailleur) {
-        this.bailleur = bailleur;
+    public ContratBailPdfGenerateur(LogoBailleur logo) {
+        this.logo = logo;
     }
 
     @Override
-    public byte[] generer(Bail bail) {
+    public byte[] generer(Bail bail, Organisation bailleur) {
         ByteArrayOutputStream sortie = new ByteArrayOutputStream();
         Document document = new Document(PageSize.A4, 54, 54, 54, 60);
         try {
             PdfWriter writer = PdfWriter.getInstance(document, sortie);
             writer.setPageEvent(new PiedDePage(bail.getReference()));
             document.addTitle("Contrat de bail " + bail.getReference());
-            document.addAuthor(valeur(bailleur.nom()));
+            document.addAuthor(valeur(bailleur.getNom()));
             document.open();
-            ecrire(document, bail);
+            ecrire(document, bail, bailleur);
             document.close();
         } catch (DocumentException e) {
             throw new IllegalStateException("Mise en page du contrat impossible", e);
@@ -82,12 +81,14 @@ public class ContratBailPdfGenerateur implements ContratBailGenerateurPort {
         return sortie.toByteArray();
     }
 
-    private void ecrire(Document doc, Bail bail) throws DocumentException {
+    private void ecrire(Document doc, Bail bail, Organisation bailleur) throws DocumentException {
         Appartement logement = bail.getAppartement();
         Immeuble immeuble = logement.getImmeuble();
         Locataire locataire = bail.getLocataire();
         TypeLogement type = logement.getType();
 
+        var image = logo.charger(bailleur);
+        if (image.isPresent()) doc.add(image.get());
         Paragraph entete = new Paragraph(titreContrat(type), titre);
         entete.setAlignment(Element.ALIGN_CENTER);
         doc.add(entete);
@@ -99,11 +100,11 @@ public class ContratBailPdfGenerateur implements ContratBailGenerateurPort {
         doc.add(new Paragraph("ENTRE LES SOUSSIGNÉS", article));
         doc.add(blocParties(
                 "LE BAILLEUR",
-                lignes(valeur(bailleur.nom()),
-                        prefixe("Représenté par ", bailleur.representant()),
-                        bailleur.adresse(),
-                        prefixe("Tél. : ", bailleur.telephone()),
-                        prefixe("E-mail : ", bailleur.email())),
+                lignes(valeur(bailleur.getNom()),
+                        prefixe("Représenté par ", bailleur.getRepresentant()),
+                        bailleur.getAdresse(),
+                        prefixe("Tél. : ", bailleur.getTelephone()),
+                        prefixe("E-mail : ", bailleur.getEmail())),
                 "LE PRENEUR",
                 lignes(locataire.nomComplet(),
                         piece(locataire),
@@ -189,10 +190,10 @@ public class ContratBailPdfGenerateur implements ContratBailGenerateurPort {
         doc.add(titreArticle(n, "Élection de domicile et litiges"));
         doc.add(paragraphe("Pour l'exécution des présentes, les parties font élection de domicile en leurs "
                 + "adresses respectives. Tout litige sera, à défaut d'accord amiable, porté devant les "
-                + "juridictions compétentes" + prefixe(" de ", bailleur.ville()) + "."));
+                + "juridictions compétentes" + prefixe(" de ", bailleur.getVille()) + "."));
 
         Paragraph fait = new Paragraph("Fait en deux exemplaires originaux, à "
-                + valeur(bailleur.ville()) + ", le " + date(LocalDate.now()) + ".", texte);
+                + valeur(bailleur.getVille()) + ", le " + date(LocalDate.now()) + ".", texte);
         fait.setSpacingBefore(14);
         fait.setSpacingAfter(10);
         doc.add(fait);

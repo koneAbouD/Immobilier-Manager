@@ -8,6 +8,7 @@ import com.tmk.immobilier.application.domain.immeuble.TypeBien;
 import com.tmk.immobilier.application.exception.ResourceAlreadyExistsException;
 import com.tmk.immobilier.application.ports.persistence.AppartementRepository;
 import com.tmk.immobilier.application.ports.persistence.ImmeubleRepository;
+import com.tmk.immobilier.application.usecases.organisation.QuotasAbonnement;
 import lombok.RequiredArgsConstructor;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,6 +26,7 @@ public class CreateImmeubleUseCase {
 
     private final ImmeubleRepository immeubleRepository;
     private final AppartementRepository appartementRepository;
+    private final QuotasAbonnement quotas;
 
     @Transactional
     public Immeuble execute(Immeuble immeuble) {
@@ -32,6 +34,8 @@ public class CreateImmeubleUseCase {
         if (immeubleRepository.existsByNomIgnoreCase(nom)) {
             throw ResourceAlreadyExistsException.of("Immeuble", "nom", nom);
         }
+        // Un terrain compte d'office un lot : le terrain lui-même.
+        if (immeuble.getType() == TypeBien.TERRAIN) quotas.verifierAjoutLots(1);
         immeuble.setId(null);
         immeuble.setNom(nom);
         if (immeuble.getType() == null) immeuble.setType(TypeBien.IMMEUBLE);

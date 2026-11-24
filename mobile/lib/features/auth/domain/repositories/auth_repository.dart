@@ -5,6 +5,16 @@ import '../../../../core/error/failure.dart';
 abstract interface class AuthRepository {
   Future<Either<Failure, void>> login(String username, String password);
 
+  /// Crée l'organisation (essai gratuit) et son propriétaire, puis ouvre la session.
+  Future<Either<Failure, void>> inscrire({
+    required String organisation,
+    required String prenom,
+    required String nom,
+    required String email,
+    String? telephone,
+    required String motDePasse,
+  });
+
   Future<void> logout();
 
   /// Vrai si une session (refresh token) est enregistrée sur l'appareil.

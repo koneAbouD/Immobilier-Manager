@@ -1,6 +1,8 @@
 package com.tmk.immobilier.interfaces.rest.exception;
 
+import com.tmk.immobilier.application.exception.AccesOrganisationException;
 import com.tmk.immobilier.application.exception.AuthServiceUnavailableException;
+import com.tmk.immobilier.application.exception.LimiteAbonnementException;
 import com.tmk.immobilier.application.exception.AuthenticationFailedException;
 import com.tmk.immobilier.application.exception.RegleMetierException;
 import com.tmk.immobilier.application.exception.ResourceAlreadyExistsException;
@@ -35,14 +37,18 @@ public class GlobalExceptionHandler {
     // ── Messages lisibles par contrainte DB ────────────────────────────────
     // Dernier filet : les use cases vérifient ces règles avant d'écrire, mais
     // deux requêtes concurrentes peuvent passer les contrôles ensemble.
-    private static final Map<String, String> CONSTRAINT_MESSAGES = Map.of(
-            "immeubles_nom_key", "Un immeuble porte déjà ce nom.",
-            "uk_appartements_immeuble_reference", "Cette référence est déjà utilisée dans cet immeuble.",
-            "uk_locataires_telephone", "Un locataire avec ce numéro de téléphone existe déjà.",
-            "uk_baux_appartement_actif", "Ce logement a déjà un bail actif.",
-            "uk_echeances_bail_periode", "Le loyer de ce mois a déjà été émis pour ce bail.",
-            "chk_paiements_montant_positif", "Le montant du paiement doit être strictement positif.",
-            "chk_baux_jour_echeance", "Le jour d'échéance doit être compris entre 1 et 28."
+    private static final Map<String, String> CONSTRAINT_MESSAGES = Map.ofEntries(
+            Map.entry("uk_immeubles_organisation_nom", "Un bien porte déjà ce nom."),
+            Map.entry("uk_appartements_immeuble_reference", "Cette référence est déjà utilisée dans cet immeuble."),
+            Map.entry("uk_locataires_organisation_telephone", "Un locataire avec ce numéro de téléphone existe déjà."),
+            Map.entry("uk_baux_appartement_actif", "Ce logement a déjà un bail actif."),
+            Map.entry("uk_baux_organisation_reference", "Cette référence de bail est déjà utilisée."),
+            Map.entry("uk_echeances_bail_periode", "Le loyer de ce mois a déjà été émis pour ce bail."),
+            Map.entry("chk_paiements_montant_positif", "Le montant du paiement doit être strictement positif."),
+            Map.entry("chk_baux_jour_echeance", "Le jour d'échéance doit être compris entre 1 et 28."),
+            Map.entry("uk_utilisateurs_email", "Un compte existe déjà avec cette adresse e-mail."),
+            Map.entry("uk_membres_organisation_utilisateur", "Cette personne fait déjà partie de l'équipe."),
+            Map.entry("uk_membres_proprietaire", "L'organisation a déjà un propriétaire.")
     );
 
     // Formats PostgreSQL : constraint "name" et H2 : constraint [name]
@@ -92,6 +98,18 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(RegleMetierException.class)
     public ResponseEntity<ApiError> handleRegleMetier(RegleMetierException ex, HttpServletRequest request) {
         return respond(HttpStatus.CONFLICT, ex.getCode(), ex.getMessage(), request, ex);
+    }
+
+    @ExceptionHandler(LimiteAbonnementException.class)
+    public ResponseEntity<ApiError> handleLimite(LimiteAbonnementException ex, HttpServletRequest request) {
+        return respond(HttpStatus.PAYMENT_REQUIRED, ex.getCode(), ex.getMessage(), request, ex);
+    }
+
+    @ExceptionHandler(AccesOrganisationException.class)
+    public ResponseEntity<ApiError> handleAccesOrganisation(AccesOrganisationException ex, HttpServletRequest request) {
+        HttpStatus status = ex.getMotif() == AccesOrganisationException.Motif.LECTURE_SEULE
+                ? HttpStatus.PAYMENT_REQUIRED : HttpStatus.FORBIDDEN;
+        return respond(status, ex.getMotif().name(), ex.getMessage(), request, ex);
     }
 
     @ExceptionHandler(AuthenticationFailedException.class)

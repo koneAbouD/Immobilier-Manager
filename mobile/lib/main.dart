@@ -4,6 +4,8 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/date_symbol_data_local.dart';
 
+import 'core/app/droits_ecriture.dart';
+import 'core/app/redemarrage.dart';
 import 'core/storage/secure_storage.dart';
 import 'core/theme/app_colors.dart';
 import 'core/theme/app_theme.dart';
@@ -12,6 +14,8 @@ import 'features/auth/presentation/pages/login_page.dart';
 import 'features/auth/presentation/providers/auth_provider.dart';
 import 'features/auth/presentation/providers/auth_state.dart';
 import 'features/auth/presentation/widgets/auth_ui.dart';
+import 'features/organisation/presentation/pages/porte_organisation.dart';
+import 'features/organisation/presentation/providers/organisation_providers.dart';
 import 'screens/home_screen.dart';
 
 void main() async {
@@ -20,15 +24,45 @@ void main() async {
   // L'apparence choisie est lue avant le premier frame : l'application s'ouvre
   // directement dans la bonne couleur, sans flash de l'apparence par défaut.
   final apparence = await ThemeSettings.charger(const SecureStorage());
-  runApp(ProviderScope(
-    overrides: [themeSettingsInitialProvider.overrideWithValue(apparence)],
-    child: const ImmobilierManagerApp(),
-  ));
+  runApp(RacineApplication(apparence: apparence));
 }
 
-/// Clé du navigateur racine : à la déconnexion (volontaire ou subie), la pile
-/// est vidée pour revenir à la connexion quelle que soit la profondeur.
-final _navigatorKey = GlobalKey<NavigatorState>();
+/// Racine : porte le conteneur Riverpod, recréé à neuf par [Redemarrage]
+/// (ouverture de session, changement d'organisation).
+class RacineApplication extends StatefulWidget {
+  final ThemeSettings apparence;
+
+  const RacineApplication({super.key, required this.apparence});
+
+  @override
+  State<RacineApplication> createState() => _RacineApplicationState();
+}
+
+class _RacineApplicationState extends State<RacineApplication> {
+  Key _conteneur = UniqueKey();
+  late ThemeSettings _apparence = widget.apparence;
+
+  @override
+  void initState() {
+    super.initState();
+    Redemarrage.enregistrer(() async {
+      // L'apparence a pu changer depuis le démarrage : on la relit.
+      final apparence = await ThemeSettings.charger(const SecureStorage());
+      if (!mounted) return;
+      setState(() {
+        _apparence = apparence;
+        _conteneur = UniqueKey();
+      });
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) => ProviderScope(
+        key: _conteneur,
+        overrides: [themeSettingsInitialProvider.overrideWithValue(_apparence)],
+        child: const ImmobilierManagerApp(),
+      );
+}
 
 class ImmobilierManagerApp extends ConsumerStatefulWidget {
   const ImmobilierManagerApp({super.key});
@@ -43,6 +77,14 @@ class _ImmobilierManagerAppState extends ConsumerState<ImmobilierManagerApp>
   /// Faux tant que la première construction n'a pas eu lieu : la palette de
   /// départ n'appelle aucune reconstruction, elle est déjà celle qu'on voit.
   bool _construit = false;
+
+  /// Clé du navigateur racine : à la déconnexion (volontaire ou subie), la pile
+  /// est vidée pour revenir à la connexion quelle que soit la profondeur.
+  ///
+  /// Propre à chaque instance : au redémarrage (conteneur neuf), une clé
+  /// globale partagée ferait reprendre l'ancien navigateur — et ses pages liées
+  /// à l'ancien conteneur — au lieu d'en bâtir un neuf.
+  final _navigatorKey = GlobalKey<NavigatorState>();
 
   @override
   void initState() {
@@ -119,11 +161,15 @@ class _ImmobilierManagerAppState extends ConsumerState<ImmobilierManagerApp>
                 ? SystemUiOverlayStyle.light
                 : SystemUiOverlayStyle.dark)
             .copyWith(statusBarColor: Colors.transparent),
-        child: child ?? const SizedBox.shrink(),
+        // Au-dessus du navigateur : toutes les pages voient les droits.
+        child: DroitsEcriture(
+          peutEcrire: authState is AuthAuthenticated ? ref.watch(peutEcrireProvider) : true,
+          child: child ?? const SizedBox.shrink(),
+        ),
       ),
       home: switch (authState) {
         AuthInitial() => const _SplashScreen(),
-        AuthAuthenticated() => const HomeScreen(),
+        AuthAuthenticated() => const PorteOrganisation(child: HomeScreen()),
         _ => const LoginPage(),
       },
     );

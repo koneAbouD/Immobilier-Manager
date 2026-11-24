@@ -6,6 +6,8 @@ import com.tmk.immobilier.application.exception.ResourceNotFoundException;
 import com.tmk.immobilier.application.ports.document.StockageDocumentsPort;
 import com.tmk.immobilier.application.ports.persistence.BailRepository;
 import com.tmk.immobilier.application.ports.security.AuteurCourantPort;
+import com.tmk.immobilier.application.common.ClesStockage;
+import com.tmk.immobilier.application.ports.organisation.OrganisationCourantePort;
 import lombok.RequiredArgsConstructor;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,6 +20,7 @@ public class DeposerContratSigneUseCase {
 
     private final BailRepository bailRepository;
     private final StockageDocumentsPort stockage;
+    private final OrganisationCourantePort organisationCourante;
     private final AuteurCourantPort auteurCourant;
 
     @Transactional
@@ -25,7 +28,8 @@ public class DeposerContratSigneUseCase {
         Bail bail = bailRepository.findById(bailId).orElseThrow(() -> ResourceNotFoundException.of("Bail", bailId));
         String extension = FormatsDocument.verifier(type, taille, "Le contrat signé");
         String ancienneCle = bail.getContratSigneCle();
-        String cle = "baux/" + bailId + "/contrat-signe-" + UUID.randomUUID() + "." + extension;
+        String cle = ClesStockage.pour(organisationCourante.id(),
+                "baux/" + bailId + "/contrat-signe-" + UUID.randomUUID() + "." + extension);
         stockage.deposer(cle, contenu, taille, type);
         String nom = nomFichier != null && !nomFichier.isBlank()
                 ? nomFichier : "Contrat-signe-" + bail.getReference() + "." + extension;

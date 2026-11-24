@@ -17,7 +17,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class MaintenanceEntity extends AbstractAuditEntity {
+public class MaintenanceEntity extends AbstractTenantEntity {
 
     public static final String TABLE_NAME = "maintenances";
 
@@ -78,4 +78,9 @@ public class MaintenanceEntity extends AbstractAuditEntity {
 
     @Column(name = "annule_le")
     private LocalDateTime annuleLe;
+
+    @Override
+    protected Object identifiant() {
+        return id;
+    }
 }

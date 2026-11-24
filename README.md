@@ -1,6 +1,8 @@
 # Immobilier Manager
 
-Gestion locative : immeubles, logements, locataires, baux, loyers et maintenances.
+Gestion locative **en SaaS multi-organisation** : chaque agence, bailleur ou gestionnaire
+crée son espace en libre-service et y gère immeubles, logements, locataires, baux, loyers
+et maintenances, cloisonnés des autres organisations.
 Architecture reprise de **VTC Manager** (même entreprise, mêmes conventions).
 
 | Brique | Techno | Port local |
@@ -19,6 +21,14 @@ docker compose up -d
 ```
 
 ```bash
+./keycloak/configurer-compte-service.sh
+```
+
+(une fois, sur un realm déjà importé : active le compte de service du backend qui crée les
+comptes à l'inscription, ajoute le rôle `SUPER_ADMIN`. `SUPER_ADMIN_USER=<identifiant>`
+donne ce rôle à un compte.)
+
+```bash
 cd backend && JAVA_HOME=$(/usr/libexec/java_home -v 21.0.8) mvn spring-boot:run -Dspring-boot.run.profiles=dev
 ```
 
@@ -26,11 +36,36 @@ cd backend && JAVA_HOME=$(/usr/libexec/java_home -v 21.0.8) mvn spring-boot:run 
 cd mobile && flutter run
 ```
 
-- Le profil `dev` charge un jeu de démonstration (2 immeubles, 6 logements, 3 locataires).
-- Compte de démonstration : voir `users` dans `keycloak/realm-immobilier-manager.json` (rôles ADMIN + GESTIONNAIRE).
+- Le profil `dev` charge un jeu de démonstration (2 immeubles, 6 logements, 3 locataires), rattaché à l'organisation historique « TMK ».
+- Compte de démonstration : voir `users` dans `keycloak/realm-immobilier-manager.json` ; il devient propriétaire de « TMK » à sa première connexion, et `SUPER_ADMIN` (back-office plateforme).
+- Nouvelle organisation : bouton « Créer un compte » de l'écran de connexion (`POST /api/auth/inscription`).
 - Swagger : http://localhost:8082/swagger-ui.html
 - Sur un vrai téléphone Android : `adb reverse tcp:8082 tcp:8082`, ou `flutter run --dart-define=DEV_HOST=<ip-du-mac>`.
 - Compiler avec le **JDK 21.0.8** : le 21.0.10 déclenche un bug de Lombok (même contrainte que VTC Manager).
+
+## SaaS multi-organisation
+
+```
+Organisation 1──* Membre *──1 Utilisateur (compte Keycloak, peut servir plusieurs organisations)
+     │
+     └──* toutes les données métier (organisation_id)
+```
+
+- **Inscription en libre-service** : crée le compte Keycloak (API d'administration), l'organisation en **essai gratuit de 30 jours** (formule Professionnel) et l'adhésion de propriétaire, puis ouvre la session. En cas d'échec en base, le compte Keycloak est supprimé (compensation).
+- **Organisation de travail** : en-tête `X-Organisation-Id` sur chaque requête (le mobile le pose seul ; facultatif si l'utilisateur n'a qu'une organisation). `ContexteOrganisationFilter` vérifie l'adhésion, l'état de l'abonnement et pose le rôle.
+- **Rôles par organisation** (emboîtés) : `PROPRIETAIRE` ⊃ `ADMIN` (équipe, réglages) ⊃ `GESTIONNAIRE` (écriture métier) ⊃ `LECTEUR` (consultation). Les rôles Keycloak ne donnent aucun droit métier ; seul `SUPER_ADMIN` ouvre `/api/plateforme`.
+- **Cloisonnement**, en quatre couches :
+  1. Hibernate `@TenantId` (`AbstractTenantEntity`) : filtre toutes les requêtes HQL/Criteria, renseigne `organisation_id` à l'insertion ;
+  2. `FiltreOrganisationJpaRepository` : `findById` passe par ce filtre (Hibernate 6.5 ne filtre pas le chargement par clé) ;
+  3. `GardeOrganisation` (`@PostLoad`) : toute entité d'une autre organisation chargée par un autre chemin est rejetée (404) ;
+  4. en base : `organisation_id NOT NULL` et **clés étrangères composites** `(id, organisation_id)`.
+  Hors contexte, l'organisation vaut `-1` : tables vides, insertions impossibles (on échoue fermé). Le seul SQL natif (résumé des locataires) filtre explicitement.
+- **Abonnement** (`PlanAbonnement`) : Gratuit 5 lots / 1 utilisateur, Essentiel 50 / 3, Professionnel 300 / 10, Entreprise illimité. Dépasser une limite → **402** `LIMITE_LOTS_ATTEINTE` / `LIMITE_MEMBRES_ATTEINTE`. Essai échu, abonnement échu ou suspendu → **lecture seule** (402 sur toute écriture) ; résilié → accès bloqué (403). Tarifs et limites dans `PlanAbonnement`.
+- **Identité du bailleur** (contrats, quittances) = l'organisation : nom, représentant, coordonnées, ville, **logo** (remplace `app.bailleur.*`).
+- **Numérotation par organisation** (`BAIL-00001`…), via `compteurs_organisation` (incrément atomique).
+- **Fichiers** rangés sous `organisations/{id}/…` dans MinIO.
+- **Planificateur** : émet les loyers organisation par organisation, chacune dans son contexte et sa transaction.
+- **Migration** `V200.0.0` : les données existantes rejoignent l'organisation historique « TMK » ; les comptes qui avaient les rôles Keycloak `ADMIN` / `GESTIONNAIRE` y sont rattachés à leur première connexion (le premier `ADMIN` en devient propriétaire). Numérotée V200 pour passer après le jeu de démonstration V100 : **les migrations de schéma suivantes continuent en V200.x**.
 
 ## Modèle métier
 
@@ -50,6 +85,8 @@ Règles clés :
 - **Résiliation** : libère le logement ; le mois de résiliation et les impayés antérieurs restent dus, les loyers des mois suivants sont annulés.
 - **Maintenances** : `SIGNALEE → PLANIFIEE → EN_COURS → TERMINEE`, ou `ANNULEE` (motif obligatoire). Une intervention close ne change plus d'état.
 - **Piste d'audit** : `created_by` / `updated_by` sur toutes les tables, alimentés depuis le jeton Keycloak (`system` pour le scheduler).
+
+Mobile : après la connexion, `PorteOrganisation` charge `/api/moi`, retient l'organisation (ou la fait choisir) ; chaque ouverture de session et chaque changement d'organisation **redémarre le conteneur Riverpod** (`Redemarrage`), pour qu'aucune donnée d'une organisation ou d'un compte ne reste en cache. Lecteurs et organisations en lecture seule ne voient pas les boutons d'ajout / modification (`DroitsEcriture`).
 
 ## Backend — organisation
 
@@ -71,11 +108,15 @@ com.tmk.immobilier
 Migrations : `src/main/resources/db/migration/flyway/{schema, jdd/reference, jdd/dev}`.
 Une migration appliquée ne se modifie jamais : on corrige par une nouvelle. Hibernate est en `ddl-auto: validate`.
 
-API (toutes sous `/api`, rôle ADMIN ou GESTIONNAIRE) :
+API (toutes sous `/api` ; lecture à partir de LECTEUR, écriture à partir de GESTIONNAIRE) :
 
 | Ressource | Endpoints |
 |---|---|
-| Auth | `POST /auth/login`, `/auth/refresh`, `/auth/logout` |
+| Auth (public) | `POST /auth/inscription`, `/auth/login`, `/auth/refresh`, `/auth/logout`, `GET /auth/plans` |
+| Mon compte | `GET /moi` (organisations accessibles), `PUT /moi/mot-de-passe` |
+| Organisation | `GET/PUT /organisation`, `GET/POST/DELETE /organisation/logo` |
+| Équipe (ADMIN) | `GET/POST /organisation/membres`, `PATCH/DELETE /organisation/membres/{id}`, `POST …/{id}/propriete` |
+| Plateforme (SUPER_ADMIN) | `GET /plateforme/organisations`, `PUT /plateforme/organisations/{id}/abonnement` |
 | Immeubles | `GET /immeubles`, `/immeubles/page`, CRUD `/immeubles/{id}` |
 | Logements | `GET /appartements/page?immeubleId&statut&recherche`, CRUD |
 | Locataires | `GET /locataires/page`, CRUD |
@@ -112,6 +153,11 @@ cd mobile && flutter test
 ```
 
 ## Prochaines étapes suggérées
+
+- Paiement en ligne des abonnements (Mobile Money / carte) branché sur `PUT /plateforme/organisations/{id}/abonnement`.
+- E-mails transactionnels (bienvenue, invitation, mot de passe oublié) via le SMTP de Keycloak.
+- Défense en profondeur supplémentaire : Row-Level Security PostgreSQL sur `organisation_id`.
+- Export des données d'une organisation (portabilité) et suppression de compte.
 
 - Quittances PDF et envoi WhatsApp (patterns existants dans VTC Manager : `recu`, `envoi_pdf_whatsapp`).
 - Code d'accès / biométrie et notifications push en réutilisant `packages/tmk_pin` et `tmk_push` de VTC Manager (à extraire dans un dépôt partagé).

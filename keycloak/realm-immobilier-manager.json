@@ -9,8 +9,18 @@
   "bruteForceProtected": true,
   "roles": {
     "realm": [
-      { "name": "ADMIN", "description": "Administration complète" },
-      { "name": "GESTIONNAIRE", "description": "Gestion locative au quotidien" }
+      {
+        "name": "SUPER_ADMIN",
+        "description": "Éditeur de la plateforme : suivi des organisations et des abonnements"
+      },
+      {
+        "name": "ADMIN",
+        "description": "Hérité (avant SaaS) : rattache le compte à l'organisation historique comme administrateur"
+      },
+      {
+        "name": "GESTIONNAIRE",
+        "description": "Hérité (avant SaaS) : rattache le compte à l'organisation historique comme gestionnaire"
+      }
     ]
   },
   "clients": [
@@ -23,7 +33,7 @@
       "secret": "dev-backend-secret-a-changer",
       "standardFlowEnabled": false,
       "directAccessGrantsEnabled": true,
-      "serviceAccountsEnabled": false,
+      "serviceAccountsEnabled": true,
       "protocol": "openid-connect"
     }
   ],
@@ -36,9 +46,33 @@
       "email": "gestionnaire.demo@immobilier.local",
       "emailVerified": true,
       "credentials": [
-        { "type": "password", "value": "Demo@2026", "temporary": false }
+        {
+          "type": "password",
+          "value": "Demo@2026",
+          "temporary": false
+        }
       ],
-      "realmRoles": ["GESTIONNAIRE", "ADMIN"]
+      "realmRoles": [
+        "GESTIONNAIRE",
+        "ADMIN",
+        "SUPER_ADMIN"
+      ]
+    },
+    {
+      "username": "service-account-immobilier-manager-backend",
+      "enabled": true,
+      "serviceAccountClientId": "immobilier-manager-backend",
+      "clientRoles": {
+        "realm-management": [
+          "manage-users",
+          "view-users",
+          "query-users"
+        ]
+      }
     }
-  ]
+  ],
+  "registrationAllowed": false,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "passwordPolicy": "length(8) and digits(1) and notUsername(undefined)"
 }

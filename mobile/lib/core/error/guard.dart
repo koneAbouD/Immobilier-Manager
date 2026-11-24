@@ -22,6 +22,7 @@ Future<Either<Failure, T>> guard<T>(Future<T> Function() appel) async {
 Failure failureFromApi(ApiException e) => switch (e.statusCode) {
       400 => ValidationFailure(e.message),
       401 => AuthFailure(e.message),
+      402 => AbonnementFailure(e.message, code: e.code),
       404 => NotFoundFailure(e.message),
       409 => ConflictFailure(e.message, code: e.code),
       _ => ServerFailure(e.message, statusCode: e.statusCode),

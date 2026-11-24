@@ -6,6 +6,7 @@ import com.tmk.immobilier.application.domain.locataire.ComptesSituations;
 import com.tmk.immobilier.application.domain.locataire.Locataire;
 import com.tmk.immobilier.application.domain.locataire.LocataireResume;
 import com.tmk.immobilier.application.domain.locataire.SituationLocataire;
+import com.tmk.immobilier.application.ports.organisation.OrganisationCourantePort;
 import com.tmk.immobilier.application.ports.persistence.LocataireRepository;
 import com.tmk.immobilier.infrastructure.persistence.postgresql.jpa.LocataireJpaRepository;
 import com.tmk.immobilier.infrastructure.persistence.postgresql.jpa.LocataireSpecs;
@@ -36,6 +37,7 @@ public class LocataireRepositoryAdapter implements LocataireRepository {
     private final LocataireJpaRepository jpaRepository;
     private final LocatairePersistenceMapper mapper;
     private final NamedParameterJdbcTemplate jdbc;
+    private final OrganisationCourantePort organisationCourante;
 
     @Override
     public Locataire save(Locataire locataire) {
@@ -57,7 +59,7 @@ public class LocataireRepositoryAdapter implements LocataireRepository {
     public PageResult<LocataireResume> findResumes(String recherche, SituationLocataire situation,
                                                    LocalDate aujourdhui, int page, int size) {
         boolean avecRecherche = LocataireResumeQueries.aRecherche(recherche);
-        MapSqlParameterSource params = LocataireResumeQueries.parametres(recherche, situation, aujourdhui);
+        MapSqlParameterSource params = LocataireResumeQueries.parametres(organisationCourante.id(), recherche, situation, aujourdhui);
         Long total = jdbc.queryForObject(
                 LocataireResumeQueries.total(avecRecherche, situation != null), params, Long.class);
 
@@ -88,7 +90,7 @@ public class LocataireRepositoryAdapter implements LocataireRepository {
     public ComptesSituations compterSituations(String recherche, LocalDate aujourdhui) {
         boolean avecRecherche = LocataireResumeQueries.aRecherche(recherche);
         Map<String, Long> comptes = jdbc.query(LocataireResumeQueries.comptes(avecRecherche),
-                        LocataireResumeQueries.parametres(recherche, null, aujourdhui),
+                        LocataireResumeQueries.parametres(organisationCourante.id(), recherche, null, aujourdhui),
                         (rs, i) -> Map.entry(rs.getString("situation"), rs.getLong("nombre")))
                 .stream().collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
         return new ComptesSituations(

@@ -15,11 +15,11 @@ import com.tmk.immobilier.application.domain.appartement.Appartement;
 import com.tmk.immobilier.application.domain.bail.Bail;
 import com.tmk.immobilier.application.domain.immeuble.Immeuble;
 import com.tmk.immobilier.application.domain.locataire.Locataire;
+import com.tmk.immobilier.application.domain.organisation.Organisation;
 import com.tmk.immobilier.application.domain.loyer.EcheanceLoyer;
 import com.tmk.immobilier.application.domain.loyer.PaiementLoyer;
 import com.tmk.immobilier.application.ports.document.QuittanceGenerateurPort;
 import com.tmk.immobilier.application.usecases.loyer.GenererQuittanceUseCase;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.stereotype.Component;
 
 import java.awt.Color;
@@ -40,7 +40,6 @@ import java.util.stream.Stream;
  * quel loyer, et ce qui reste dû sur ce loyer à la date d'édition.
  */
 @Component
-@EnableConfigurationProperties(BailleurProperties.class)
 public class QuittancePdfGenerateur implements QuittanceGenerateurPort {
 
     private static final Locale FR = Locale.FRANCE;
@@ -51,7 +50,7 @@ public class QuittancePdfGenerateur implements QuittanceGenerateurPort {
     private static final Color FOND = new Color(0xF1, 0xEF, 0xE8);
     private static final Color FOND_ACCENT = new Color(0xE3, 0xF1, 0xEC);
 
-    private final BailleurProperties bailleur;
+    private final LogoBailleur logo;
 
     private final Font titre = police(16, Font.BOLD, ACCENT);
     private final Font sousTitre = police(9.5f, Font.NORMAL, GRIS);
@@ -61,20 +60,20 @@ public class QuittancePdfGenerateur implements QuittanceGenerateurPort {
     private final Font montant = police(20, Font.BOLD, ACCENT);
     private final Font petit = police(8, Font.NORMAL, GRIS);
 
-    public QuittancePdfGenerateur(BailleurProperties bailleur) {
-        this.bailleur = bailleur;
+    public QuittancePdfGenerateur(LogoBailleur logo) {
+        this.logo = logo;
     }
 
     @Override
-    public byte[] generer(PaiementLoyer paiement) {
+    public byte[] generer(PaiementLoyer paiement, Organisation bailleur) {
         ByteArrayOutputStream sortie = new ByteArrayOutputStream();
         Document document = new Document(PageSize.A4, 54, 54, 54, 54);
         try {
             PdfWriter.getInstance(document, sortie);
             document.addTitle(GenererQuittanceUseCase.numero(paiement));
-            document.addAuthor(valeur(bailleur.nom()));
+            document.addAuthor(valeur(bailleur.getNom()));
             document.open();
-            ecrire(document, paiement);
+            ecrire(document, paiement, bailleur);
             document.close();
         } catch (DocumentException e) {
             throw new IllegalStateException("Mise en page de la quittance impossible", e);
@@ -82,7 +81,7 @@ public class QuittancePdfGenerateur implements QuittanceGenerateurPort {
         return sortie.toByteArray();
     }
 
-    private void ecrire(Document doc, PaiementLoyer paiement) throws DocumentException {
+    private void ecrire(Document doc, PaiementLoyer paiement, Organisation bailleur) throws DocumentException {
         EcheanceLoyer echeance = paiement.getEcheance();
         Bail bail = echeance.getBail();
         Appartement local = bail.getAppartement();
@@ -90,6 +89,8 @@ public class QuittancePdfGenerateur implements QuittanceGenerateurPort {
         Locataire locataire = bail.getLocataire();
         String mois = majuscule(echeance.getPeriode().format(MOIS));
 
+        var image = logo.charger(bailleur);
+        if (image.isPresent()) doc.add(image.get());
         Paragraph entete = new Paragraph("QUITTANCE DE LOYER", titre);
         entete.setAlignment(Element.ALIGN_CENTER);
         doc.add(entete);
@@ -100,10 +101,10 @@ public class QuittancePdfGenerateur implements QuittanceGenerateurPort {
         doc.add(ref);
 
         doc.add(blocParties(
-                lignes(valeur(bailleur.nom()),
-                        prefixe("Représenté par ", bailleur.representant()),
-                        bailleur.adresse(),
-                        prefixe("Tél. : ", bailleur.telephone())),
+                lignes(valeur(bailleur.getNom()),
+                        prefixe("Représenté par ", bailleur.getRepresentant()),
+                        bailleur.getAdresse(),
+                        prefixe("Tél. : ", bailleur.getTelephone())),
                 lignes(locataire.nomComplet(),
                         prefixe("Tél. : ", locataire.getTelephone()),
                         prefixe("E-mail : ", locataire.getEmail()))));
@@ -167,8 +168,8 @@ public class QuittancePdfGenerateur implements QuittanceGenerateurPort {
         signature.addCell(vide);
         PdfPCell signe = new PdfPCell();
         signe.setBorder(Rectangle.NO_BORDER);
-        signe.addElement(new Paragraph("Fait à " + valeur(bailleur.ville()) + ", le " + date(LocalDate.now()), texte));
-        signe.addElement(new Paragraph("Pour le bailleur, " + valeur(bailleur.nom()), gras));
+        signe.addElement(new Paragraph("Fait à " + valeur(bailleur.getVille()) + ", le " + date(LocalDate.now()), texte));
+        signe.addElement(new Paragraph("Pour le bailleur, " + valeur(bailleur.getNom()), gras));
         if (paiement.getEncaissePar() != null) {
             signe.addElement(new Paragraph("Encaissé par " + paiement.getEncaissePar(), petit));
         }

@@ -6,6 +6,7 @@ import com.tmk.immobilier.application.domain.bail.Bail;
 import com.tmk.immobilier.application.domain.bail.StatutBail;
 import com.tmk.immobilier.application.domain.locataire.Locataire;
 import com.tmk.immobilier.application.exception.RegleMetierException;
+import com.tmk.immobilier.application.ports.organisation.NumeroteurPort;
 import com.tmk.immobilier.application.ports.persistence.AppartementRepository;
 import com.tmk.immobilier.application.ports.persistence.BailRepository;
 import com.tmk.immobilier.application.ports.persistence.LocataireRepository;
@@ -37,6 +38,8 @@ class CreateBailUseCaseTest {
     private LocataireRepository locataireRepository;
     @Mock
     private GenererEcheancesUseCase genererEcheancesUseCase;
+    @Mock
+    private NumeroteurPort numeroteur;
     @InjectMocks
     private CreateBailUseCase useCase;
 
@@ -57,10 +60,13 @@ class CreateBailUseCaseTest {
             return b;
         });
 
+        when(numeroteur.prochain(CreateBailUseCase.COMPTEUR_BAUX)).thenReturn(7L);
+
         Bail bail = useCase.execute(1L, 2L, Bail.builder().dateDebut(LocalDate.of(2026, 9, 1)).build());
 
         assertThat(appartement.getStatut()).isEqualTo(StatutAppartement.OCCUPE);
-        assertThat(bail.getReference()).isEqualTo("BAIL-00042");
+        // Numérotation propre à l'organisation, indépendante de l'identifiant technique.
+        assertThat(bail.getReference()).isEqualTo("BAIL-00007");
         // Sans conditions propres, le bail reprend celles du logement.
         assertThat(bail.montantMensuel()).isEqualByComparingTo("125000");
         verify(genererEcheancesUseCase).executePourBail(eq(bail),

@@ -14,7 +14,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class LocataireEntity extends AbstractAuditEntity {
+public class LocataireEntity extends AbstractTenantEntity {
 
     public static final String TABLE_NAME = "locataires";
 
@@ -28,7 +28,7 @@ public class LocataireEntity extends AbstractAuditEntity {
     @Column(nullable = false, length = 100)
     private String prenom;
 
-    @Column(nullable = false, length = 30, unique = true)
+    @Column(nullable = false, length = 30)
     private String telephone;
 
     @Column(length = 150)
@@ -72,4 +72,9 @@ public class LocataireEntity extends AbstractAuditEntity {
 
     @Column(name = "piece_chargee_par", length = 100)
     private String pieceChargeePar;
+
+    @Override
+    protected Object identifiant() {
+        return id;
+    }
 }

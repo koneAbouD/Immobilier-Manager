@@ -6,7 +6,14 @@ import '../../../../core/theme/theme_controller.dart';
 import '../../../../core/widgets/app_header.dart';
 import '../../../../core/widgets/dialogs.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
-import '../../../auth/presentation/providers/auth_state.dart';
+import '../../../organisation/domain/entities/organisation.dart';
+import '../../../organisation/presentation/pages/abonnement_page.dart';
+import '../../../organisation/presentation/pages/choix_organisation_page.dart';
+import '../../../organisation/presentation/pages/equipe_page.dart';
+import '../../../organisation/presentation/pages/mot_de_passe_page.dart';
+import '../../../organisation/presentation/pages/organisation_page.dart';
+import '../../../organisation/presentation/pages/plateforme_page.dart';
+import '../../../organisation/presentation/providers/organisation_providers.dart';
 import '../widgets/settings_tile.dart';
 import 'apparence_page.dart';
 
@@ -29,10 +36,15 @@ class SettingsScreen extends ConsumerWidget {
     if (ok) await ref.read(authNotifierProvider.notifier).logout();
   }
 
+  void _ouvrir(BuildContext context, Widget page) =>
+      Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => page));
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final auth = ref.watch(authNotifierProvider);
-    final nom = auth is AuthAuthenticated ? auth.username : '';
+    final session = ref.watch(sessionOrganisationProvider).valueOrNull;
+    final active = session?.active;
+    final role = active?.role ?? RoleMembre.lecteur;
+    final abonnement = ref.watch(organisationCouranteProvider).valueOrNull?.abonnement;
     final apparence = ref.watch(themeControllerProvider);
 
     return Scaffold(
@@ -44,7 +56,10 @@ class SettingsScreen extends ConsumerWidget {
       body: ListView(
         padding: EdgeInsets.zero,
         children: [
-          _BandeauProfil(nom: nom),
+          _BandeauProfil(
+            nom: session?.profil.nomComplet ?? '',
+            detail: active == null ? '' : '${role.libelle} · ${active.organisation}',
+          ),
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
             child: Column(
@@ -53,6 +68,55 @@ class SettingsScreen extends ConsumerWidget {
                 SettingsCard(
                   fond: kSettingsHeaderFond,
                   children: [
+                    SettingsTile(
+                      icon: Icons.business_rounded,
+                      title: 'Mon organisation',
+                      description: 'Identité du bailleur et logo, imprimés sur les documents',
+                      onTap: () => _ouvrir(context, const OrganisationPage()),
+                    ),
+                    if (role.estAdmin)
+                      SettingsTile(
+                        icon: Icons.groups_2_outlined,
+                        title: 'Équipe',
+                        description: abonnement == null
+                            ? 'Collaborateurs et rôles'
+                            : '${abonnement.membres} utilisateur${abonnement.membres > 1 ? 's' : ''} actif${abonnement.membres > 1 ? 's' : ''}',
+                        onTap: () => _ouvrir(context, const EquipePage()),
+                      ),
+                    SettingsTile(
+                      icon: Icons.workspace_premium_outlined,
+                      title: 'Abonnement',
+                      description: abonnement == null
+                          ? 'Formule et consommation'
+                          : '${abonnement.plan.libelle} · ${abonnement.statut.libelle}',
+                      onTap: () => _ouvrir(context, const AbonnementPage()),
+                    ),
+                    if ((session?.profil.organisations.length ?? 0) > 1)
+                      SettingsTile(
+                        icon: Icons.swap_horiz_rounded,
+                        title: 'Changer d\'organisation',
+                        description: '${session!.profil.organisations.length} organisations',
+                        onTap: () => _ouvrir(context, const ChoixOrganisationPage(depuisReglages: true)),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                SettingsCard(
+                  fond: kSettingsHeaderFond,
+                  children: [
+                    SettingsTile(
+                      icon: Icons.lock_outline_rounded,
+                      title: 'Mot de passe',
+                      description: session?.profil.email,
+                      onTap: () => _ouvrir(context, const MotDePassePage()),
+                    ),
+                    if (session?.profil.superAdmin ?? false)
+                      SettingsTile(
+                        icon: Icons.admin_panel_settings_outlined,
+                        title: 'Plateforme',
+                        description: 'Organisations clientes et abonnements',
+                        onTap: () => _ouvrir(context, const PlateformePage()),
+                      ),
                     SettingsTile(
                       icon: Icons.palette_outlined,
                       title: 'Apparence',
@@ -99,8 +163,9 @@ class SettingsScreen extends ConsumerWidget {
 /// bas est arrondi, comme dans VTC Manager.
 class _BandeauProfil extends StatelessWidget {
   final String nom;
+  final String detail;
 
-  const _BandeauProfil({required this.nom});
+  const _BandeauProfil({required this.nom, required this.detail});
 
   @override
   Widget build(BuildContext context) {
@@ -142,7 +207,9 @@ class _BandeauProfil extends StatelessWidget {
                         color: AppColors.dark,
                         letterSpacing: -0.2)),
                 const SizedBox(height: 3),
-                Text('Gestionnaire immobilier',
+                Text(detail.isEmpty ? 'Gestion immobilière' : detail,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w500,

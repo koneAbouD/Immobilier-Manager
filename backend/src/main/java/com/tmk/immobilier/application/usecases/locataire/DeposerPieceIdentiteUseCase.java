@@ -6,6 +6,8 @@ import com.tmk.immobilier.application.exception.ResourceNotFoundException;
 import com.tmk.immobilier.application.ports.document.StockageDocumentsPort;
 import com.tmk.immobilier.application.ports.persistence.LocataireRepository;
 import com.tmk.immobilier.application.ports.security.AuteurCourantPort;
+import com.tmk.immobilier.application.common.ClesStockage;
+import com.tmk.immobilier.application.ports.organisation.OrganisationCourantePort;
 import lombok.RequiredArgsConstructor;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,6 +20,7 @@ public class DeposerPieceIdentiteUseCase {
 
     private final LocataireRepository locataireRepository;
     private final StockageDocumentsPort stockage;
+    private final OrganisationCourantePort organisationCourante;
     private final AuteurCourantPort auteurCourant;
 
     @Transactional
@@ -26,7 +29,8 @@ public class DeposerPieceIdentiteUseCase {
                 .orElseThrow(() -> ResourceNotFoundException.of("Locataire", locataireId));
         String extension = FormatsDocument.verifier(type, taille, "La pièce d'identité");
         String ancienneCle = locataire.getPieceCle();
-        String cle = "locataires/" + locataireId + "/piece-identite-" + UUID.randomUUID() + "." + extension;
+        String cle = ClesStockage.pour(organisationCourante.id(),
+                "locataires/" + locataireId + "/piece-identite-" + UUID.randomUUID() + "." + extension);
         stockage.deposer(cle, contenu, taille, type);
         String nom = nomFichier != null && !nomFichier.isBlank()
                 ? nomFichier : "Piece-identite-" + locataire.getNom() + "." + extension;

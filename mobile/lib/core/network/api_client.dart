@@ -29,6 +29,21 @@ class ApiClient {
   /// Appelé quand la session ne peut plus être prolongée (refresh refusé).
   void Function()? onSessionExpired;
 
+  /// Appelé quand l'organisation active n'est plus accessible (membre retiré,
+  /// organisation à choisir) : l'application repasse par le choix d'organisation.
+  void Function()? onOrganisationInaccessible;
+
+  /// Codes du backend qui invalident l'organisation active.
+  static const _codesOrganisationInaccessible = {
+    'NON_MEMBRE',
+    'AUCUNE_ORGANISATION',
+    'ORGANISATION_A_PRECISER',
+  };
+
+  /// Entête portant l'organisation de travail : le backend y cloisonne
+  /// chaque requête.
+  static const enteteOrganisation = 'X-Organisation-Id';
+
   ApiClient(this._storage, [http.Client? client])
       : _http = client ?? http.Client();
 
@@ -77,9 +92,13 @@ class ApiClient {
     return raw.isEmpty ? null : _tryJson(raw);
   }
 
-  /// Appel sans jeton ni refresh (login, refresh, logout).
+  /// Appel sans jeton ni refresh (login, refresh, logout, inscription).
   Future<dynamic> postPublic(String path, Object body) =>
       _send('POST', path, body: body, authentifie: false);
+
+  /// Lecture publique (formules d'abonnement à l'inscription).
+  Future<dynamic> getPublic(String path) =>
+      _send('GET', path, authentifie: false);
 
   Future<dynamic> _send(
     String method,
@@ -97,6 +116,8 @@ class ApiClient {
     if (authentifie) {
       final token = await _storage.getAccessToken();
       if (token != null) headers['Authorization'] = 'Bearer $token';
+      final organisation = await _storage.getOrganisationId();
+      if (organisation != null) headers[enteteOrganisation] = '$organisation';
     }
 
     final http.Response response;
@@ -124,12 +145,19 @@ class ApiClient {
       return parsed;
     }
     final map = parsed is Map<String, dynamic> ? parsed : null;
+    _signalerOrganisation(map);
     throw ApiException(
       response.statusCode,
       _messageErreur(response.statusCode, map),
       code: map?['error'] as String?,
       body: map,
     );
+  }
+
+  void _signalerOrganisation(Map<String, dynamic>? erreur) {
+    if (_codesOrganisationInaccessible.contains(erreur?['error'])) {
+      onOrganisationInaccessible?.call();
+    }
   }
 
   /// Envoie la requête construite par [construire] avec le jeton ; sur un 401,
@@ -141,6 +169,8 @@ class ApiClient {
     request.headers['Accept'] = accept;
     final token = await _storage.getAccessToken();
     if (token != null) request.headers['Authorization'] = 'Bearer $token';
+    final organisation = await _storage.getOrganisationId();
+    if (organisation != null) request.headers[enteteOrganisation] = '$organisation';
     final http.Response response;
     try {
       // Un fichier peut être long à monter sur une connexion mobile.
@@ -162,6 +192,7 @@ class ApiClient {
     if (response.statusCode >= 200 && response.statusCode < 300) return;
     final parsed = _tryJson(utf8.decode(response.bodyBytes, allowMalformed: true));
     final map = parsed is Map<String, dynamic> ? parsed : null;
+    _signalerOrganisation(map);
     throw ApiException(
       response.statusCode,
       _messageErreur(response.statusCode, map),
@@ -214,6 +245,7 @@ class ApiClient {
     if (message is String && message.trim().isNotEmpty) return message.trim();
     return switch (status) {
       401 => 'Session expirée, veuillez vous reconnecter.',
+      402 => 'Votre abonnement ne permet pas cette opération.',
       403 => 'Vous n\'avez pas les droits nécessaires pour cette action.',
       404 => 'Élément introuvable.',
       >= 500 => 'Le serveur a rencontré une erreur. Réessayez dans un instant.',

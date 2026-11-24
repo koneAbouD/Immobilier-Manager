@@ -14,7 +14,7 @@ import java.time.LocalDate;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class EcheanceLoyerEntity extends AbstractAuditEntity {
+public class EcheanceLoyerEntity extends AbstractTenantEntity {
 
     public static final String TABLE_NAME = "echeances_loyer";
 
@@ -42,4 +42,9 @@ public class EcheanceLoyerEntity extends AbstractAuditEntity {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 30)
     private StatutEcheance statut;
+
+    @Override
+    protected Object identifiant() {
+        return id;
+    }
 }

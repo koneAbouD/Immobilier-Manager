@@ -9,6 +9,7 @@ import com.tmk.immobilier.application.exception.ResourceAlreadyExistsException;
 import com.tmk.immobilier.application.exception.ResourceNotFoundException;
 import com.tmk.immobilier.application.ports.persistence.AppartementRepository;
 import com.tmk.immobilier.application.ports.persistence.ImmeubleRepository;
+import com.tmk.immobilier.application.usecases.organisation.QuotasAbonnement;
 import lombok.RequiredArgsConstructor;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,6 +18,7 @@ public class CreateAppartementUseCase {
 
     private final AppartementRepository appartementRepository;
     private final ImmeubleRepository immeubleRepository;
+    private final QuotasAbonnement quotas;
 
     @Transactional
     public Appartement execute(Long immeubleId, Appartement appartement) {
@@ -39,6 +41,7 @@ public class CreateAppartementUseCase {
             throw new RegleMetierException("STATUT_GERE_PAR_BAIL",
                     "Un logement est créé libre ou en travaux ; il devient occupé à la signature d'un bail.");
         }
+        quotas.verifierAjoutLots(1);
         appartement.setId(null);
         appartement.setReference(reference);
         appartement.setImmeuble(immeuble);

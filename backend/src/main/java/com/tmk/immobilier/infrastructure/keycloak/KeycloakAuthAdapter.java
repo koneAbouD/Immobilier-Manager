@@ -8,7 +8,6 @@ import com.tmk.immobilier.application.ports.auth.KeycloakAuthPort;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.http.MediaType;
-import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
@@ -17,7 +16,6 @@ import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 
-import java.time.Duration;
 
 /**
  * Dialogue avec le endpoint OpenID Connect de Keycloak. Le mobile ne connaît
@@ -33,10 +31,7 @@ public class KeycloakAuthAdapter implements KeycloakAuthPort {
 
     public KeycloakAuthAdapter(KeycloakProperties properties, RestClient.Builder builder) {
         this.properties = properties;
-        SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
-        requestFactory.setConnectTimeout(Duration.ofSeconds(5));
-        requestFactory.setReadTimeout(Duration.ofSeconds(10));
-        this.restClient = builder.requestFactory(requestFactory).build();
+        this.restClient = builder.requestFactory(KeycloakHttp.requestFactory()).build();
     }
 
     @Override

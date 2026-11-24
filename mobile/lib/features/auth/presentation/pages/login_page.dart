@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/auth_provider.dart';
 import '../providers/auth_state.dart';
 import '../widgets/auth_ui.dart';
+import 'inscription_page.dart';
 
 /// Connexion, au gabarit des écrans d'accès de VTC Manager : logo TMK, carte
 /// blanche, bandeau de message qui reste sous les yeux, bouton dégradé.
@@ -81,7 +82,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                     autocorrect: false,
                     textInputAction: TextInputAction.next,
                     decoration: authInputDecoration(
-                      label: 'Identifiant',
+                      label: 'E-mail ou identifiant',
                       icon: Icons.person_outline_rounded,
                     ),
                     validator: (v) =>
@@ -120,7 +121,24 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                 ],
               ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 16),
+            TextButton(
+              onPressed: loading
+                  ? null
+                  : () => Navigator.of(context).push(
+                      MaterialPageRoute<void>(builder: (_) => const InscriptionPage())),
+              child: Text.rich(TextSpan(
+                text: 'Pas encore de compte ? ',
+                style: TextStyle(color: kAuthHint, fontSize: 13.5),
+                children: [
+                  TextSpan(
+                    text: 'Créer un compte',
+                    style: TextStyle(color: kAuthPrimary, fontWeight: FontWeight.w700),
+                  ),
+                ],
+              )),
+            ),
+            const SizedBox(height: 8),
             Text('Immobilier Manager · TMK',
                 style: TextStyle(color: kAuthHint, fontSize: 12.5)),
           ],

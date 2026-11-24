@@ -6,6 +6,8 @@ import com.tmk.immobilier.application.exception.ResourceNotFoundException;
 import com.tmk.immobilier.application.ports.document.StockageDocumentsPort;
 import com.tmk.immobilier.application.ports.persistence.ImmeubleRepository;
 import com.tmk.immobilier.application.ports.persistence.PhotoBienRepository;
+import com.tmk.immobilier.application.common.ClesStockage;
+import com.tmk.immobilier.application.ports.organisation.OrganisationCourantePort;
 import lombok.RequiredArgsConstructor;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,6 +28,7 @@ public class AjouterPhotoBienUseCase {
     private final ImmeubleRepository immeubleRepository;
     private final PhotoBienRepository photoBienRepository;
     private final StockageDocumentsPort stockage;
+    private final OrganisationCourantePort organisationCourante;
 
     @Transactional
     public PhotoBien execute(Long immeubleId, String nomFichier, String type, long taille, InputStream contenu) {
@@ -41,7 +44,8 @@ public class AjouterPhotoBienUseCase {
             throw new RegleMetierException("PHOTOS_MAX_ATTEINT",
                     "Un bien compte au plus " + PHOTOS_MAX + " photos : supprimez-en une pour en ajouter.");
         }
-        String cle = "biens/" + immeubleId + "/photo-" + UUID.randomUUID() + "." + extension;
+        String cle = ClesStockage.pour(organisationCourante.id(),
+                "biens/" + immeubleId + "/photo-" + UUID.randomUUID() + "." + extension);
         stockage.deposer(cle, contenu, taille, type);
         return photoBienRepository.save(PhotoBien.builder()
                 .immeubleId(immeubleId)

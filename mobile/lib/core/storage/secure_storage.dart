@@ -8,6 +8,7 @@ class SecureStorage {
   static const _kUsername = 'username';
   static const _kThemeAccent = 'theme_accent';
   static const _kThemeMode = 'theme_mode';
+  static const _kOrganisationId = 'organisation_id';
 
   final FlutterSecureStorage _storage;
 
@@ -42,8 +43,20 @@ class SecureStorage {
   Future<void> setThemeMode(String nom) =>
       _storage.write(key: _kThemeMode, value: nom);
 
+  /// Organisation dans laquelle on travaille (en-tête `X-Organisation-Id`).
+  Future<int?> getOrganisationId() async =>
+      int.tryParse(await _storage.read(key: _kOrganisationId) ?? '');
+
+  Future<void> setOrganisationId(int id) =>
+      _storage.write(key: _kOrganisationId, value: '$id');
+
+  Future<void> clearOrganisationId() => _storage.delete(key: _kOrganisationId);
+
+  /// Fin de session : jetons et organisation active partent ensemble, pour
+  /// que le compte suivant ne démarre jamais dans l'organisation du précédent.
   Future<void> clearTokens() async {
     await _storage.delete(key: _kAccessToken);
     await _storage.delete(key: _kRefreshToken);
+    await _storage.delete(key: _kOrganisationId);
   }
 }

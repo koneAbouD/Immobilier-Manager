@@ -13,7 +13,7 @@ import java.math.BigDecimal;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class ImmeubleEntity extends AbstractAuditEntity {
+public class ImmeubleEntity extends AbstractTenantEntity {
 
     public static final String TABLE_NAME = "immeubles";
 
@@ -21,7 +21,7 @@ public class ImmeubleEntity extends AbstractAuditEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, length = 150, unique = true)
+    @Column(nullable = false, length = 150)
     private String nom;
 
     @Enumerated(EnumType.STRING)
@@ -50,4 +50,9 @@ public class ImmeubleEntity extends AbstractAuditEntity {
 
     @Column(columnDefinition = "TEXT")
     private String description;
+
+    @Override
+    protected Object identifiant() {
+        return id;
+    }
 }

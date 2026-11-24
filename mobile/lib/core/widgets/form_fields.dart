@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../app/droits_ecriture.dart';
 import '../theme/app_colors.dart';
 import '../utils/formatters.dart';
 import 'date_filter_dialogs.dart';
@@ -446,7 +447,7 @@ class _ChampRechercheState extends State<ChampRecherche> {
         ),
       ),
     );
-    if (widget.onAjouter == null) return barre;
+    if (widget.onAjouter == null || !DroitsEcriture.de(context)) return barre;
     return Row(children: [
       Expanded(child: barre),
       const SizedBox(width: 8),

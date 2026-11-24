@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../app/droits_ecriture.dart';
 import '../theme/app_colors.dart';
 
 /// En-tête standard de toutes les pages.
@@ -272,6 +273,10 @@ class ActionsDetail extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Lecteur ou abonnement en lecture seule : la fiche se consulte seulement.
+    final ecriture = DroitsEcriture.de(context);
+    final onSupprimer = ecriture ? this.onSupprimer : null;
+    final onModifier = ecriture ? this.onModifier : null;
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [

@@ -10,7 +10,7 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class PhotoBienEntity extends AbstractAuditEntity {
+public class PhotoBienEntity extends AbstractTenantEntity {
 
     public static final String TABLE_NAME = "photos_bien";
 
@@ -31,4 +31,9 @@ public class PhotoBienEntity extends AbstractAuditEntity {
 
     @Column(nullable = false)
     private Long taille;
+
+    @Override
+    protected Object identifiant() {
+        return id;
+    }
 }
