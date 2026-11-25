@@ -9,6 +9,9 @@ import '../../../../core/widgets/form_fields.dart';
 import '../../domain/entities/bail.dart';
 import '../providers/bail_providers.dart';
 import '../widgets/champs_bail.dart';
+import '../../../../core/utils/insets_systeme.dart';
+import '../../../../core/widgets/libelle_bouton.dart';
+import '../../../../core/utils/separateur_milliers.dart';
 
 /// Révision des conditions d'un bail actif. Le logement et le locataire ne
 /// changent pas ; les loyers déjà émis gardent leur montant.
@@ -30,8 +33,8 @@ class _BailModifierPageState extends ConsumerState<BailModifierPage> {
   late DateTime _dateDebut = b.dateDebut;
   late DateTime? _dateFin = b.dateFin;
   late bool _dureeIndeterminee = b.dateFin == null;
-  late final _loyer = TextEditingController(text: b.loyerMensuel?.toStringAsFixed(0));
-  late final _charges = TextEditingController(text: (b.charges ?? 0).toStringAsFixed(0));
+  late final _loyer = TextEditingController(text: saisieMontant(b.loyerMensuel));
+  late final _charges = TextEditingController(text: saisieMontant(b.charges ?? 0));
   late final _moisCaution = TextEditingController(text: b.moisCaution?.toString() ?? '');
   late final _moisAvance = TextEditingController(text: '${b.moisAvance ?? 0}');
   late final _jour = TextEditingController(text: '${b.jourEcheance ?? 5}');
@@ -132,8 +135,8 @@ class _BailModifierPageState extends ConsumerState<BailModifierPage> {
           'Impossible si un loyer a déjà été encaissé.',
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Annuler')),
-          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Confirmer')),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const LibelleBouton('Annuler')),
+          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const LibelleBouton('Confirmer')),
         ],
       ),
     );
@@ -148,7 +151,7 @@ class _BailModifierPageState extends ConsumerState<BailModifierPage> {
       body: Form(
         key: _formKey,
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 4, 16, 32),
+          padding: EdgeInsets.fromLTRB(16, 4, 16, 32 + context.basSysteme),
           children: [
             _Avertissement(bail: b),
             const SizedBox(height: 12),
@@ -316,7 +319,7 @@ class _BailModifierPageState extends ConsumerState<BailModifierPage> {
                       child: TextButton.icon(
                         onPressed: () => setState(() => _premierChoisi = null),
                         icon: const Icon(Icons.restart_alt_rounded, size: 18),
-                        label: const Text('Revenir au calcul automatique'),
+                        label: const LibelleBouton('Revenir au calcul automatique'),
                       ),
                     ),
                 ],

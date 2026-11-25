@@ -13,6 +13,9 @@ import '../../domain/entities/paiement.dart';
 import '../providers/loyer_providers.dart';
 import '../widgets/encaissement_sheet.dart';
 import '../widgets/quittance.dart';
+import '../../../../core/app/sorties_application.dart';
+import '../../../../core/utils/insets_systeme.dart';
+import '../../../../core/widgets/libelle_bouton.dart';
 
 /// Fiche d'un loyer : où il en est (dû, payé, reste), ses paiements
 /// (annulables) et l'encaissement du reste. Se ferme en renvoyant vrai si un
@@ -87,7 +90,7 @@ class _EcheancePageState extends ConsumerState<EcheancePage> {
         body: RefreshIndicator(
           onRefresh: _recharger,
           child: ListView(
-            padding: const EdgeInsets.fromLTRB(16, 4, 16, 32),
+            padding: EdgeInsets.fromLTRB(16, 4, 16, 32 + context.basSysteme),
             children: [
               _CarteLoyer(echeance: e),
               const SizedBox(height: 14),
@@ -102,7 +105,8 @@ class _EcheancePageState extends ConsumerState<EcheancePage> {
                 BoutonSecondaire(
                   label: 'Appeler ${e.locataireNom}',
                   icon: Icons.call_outlined,
-                  onPressed: () => launchUrl(Uri(scheme: 'tel', path: e.locataireTelephone)),
+                  onPressed: () => SortiesApplication.attendue(
+                      () => launchUrl(Uri(scheme: 'tel', path: e.locataireTelephone))),
                 ),
               ],
               const SizedBox(height: 22),
@@ -118,7 +122,7 @@ class _EcheancePageState extends ConsumerState<EcheancePage> {
                   if (snap.hasError) {
                     return TextButton(
                       onPressed: () => setState(() => _paiements = _chargerPaiements()),
-                      child: Text('${snap.error} — Réessayer'),
+                      child: LibelleBouton('${snap.error} — Réessayer'),
                     );
                   }
                   if (!snap.hasData) {

@@ -3,6 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart';
 
+import '../../../../core/app/droits.dart';
+import '../../../../core/error/exception.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/app_header.dart';
 import '../../../../core/widgets/carte_position.dart';
@@ -21,6 +23,8 @@ import '../../domain/entities/immeuble.dart';
 import '../providers/immeuble_providers.dart';
 import '../widgets/galerie_photos_bien.dart';
 import 'immeuble_form_page.dart';
+import '../../../../core/utils/insets_systeme.dart';
+import '../../../../core/widgets/libelle_bouton.dart';
 
 /// Local unique d'un terrain : le terrain lui-même, créé avec le bien, sur
 /// lequel se signent ses baux.
@@ -71,7 +75,7 @@ class _ImmeubleDetailPageState extends ConsumerState<ImmeubleDetailPage> {
     try {
       position = await positionActuelle();
     } catch (e) {
-      if (mounted) showError(context, '$e');
+      if (mounted) showError(context, messageErreur(e));
       return false;
     }
     final maj = Immeuble(
@@ -124,7 +128,7 @@ class _ImmeubleDetailPageState extends ConsumerState<ImmeubleDetailPage> {
           body: Center(child: CircularProgressIndicator())),
       error: (e, _) => Scaffold(
         appBar: const AppHeader(title: ''),
-        body: ErrorView(message: '$e', onRetry: _rafraichir),
+        body: ErrorView(message: messageErreur(e), onRetry: _rafraichir),
       ),
       data: (immeuble) => Scaffold(
         appBar: AppHeader(
@@ -132,12 +136,14 @@ class _ImmeubleDetailPageState extends ConsumerState<ImmeubleDetailPage> {
           action: ActionsDetail(
             onModifier: () => _ouvrir(ImmeubleFormPage(immeuble: immeuble)),
             onSupprimer: () => _supprimer(immeuble),
+            droitSuppression: ActionMetier.supprimerBien,
+            ressource: '/immeubles/${immeuble.id}',
           ),
         ),
         body: RefreshIndicator(
           onRefresh: () async => _rafraichir(),
           child: ListView(
-            padding: const EdgeInsets.fromLTRB(16, 4, 16, 32),
+            padding: EdgeInsets.fromLTRB(16, 4, 16, 32 + context.basSysteme),
             children: [
               DetailHeroCard(
                 icon: immeuble.type.icone,
@@ -208,7 +214,7 @@ class _Locaux extends ConsumerWidget {
                 padding: EdgeInsets.all(20), child: Center(child: CircularProgressIndicator())),
             error: (e, _) => TextButton(
               onPressed: () => ref.invalidate(_locauxProvider(immeubleId)),
-              child: Text('$e — Réessayer'),
+              child: LibelleBouton('${messageErreur(e)} — Réessayer'),
             ),
             data: (locaux) => locaux.isEmpty
                 ? Padding(
@@ -219,7 +225,7 @@ class _Locaux extends ConsumerWidget {
                       FilledButton.icon(
                         onPressed: ajouter,
                         icon: const Icon(Icons.add_rounded, size: 18),
-                        label: const Text('Ajouter un local'),
+                        label: const LibelleBouton('Ajouter un local'),
                       ),
                     ]),
                   )
@@ -375,7 +381,7 @@ class _LocationTerrain extends ConsumerWidget {
           error: (e, _) => Center(
             child: TextButton(
               onPressed: () => ref.invalidate(_localTerrainProvider(immeubleId)),
-              child: Text('$e — Réessayer'),
+              child: LibelleBouton('${messageErreur(e)} — Réessayer'),
             ),
           ),
           data: (local) => Column(

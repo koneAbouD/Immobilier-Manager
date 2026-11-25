@@ -8,6 +8,9 @@ import com.tmk.immobilier.application.ports.identite.GestionIdentitesPort;
 import com.tmk.immobilier.application.ports.organisation.NumeroteurPort;
 import com.tmk.immobilier.application.ports.organisation.OrganisationCourantePort;
 import com.tmk.immobilier.application.ports.persistence.AppartementRepository;
+import com.tmk.immobilier.application.usecases.journal.JournalActions;
+import com.tmk.immobilier.application.usecases.journal.GetJournalActionsUseCase;
+import com.tmk.immobilier.application.ports.persistence.JournalActionsRepository;
 import com.tmk.immobilier.application.ports.persistence.BailRepository;
 import com.tmk.immobilier.application.ports.persistence.EcheanceLoyerRepository;
 import com.tmk.immobilier.application.ports.persistence.ImmeubleRepository;
@@ -146,8 +149,8 @@ public class UseCaseBeanConfiguration {
     }
 
     @Bean
-    public UpdateImmeubleUseCase updateImmeubleUseCase(ImmeubleRepository immeubleRepo) {
-        return new UpdateImmeubleUseCase(immeubleRepo);
+    public UpdateImmeubleUseCase updateImmeubleUseCase(ImmeubleRepository immeubleRepo, JournalActions journal) {
+        return new UpdateImmeubleUseCase(immeubleRepo, journal);
     }
 
     @Bean
@@ -156,8 +159,8 @@ public class UseCaseBeanConfiguration {
                                                        MaintenanceRepository maintenanceRepo,
                                                        BailRepository bailRepo,
                                                        PhotoBienRepository photoRepo,
-                                                       StockageDocumentsPort stockage) {
-        return new DeleteImmeubleUseCase(immeubleRepo, appartementRepo, maintenanceRepo, bailRepo, photoRepo, stockage);
+                                                       StockageDocumentsPort stockage, JournalActions journal) {
+        return new DeleteImmeubleUseCase(immeubleRepo, appartementRepo, maintenanceRepo, bailRepo, photoRepo, stockage, journal);
     }
 
     @Bean
@@ -194,15 +197,15 @@ public class UseCaseBeanConfiguration {
     }
 
     @Bean
-    public UpdateAppartementUseCase updateAppartementUseCase(AppartementRepository appartementRepo) {
-        return new UpdateAppartementUseCase(appartementRepo);
+    public UpdateAppartementUseCase updateAppartementUseCase(AppartementRepository appartementRepo, JournalActions journal) {
+        return new UpdateAppartementUseCase(appartementRepo, journal);
     }
 
     @Bean
     public DeleteAppartementUseCase deleteAppartementUseCase(AppartementRepository appartementRepo,
                                                              BailRepository bailRepo,
-                                                             MaintenanceRepository maintenanceRepo) {
-        return new DeleteAppartementUseCase(appartementRepo, bailRepo, maintenanceRepo);
+                                                             MaintenanceRepository maintenanceRepo, JournalActions journal) {
+        return new DeleteAppartementUseCase(appartementRepo, bailRepo, maintenanceRepo, journal);
     }
 
     @Bean
@@ -222,14 +225,14 @@ public class UseCaseBeanConfiguration {
     }
 
     @Bean
-    public UpdateLocataireUseCase updateLocataireUseCase(LocataireRepository locataireRepo) {
-        return new UpdateLocataireUseCase(locataireRepo);
+    public UpdateLocataireUseCase updateLocataireUseCase(LocataireRepository locataireRepo, JournalActions journal) {
+        return new UpdateLocataireUseCase(locataireRepo, journal);
     }
 
     @Bean
     public DeleteLocataireUseCase deleteLocataireUseCase(LocataireRepository locataireRepo,
-                                                         BailRepository bailRepo) {
-        return new DeleteLocataireUseCase(locataireRepo, bailRepo);
+                                                         BailRepository bailRepo, JournalActions journal) {
+        return new DeleteLocataireUseCase(locataireRepo, bailRepo, journal);
     }
 
     @Bean
@@ -365,29 +368,29 @@ public class UseCaseBeanConfiguration {
     @Bean
     public UpdateMaintenanceUseCase updateMaintenanceUseCase(MaintenanceRepository maintenanceRepo,
                                                              ImmeubleRepository immeubleRepo,
-                                                             AppartementRepository appartementRepo) {
-        return new UpdateMaintenanceUseCase(maintenanceRepo, immeubleRepo, appartementRepo);
+                                                             AppartementRepository appartementRepo, JournalActions journal) {
+        return new UpdateMaintenanceUseCase(maintenanceRepo, immeubleRepo, appartementRepo, journal);
     }
 
     @Bean
-    public DemarrerMaintenanceUseCase demarrerMaintenanceUseCase(MaintenanceRepository maintenanceRepo) {
-        return new DemarrerMaintenanceUseCase(maintenanceRepo);
+    public DemarrerMaintenanceUseCase demarrerMaintenanceUseCase(MaintenanceRepository maintenanceRepo, JournalActions journal) {
+        return new DemarrerMaintenanceUseCase(maintenanceRepo, journal);
     }
 
     @Bean
-    public TerminerMaintenanceUseCase terminerMaintenanceUseCase(MaintenanceRepository maintenanceRepo) {
-        return new TerminerMaintenanceUseCase(maintenanceRepo);
+    public TerminerMaintenanceUseCase terminerMaintenanceUseCase(MaintenanceRepository maintenanceRepo, JournalActions journal) {
+        return new TerminerMaintenanceUseCase(maintenanceRepo, journal);
     }
 
     @Bean
     public AnnulerMaintenanceUseCase annulerMaintenanceUseCase(MaintenanceRepository maintenanceRepo,
-                                                               AuteurCourantPort auteurCourant) {
-        return new AnnulerMaintenanceUseCase(maintenanceRepo, auteurCourant);
+                                                               AuteurCourantPort auteurCourant, JournalActions journal) {
+        return new AnnulerMaintenanceUseCase(maintenanceRepo, journal, auteurCourant);
     }
 
     @Bean
-    public DeleteMaintenanceUseCase deleteMaintenanceUseCase(MaintenanceRepository maintenanceRepo) {
-        return new DeleteMaintenanceUseCase(maintenanceRepo);
+    public DeleteMaintenanceUseCase deleteMaintenanceUseCase(MaintenanceRepository maintenanceRepo, JournalActions journal) {
+        return new DeleteMaintenanceUseCase(maintenanceRepo, journal);
     }
 
     @Bean
@@ -403,5 +406,20 @@ public class UseCaseBeanConfiguration {
                                                        EcheanceLoyerRepository echeanceRepo,
                                                        MaintenanceRepository maintenanceRepo) {
         return new GetTableauBordUseCase(immeubleRepo, appartementRepo, bailRepo, echeanceRepo, maintenanceRepo);
+    }
+
+    // --- Journal des actions ---
+
+    @Bean
+    public JournalActions journalActions(JournalActionsRepository journalRepo,
+                                         OrganisationCourantePort organisationCourante,
+                                         UtilisateurRepository utilisateurRepo,
+                                         AuteurCourantPort auteurCourant) {
+        return new JournalActions(journalRepo, organisationCourante, utilisateurRepo, auteurCourant);
+    }
+
+    @Bean
+    public GetJournalActionsUseCase getJournalActionsUseCase(JournalActionsRepository journalRepo) {
+        return new GetJournalActionsUseCase(journalRepo);
     }
 }

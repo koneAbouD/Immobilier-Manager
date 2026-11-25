@@ -6,15 +6,16 @@ import '../../../../core/theme/app_colors.dart';
 import '../providers/auth_provider.dart';
 import '../providers/unlock_outcome.dart';
 import 'pin_brand.dart';
+import '../../../../core/widgets/libelle_bouton.dart';
 
 /// Reprise du code existant après une reconnexion.
 ///
-/// L'utilisateur s'est déconnecté volontairement puis reconnecté : son code
-/// TMK est toujours sur l'appareil. Plutôt que de lui en faire choisir un
+/// L'utilisateur s'est déconnecté volontairement puis reconnecté : son code est
+/// toujours sur l'appareil. Plutôt que de lui en faire choisir un
 /// nouveau, on le lui redemande — la saisie rouvre le coffre pour y ranger le
 /// refresh token tout neuf.
 ///
-/// « Code TMK oublié ? » mène ici au choix d'un nouveau code, et non à la page
+/// « Code oublié ? » mène ici au choix d'un nouveau code, et non à la page
 /// de connexion : la session vient d'être ouverte.
 class PinResumePage extends ConsumerStatefulWidget {
   final String? displayName;
@@ -91,19 +92,19 @@ class _PinResumePageState extends ConsumerState<PinResumePage> {
     final confirme = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Code TMK oublié ?'),
+        title: const Text('Code oublié ?'),
         content: const Text(
-          'Vous allez choisir un nouveau code TMK. Votre session reste '
+          'Vous allez choisir un nouveau code. Votre session reste '
           'ouverte : pas besoin de ressaisir votre mot de passe.',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Annuler'),
+            child: const LibelleBouton('Annuler'),
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Choisir un nouveau code'),
+            child: const LibelleBouton('Choisir un nouveau code'),
           ),
         ],
       ),
@@ -123,7 +124,7 @@ class _PinResumePageState extends ConsumerState<PinResumePage> {
         theme: pinTheme,
         brand: const PinBrand(),
         title: nom == null ? 'Bon retour' : 'Bon retour $nom',
-        prompt: 'Saisissez votre code TMK habituel',
+        prompt: 'Saisissez votre code habituel',
         length: PinService.codeLength,
         filled: _code.length,
         errorTick: _errorTick,
@@ -144,8 +145,8 @@ class _PinResumePageState extends ConsumerState<PinResumePage> {
         footer: TextButton(
           onPressed: _busy ? null : _confirmForget,
           style: TextButton.styleFrom(foregroundColor: AppColors.primary),
-          child: const Text(
-            'Code TMK oublié ?',
+          child: const LibelleBouton(
+            'Code oublié ?',
             style: TextStyle(fontWeight: FontWeight.w600),
           ),
         ),

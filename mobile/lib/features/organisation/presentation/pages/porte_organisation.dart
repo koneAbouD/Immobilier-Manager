@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/error/exception.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/form_fields.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
@@ -25,7 +26,7 @@ class PorteOrganisation extends ConsumerWidget {
       error: (e, _) => _Impasse(
         icone: Icons.cloud_off_rounded,
         titre: 'Connexion impossible',
-        message: '$e',
+        message: messageErreur(e),
         action: 'Réessayer',
         onAction: () => ref.invalidate(sessionOrganisationProvider),
       ),

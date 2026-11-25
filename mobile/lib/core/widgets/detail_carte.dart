@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../theme/app_colors.dart';
+import 'libelle_bouton.dart';
 
 /// Briques d'une page de détail, reprises de VTC Manager : une carte d'en-tête
 /// qui nomme l'objet et son statut, puis des cartes où les couples
@@ -244,7 +245,7 @@ class BoutonTexte extends StatelessWidget {
     return TextButton.icon(
       onPressed: onTap,
       icon: Icon(icon ?? Icons.add_rounded, size: 16),
-      label: Text(label),
+      label: LibelleBouton(label),
       style: TextButton.styleFrom(
         foregroundColor: AppColors.primaryDark,
         backgroundColor: AppColors.primaryTint,

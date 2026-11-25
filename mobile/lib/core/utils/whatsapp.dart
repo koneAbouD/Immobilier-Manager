@@ -9,6 +9,7 @@ library;
 import 'package:url_launcher/url_launcher.dart';
 
 import 'telephone.dart';
+import '../app/sorties_application.dart';
 
 /// Le lien qui ouvre la conversation de [telephone], message pré-rempli. Sans
 /// numéro exploitable, WhatsApp s'ouvre sur son sélecteur de contacts.
@@ -22,5 +23,9 @@ Uri lienWhatsApp({String? telephone, required String message}) {
 
 /// Ouvre WhatsApp sur la conversation de [telephone] avec [message] pré-rempli.
 /// Retourne false si aucune application ne sait ouvrir le lien.
+///
+/// Sortie voulue : le passage par WhatsApp ne verrouille pas l'application.
 Future<bool> ouvrirWhatsApp({String? telephone, required String message}) =>
-    launchUrl(lienWhatsApp(telephone: telephone, message: message), mode: LaunchMode.externalApplication);
+    SortiesApplication.attendue(() => launchUrl(
+        lienWhatsApp(telephone: telephone, message: message),
+        mode: LaunchMode.externalApplication));

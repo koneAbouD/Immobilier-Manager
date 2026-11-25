@@ -131,7 +131,7 @@ void main() {
             theme: _theme,
             brand: const SizedBox(width: 96, height: 96),
             topSpacing: 48,
-            prompt: 'Veuillez saisir votre code TMK',
+            prompt: 'Veuillez saisir votre code',
             message: 'Code incorrect. 4 essais restants.',
             length: PinService.codeLength,
             filled: 2,
@@ -142,7 +142,7 @@ void main() {
       ));
 
       expect(tester.takeException(), isNull);
-      expect(find.text('Veuillez saisir votre code TMK'), findsOneWidget);
+      expect(find.text('Veuillez saisir votre code'), findsOneWidget);
     });
 
     testWidgets('tient en paysage, où la hauteur manque', (tester) async {
@@ -158,11 +158,11 @@ void main() {
             theme: _theme,
             brand: const SizedBox(width: 96, height: 96),
             topSpacing: 48,
-            prompt: 'Veuillez saisir votre code TMK',
+            prompt: 'Veuillez saisir votre code',
             message: 'Code incorrect. 4 essais restants.',
             length: PinService.codeLength,
             filled: 2,
-            footer: const Text('Code TMK oublié ?'),
+            footer: const Text('Code oublié ?'),
             onDigit: (_) {},
             onBackspace: () {},
           ),
@@ -174,7 +174,7 @@ void main() {
       for (final digit in ['0', '5', '9']) {
         expect(find.text(digit), findsOneWidget);
       }
-      expect(find.text('Code TMK oublié ?'), findsOneWidget);
+      expect(find.text('Code oublié ?'), findsOneWidget);
     });
   });
 
@@ -184,7 +184,7 @@ void main() {
             body: PinLayout(
               theme: _theme,
               brand: const SizedBox(width: 96, height: 96),
-              prompt: 'Veuillez saisir votre code TMK',
+              prompt: 'Veuillez saisir votre code',
               length: PinService.codeLength,
               filled: 5,
               busy: busy,

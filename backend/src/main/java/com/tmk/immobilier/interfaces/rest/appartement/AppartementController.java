@@ -6,6 +6,8 @@ import com.tmk.immobilier.interfaces.rest.appartement.dto.request.AppartementReq
 import com.tmk.immobilier.interfaces.rest.appartement.dto.response.AppartementResponse;
 import com.tmk.immobilier.interfaces.rest.appartement.mapper.AppartementRestMapper;
 import com.tmk.immobilier.interfaces.rest.common.PageResponse;
+import com.tmk.immobilier.interfaces.rest.common.SuppressionResponse;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -51,6 +53,12 @@ public class AppartementController {
     @PutMapping("/{id}")
     public AppartementResponse update(@PathVariable Long id, @Valid @RequestBody AppartementRequest request) {
         return mapper.toResponse(updateAppartementUseCase.execute(id, mapper.toDomain(request)));
+    }
+
+    @GetMapping("/{id}/suppression")
+    @Operation(summary = "Peut-on supprimer le local ?", description = "Selon son état (baux, historique), pas selon le rôle")
+    public SuppressionResponse suppression(@PathVariable Long id) {
+        return SuppressionResponse.depuis(deleteAppartementUseCase.blocage(id));
     }
 
     @DeleteMapping("/{id}")

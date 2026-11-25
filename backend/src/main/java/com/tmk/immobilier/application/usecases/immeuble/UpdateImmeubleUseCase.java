@@ -1,5 +1,9 @@
 package com.tmk.immobilier.application.usecases.immeuble;
 
+import com.tmk.immobilier.application.usecases.journal.JournalActions;
+import com.tmk.immobilier.application.usecases.journal.InstantanesMetier;
+import com.tmk.immobilier.application.domain.journal.Instantane;
+import com.tmk.immobilier.application.domain.journal.TypeEntite;
 import com.tmk.immobilier.application.domain.immeuble.Immeuble;
 import com.tmk.immobilier.application.exception.RegleMetierException;
 import com.tmk.immobilier.application.exception.ResourceAlreadyExistsException;
@@ -12,11 +16,13 @@ import org.springframework.transaction.annotation.Transactional;
 public class UpdateImmeubleUseCase {
 
     private final ImmeubleRepository immeubleRepository;
+    private final JournalActions journal;
 
     @Transactional
     public Immeuble execute(Long id, Immeuble modifications) {
         Immeuble existant = immeubleRepository.findById(id)
                 .orElseThrow(() -> ResourceNotFoundException.of("Immeuble", id));
+        Instantane avant = InstantanesMetier.de(existant);
         String nom = modifications.getNom().trim();
         if (immeubleRepository.existsByNomIgnoreCaseAndIdNot(nom, id)) {
             throw ResourceAlreadyExistsException.of("Immeuble", "nom", nom);
@@ -39,6 +45,9 @@ public class UpdateImmeubleUseCase {
         existant.setNombreEtages(modifications.getNombreEtages());
         existant.setAnneeConstruction(modifications.getAnneeConstruction());
         existant.setDescription(modifications.getDescription());
-        return immeubleRepository.save(existant);
+        Immeuble enregistre = immeubleRepository.save(existant);
+        journal.modification(TypeEntite.BIEN, id, existant.getNom(), existant.getVille(),
+                avant, InstantanesMetier.de(existant));
+        return enregistre;
     }
 }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../theme/app_colors.dart';
 import 'form_fields.dart';
+import 'libelle_bouton.dart';
 
 /// Boîtes de dialogue au gabarit de VTC Manager : coins de 20, icône dans une
 /// tuile teintée à gauche du titre, texte gris, puis « Annuler » en contour et
@@ -37,7 +38,7 @@ Widget _boutonRetour(String libelle, VoidCallback onPressed) => OutlinedButton(
         foregroundColor: AppColors.noir87,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
-      child: Text(libelle, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+      child: LibelleBouton(libelle, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
     );
 
 Widget _boutonAction(String libelle, VoidCallback? onPressed, {bool destructive = false}) => FilledButton(
@@ -49,7 +50,7 @@ Widget _boutonAction(String libelle, VoidCallback? onPressed, {bool destructive 
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
-      child: Text(libelle, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+      child: LibelleBouton(libelle, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
     );
 
 const _contentPadding = EdgeInsets.fromLTRB(24, 16, 24, 16);
@@ -198,7 +199,10 @@ Future<T?> afficherFeuille<T>(BuildContext context, {required WidgetBuilder buil
           margin: const EdgeInsets.only(top: 10, bottom: 8),
           decoration: BoxDecoration(color: AppColors.border, borderRadius: BorderRadius.circular(2)),
         ),
-        Flexible(child: builder(ctx)),
+        // Le fond de la feuille passe sous la barre de navigation système ;
+        // son contenu s'arrête au-dessus. Le SafeArea retire aussi cette
+        // marge du MediaQuery : les feuilles déjà protégées ne la doublent pas.
+        Flexible(child: SafeArea(top: false, child: builder(ctx))),
       ]),
     );
 

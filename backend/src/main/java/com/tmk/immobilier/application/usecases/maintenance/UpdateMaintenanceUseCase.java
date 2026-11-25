@@ -1,5 +1,9 @@
 package com.tmk.immobilier.application.usecases.maintenance;
 
+import com.tmk.immobilier.application.usecases.journal.JournalActions;
+import com.tmk.immobilier.application.usecases.journal.InstantanesMetier;
+import com.tmk.immobilier.application.domain.journal.Instantane;
+import com.tmk.immobilier.application.domain.journal.TypeEntite;
 import com.tmk.immobilier.application.domain.maintenance.Maintenance;
 import com.tmk.immobilier.application.exception.RegleMetierException;
 import com.tmk.immobilier.application.exception.ResourceNotFoundException;
@@ -19,6 +23,7 @@ public class UpdateMaintenanceUseCase {
     private final MaintenanceRepository maintenanceRepository;
     private final ImmeubleRepository immeubleRepository;
     private final AppartementRepository appartementRepository;
+    private final JournalActions journal;
 
     @Transactional
     public Maintenance execute(Long id, Long immeubleId, Long appartementId, Maintenance modifications) {
@@ -27,6 +32,7 @@ public class UpdateMaintenanceUseCase {
         if (!existante.getStatut().estOuverte()) {
             throw new RegleMetierException("MAINTENANCE_CLOSE", "Une intervention close ne se modifie plus.");
         }
+        Instantane avant = InstantanesMetier.de(existante);
         MaintenanceRattachement.rattacher(existante, immeubleId, appartementId,
                 immeubleRepository, appartementRepository);
         existante.setTitre(modifications.getTitre());
@@ -38,6 +44,9 @@ public class UpdateMaintenanceUseCase {
         existante.setPrestataire(modifications.getPrestataire());
         existante.setCoutEstime(modifications.getCoutEstime());
         existante.planifierSiDate();
-        return maintenanceRepository.save(existante);
+        Maintenance enregistree = maintenanceRepository.save(existante);
+        journal.modification(TypeEntite.TRAVAUX, id, existante.getTitre(), InstantanesMetier.lieu(existante),
+                avant, InstantanesMetier.de(existante));
+        return enregistree;
     }
 }

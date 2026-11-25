@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../../../../core/error/exception.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../core/widgets/app_header.dart';
@@ -10,6 +11,8 @@ import '../../../../core/widgets/dialogs.dart';
 import '../../../../core/widgets/feedback.dart';
 import '../../domain/entities/photo_bien.dart';
 import '../providers/immeuble_providers.dart';
+import '../../../../core/app/sorties_application.dart';
+import '../../../../core/widgets/libelle_bouton.dart';
 
 /// Photos d'un bien sur sa fiche : vignettes défilantes, ajout depuis
 /// l'appareil photo ou la galerie, ouverture en plein écran.
@@ -54,9 +57,11 @@ class _GaleriePhotosBienState extends ConsumerState<GaleriePhotosBien> {
 
     // Images réduites et recompressées : une photo de bien n'a pas besoin de
     // la pleine résolution de l'appareil.
-    final List<XFile> fichiers = source == ImageSource.camera
-        ? [?await _picker.pickImage(source: ImageSource.camera, imageQuality: 75, maxWidth: 1800)]
-        : await _picker.pickMultiImage(imageQuality: 75, maxWidth: 1800);
+    // Sortie voulue : l'appareil photo ou la galerie ne verrouillent pas.
+    final List<XFile> fichiers = await SortiesApplication.attendue(() async =>
+        source == ImageSource.camera
+            ? [?await _picker.pickImage(source: ImageSource.camera, imageQuality: 75, maxWidth: 1800)]
+            : await _picker.pickMultiImage(imageQuality: 75, maxWidth: 1800));
     if (fichiers.isEmpty || !mounted) return;
 
     setState(() => _envoi = true);
@@ -102,7 +107,7 @@ class _GaleriePhotosBienState extends ConsumerState<GaleriePhotosBien> {
         loading: () => const SizedBox(height: 96, child: Center(child: CircularProgressIndicator())),
         error: (e, _) => TextButton(
           onPressed: () => ref.invalidate(photosBienProvider(_id)),
-          child: Text('$e — Réessayer'),
+          child: LibelleBouton('${messageErreur(e)} — Réessayer'),
         ),
         data: (photos) => photos.isEmpty
             ? _AucunePhoto(onTap: _envoi ? null : _ajouter)
@@ -297,7 +302,7 @@ class _VisionneusePhotosBienState extends ConsumerState<VisionneusePhotosBien> {
                 data: (b) => InteractiveViewer(maxScale: 5, child: Center(child: Image.memory(b))),
                 loading: () => const Center(child: CircularProgressIndicator(color: Colors.white54)),
                 error: (e, _) => Center(
-                    child: Text('$e', style: const TextStyle(color: Colors.white70), textAlign: TextAlign.center)),
+                    child: Text(messageErreur(e), style: const TextStyle(color: Colors.white70), textAlign: TextAlign.center)),
               );
             },
           ),

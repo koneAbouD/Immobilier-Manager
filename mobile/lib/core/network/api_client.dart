@@ -100,6 +100,10 @@ class ApiClient {
   /// organisation à choisir) : l'application repasse par le choix d'organisation.
   void Function()? onOrganisationInaccessible;
 
+  /// Appelé quand le rôle ne suffit pas pour une action (403 des règles
+  /// d'autorisation) : le rôle a pu changer depuis l'ouverture de la session.
+  void Function()? onDroitsRefuses;
+
   /// Codes du backend qui invalident l'organisation active.
   static const _codesOrganisationInaccessible = {
     'NON_MEMBRE',
@@ -202,7 +206,7 @@ class ApiClient {
             filename: nomFichier, contentType: MediaType(mime[0], mime[1])));
     });
     _verifier(response);
-    final raw = utf8.decode(response.bodyBytes);
+    final raw = utf8.decode(response.bodyBytes, allowMalformed: true);
     return raw.isEmpty ? null : _tryJson(raw);
   }
 
@@ -263,13 +267,13 @@ class ApiClient {
       onSessionExpired?.call();
     }
 
-    final raw = utf8.decode(response.bodyBytes);
+    final raw = utf8.decode(response.bodyBytes, allowMalformed: true);
     final parsed = raw.isEmpty ? null : _tryJson(raw);
     if (response.statusCode >= 200 && response.statusCode < 300) {
       return parsed;
     }
     final map = parsed is Map<String, dynamic> ? parsed : null;
-    _signalerOrganisation(map);
+    _signalerOrganisation(response.statusCode, map);
     throw ApiException(
       response.statusCode,
       _messageErreur(response.statusCode, map),
@@ -278,9 +282,12 @@ class ApiClient {
     );
   }
 
-  void _signalerOrganisation(Map<String, dynamic>? erreur) {
-    if (_codesOrganisationInaccessible.contains(erreur?['error'])) {
+  void _signalerOrganisation(int status, Map<String, dynamic>? erreur) {
+    final code = erreur?['error'];
+    if (_codesOrganisationInaccessible.contains(code)) {
       onOrganisationInaccessible?.call();
+    } else if (status == 403 && (code == null || code == 'ACCESS_DENIED')) {
+      onDroitsRefuses?.call();
     }
   }
 
@@ -398,7 +405,7 @@ class ApiClient {
     if (response.statusCode >= 200 && response.statusCode < 300) return;
     final parsed = _tryJson(utf8.decode(response.bodyBytes, allowMalformed: true));
     final map = parsed is Map<String, dynamic> ? parsed : null;
-    _signalerOrganisation(map);
+    _signalerOrganisation(response.statusCode, map);
     throw ApiException(
       response.statusCode,
       _messageErreur(response.statusCode, map),
@@ -546,13 +553,17 @@ class ApiClient {
     final message = body?['message'];
     if (message is String && message.trim().isNotEmpty) return message.trim();
     return switch (status) {
+      400 => 'Requête invalide : vérifiez les informations saisies.',
       401 => 'Session expirée, veuillez vous reconnecter.',
       402 => 'Votre abonnement ne permet pas cette opération.',
       403 => 'Vous n\'avez pas les droits nécessaires pour cette action.',
       404 => 'Élément introuvable.',
+      409 => 'Opération refusée : les données ont changé entre-temps. Rechargez puis réessayez.',
+      413 => 'Le fichier est trop volumineux. Choisissez un fichier plus léger.',
+      422 => 'Une des valeurs saisies n\'est pas acceptée.',
       502 || 503 || 504 => kMsgServeurIndisponible,
       >= 500 => 'Le serveur a rencontré une erreur. Réessayez dans un instant.',
-      _ => 'La requête a échoué ($status).',
+      _ => 'Réponse inattendue du serveur ($status). Réessayez dans un instant.',
     };
   }
 }

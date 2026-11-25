@@ -7,6 +7,7 @@ import '../../../../core/theme/app_palette.dart';
 import '../../../../core/theme/theme_controller.dart';
 import '../../../../core/widgets/app_header.dart';
 import '../../../../core/widgets/detail_premium.dart';
+import '../../../../core/utils/insets_systeme.dart';
 
 /// Libellé court d'un mode d'éclairage, pour le sélecteur comme pour le
 /// résumé affiché dans les réglages.
@@ -38,7 +39,7 @@ class ApparencePage extends ConsumerWidget {
       appBar: const AppHeader(title: 'Apparence'),
       body: ListView(
         padding: EdgeInsets.fromLTRB(
-            16, 8, 16, 24 + MediaQuery.of(context).padding.bottom),
+            16, 8, 16, 24 + context.basSysteme),
         children: [
           _CarteApercu(apparence: apparence),
           const SizedBox(height: 16),

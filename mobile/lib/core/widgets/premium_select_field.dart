@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../theme/app_colors.dart';
+import 'libelle_bouton.dart';
 
 /// Une valeur sélectionnable dans un [PremiumSelectField].
 class SelectOption<T> {
@@ -312,7 +313,7 @@ class _SelectSheetState<T> extends State<_SelectSheet<T>> {
                   style: TextButton.styleFrom(
                       foregroundColor: AppColors.error,
                       padding: const EdgeInsets.symmetric(horizontal: 12)),
-                  child: const Text('Effacer',
+                  child: const LibelleBouton('Effacer',
                       style: TextStyle(fontWeight: FontWeight.w600)),
                 ),
               ),

@@ -6,7 +6,9 @@ import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../error/exception.dart';
 import '../theme/app_colors.dart';
+import '../app/sorties_application.dart';
 
 /// Centre par défaut des cartes sans position : Abidjan.
 const kCentreParDefaut = LatLng(5.3600, -4.0083);
@@ -87,7 +89,9 @@ Future<LatLng> positionActuelle() async {
     }
     var permission = await Geolocator.checkPermission();
     if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
+      // Fenêtre d'autorisation du système : pas un départ.
+      permission =
+          await SortiesApplication.attendue(Geolocator.requestPermission);
     }
     if (permission == LocationPermission.denied || permission == LocationPermission.deniedForever) {
       throw const _ErreurPosition(
@@ -111,17 +115,18 @@ Future<LatLng> positionActuelle() async {
 }
 
 /// Erreur de localisation, rédigée pour l'écran.
-class _ErreurPosition implements Exception {
-  final String message;
-  const _ErreurPosition(this.message);
-
-  @override
-  String toString() => message;
+class _ErreurPosition extends ErreurLisible {
+  const _ErreurPosition(super.message);
 }
 
 /// Ouvre dans Google Maps l'itinéraire vers [destination], au départ de
 /// [origine] ; sans origine, Google Maps part de la position du téléphone.
-Future<bool> ouvrirItineraire(LatLng destination, {LatLng? origine}) => launchUrl(
+///
+/// Sortie voulue : le passage par Google Maps ne verrouille pas l'application.
+Future<bool> ouvrirItineraire(LatLng destination, {LatLng? origine}) =>
+    SortiesApplication.attendue(() => _ouvrirItineraire(destination, origine));
+
+Future<bool> _ouvrirItineraire(LatLng destination, LatLng? origine) => launchUrl(
       Uri.https('www.google.com', '/maps/dir/', {
         'api': '1',
         if (origine != null) 'origin': coordonneesGoogle(origine),

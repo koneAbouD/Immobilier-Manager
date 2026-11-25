@@ -58,7 +58,7 @@ void main() {
 
   testWidgets('les conditions actuelles sont préremplies', (tester) async {
     await ouvrir(tester);
-    expect(find.text('100000'), findsOneWidget);
+    expect(find.text('100\u00A0000'), findsOneWidget);
     expect(find.text('Décembre 2026'), findsWidgets);
   });
 

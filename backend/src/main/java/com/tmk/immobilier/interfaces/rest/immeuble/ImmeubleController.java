@@ -2,6 +2,7 @@ package com.tmk.immobilier.interfaces.rest.immeuble;
 
 import com.tmk.immobilier.application.usecases.immeuble.*;
 import com.tmk.immobilier.interfaces.rest.common.PageResponse;
+import com.tmk.immobilier.interfaces.rest.common.SuppressionResponse;
 import com.tmk.immobilier.interfaces.rest.immeuble.dto.request.ImmeubleRequest;
 import com.tmk.immobilier.interfaces.rest.immeuble.dto.response.ImmeubleResponse;
 import com.tmk.immobilier.interfaces.rest.immeuble.dto.response.PhotoBienResponse;
@@ -66,6 +67,12 @@ public class ImmeubleController {
     public ImmeubleResponse update(@PathVariable Long id, @Valid @RequestBody ImmeubleRequest request) {
         updateImmeubleUseCase.execute(id, mapper.toDomain(request));
         return mapper.toResponse(getImmeubleByIdUseCase.execute(id));
+    }
+
+    @GetMapping("/{id}/suppression")
+    @Operation(summary = "Peut-on supprimer le bien ?", description = "Selon son état (baux, historique), pas selon le rôle")
+    public SuppressionResponse suppression(@PathVariable Long id) {
+        return SuppressionResponse.depuis(deleteImmeubleUseCase.blocage(id));
     }
 
     @DeleteMapping("/{id}")

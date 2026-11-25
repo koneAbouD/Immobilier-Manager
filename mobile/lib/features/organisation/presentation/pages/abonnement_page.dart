@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../../core/error/exception.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../core/widgets/app_header.dart';
@@ -9,6 +10,8 @@ import '../../../../core/widgets/feedback.dart';
 import '../../../../core/widgets/form_fields.dart';
 import '../../domain/entities/organisation.dart';
 import '../providers/organisation_providers.dart';
+import '../../../../core/app/sorties_application.dart';
+import '../../../../core/utils/insets_systeme.dart';
 
 /// Adresse commerciale à qui demander un changement de formule
 /// (`--dart-define=CONTACT_COMMERCIAL=ventes@exemple.com`). Vide : le bouton
@@ -26,11 +29,11 @@ class AbonnementPage extends ConsumerWidget {
       appBar: AppHeader(title: 'Abonnement'),
       body: organisation.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => ErrorView(message: '$e', onRetry: () => ref.invalidate(organisationCouranteProvider)),
+        error: (e, _) => ErrorView(message: messageErreur(e), onRetry: () => ref.invalidate(organisationCouranteProvider)),
         data: (o) => RefreshIndicator(
           onRefresh: () async => ref.invalidate(organisationCouranteProvider),
           child: ListView(
-            padding: const EdgeInsets.fromLTRB(16, 4, 16, 32),
+            padding: EdgeInsets.fromLTRB(16, 4, 16, 32 + context.basSysteme),
             children: [
               _CarteFormule(organisation: o),
               if (o.abonnement.motifRestriction != null) ...[
@@ -50,11 +53,11 @@ class AbonnementPage extends ConsumerWidget {
                 BoutonPrincipal(
                   label: 'Changer de formule',
                   icon: Icons.mail_outline_rounded,
-                  onPressed: () => launchUrl(Uri(
+                  onPressed: () => SortiesApplication.attendue(() => launchUrl(Uri(
                     scheme: 'mailto',
                     path: _kContactCommercial,
                     queryParameters: {'subject': 'Abonnement — ${o.nom} (n° ${o.id})'},
-                  )),
+                  ))),
                 )
               else
                 Text(
@@ -206,7 +209,7 @@ class _Formules extends ConsumerWidget {
     final plans = ref.watch(plansProvider);
     return plans.when(
       loading: () => const Padding(padding: EdgeInsets.all(16), child: Center(child: CircularProgressIndicator())),
-      error: (e, _) => Text('$e', style: TextStyle(color: AppColors.error)),
+      error: (e, _) => Text(messageErreur(e), style: TextStyle(color: AppColors.error)),
       data: (liste) => Column(
         children: [
           for (final p in liste)

@@ -5,6 +5,7 @@ import 'package:tmk_pin/tmk_pin.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../providers/auth_provider.dart';
 import 'auth_ui.dart';
+import '../../../../core/widgets/libelle_bouton.dart';
 
 /// Propose une fois le déverrouillage biométrique, à l'entrée dans
 /// l'application.
@@ -110,7 +111,7 @@ class _ProposalDialog extends StatelessWidget {
         constraints: const BoxConstraints(maxWidth: 360),
         child: Text(
           'Vous ouvrirez l\'application d\'un geste, sans saisir vos cinq '
-          'chiffres. Votre code TMK reste actif et vous sera redemandé si la '
+          'chiffres. Votre code reste actif et vous sera redemandé si la '
           'reconnaissance échoue.',
           textAlign: TextAlign.center,
           style: TextStyle(fontSize: 13, color: AppColors.label, height: 1.4),
@@ -139,7 +140,7 @@ class _ProposalDialog extends StatelessWidget {
                   borderRadius: BorderRadius.circular(14),
                 ),
               ),
-              child: const Text(
+              child: const LibelleBouton(
                 'PLUS TARD',
                 style: TextStyle(fontWeight: FontWeight.w700),
               ),

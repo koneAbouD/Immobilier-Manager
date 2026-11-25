@@ -15,6 +15,7 @@ import '../../domain/entities/bail.dart';
 import '../providers/bail_providers.dart';
 import '../widgets/champs_bail.dart';
 import '../widgets/contrat_bail.dart';
+import '../../../../core/utils/separateur_milliers.dart';
 
 enum _Etape {
   logement('Logement'),
@@ -90,8 +91,8 @@ class _BailFormPageState extends ConsumerState<BailFormPage> {
   void _reprendreConditions(Appartement a) {
     // Un terrain n'a pas de loyer affiché : il se saisit ici, champ vide.
     final aLoyer = a.loyerMensuel > 0;
-    _loyer.text = aLoyer ? a.loyerMensuel.toStringAsFixed(0) : '';
-    _charges.text = a.charges.toStringAsFixed(0);
+    _loyer.text = aLoyer ? saisieMontant(a.loyerMensuel) : '';
+    _charges.text = saisieMontant(a.charges);
   }
 
   /// Dépôt de garantie : mois de caution × loyer mensuel.

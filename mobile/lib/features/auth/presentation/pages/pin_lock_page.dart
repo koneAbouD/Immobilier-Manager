@@ -8,11 +8,12 @@ import '../providers/auth_state.dart';
 import '../providers/unlock_outcome.dart';
 import '../widgets/auth_ui.dart';
 import 'pin_brand.dart';
+import '../../../../core/widgets/libelle_bouton.dart';
 
 /// Écran d'accès à l'application : la session est ouverte, cinq chiffres — ou
 /// un doigt, quand la biométrie est activée — suffisent à la rouvrir.
 ///
-/// La déconnexion (en haut à droite) et « Code TMK oublié ? » mènent toutes
+/// La déconnexion (en haut à droite) et « Code oublié ? » mènent toutes
 /// deux à la page de connexion complète, en purgeant le coffre.
 class PinLockPage extends ConsumerStatefulWidget {
   const PinLockPage({super.key});
@@ -168,7 +169,7 @@ class _PinLockPageState extends ConsumerState<PinLockPage> {
     }
   }
 
-  /// « Code TMK oublié ? » : le seul geste qui abandonne le code. L'utilisateur
+  /// « Code oublié ? » : le seul geste qui abandonne le code. L'utilisateur
   /// se reconnecte puis en choisit un nouveau.
   Future<void> _confirmForget() async {
     final confirme = await showDialog<bool>(
@@ -176,7 +177,7 @@ class _PinLockPageState extends ConsumerState<PinLockPage> {
       builder: (context) => AlertDialog(
         backgroundColor: AppColors.surface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Code TMK oublié ?'),
+        title: const Text('Code oublié ?'),
         content: const Text(
           'Votre code sera effacé de cet appareil. Reconnectez-vous avec votre '
           'téléphone et votre mot de passe, puis choisissez un nouveau code.',
@@ -184,12 +185,12 @@ class _PinLockPageState extends ConsumerState<PinLockPage> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Annuler'),
+            child: const LibelleBouton('Annuler'),
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(true),
             style: TextButton.styleFrom(foregroundColor: AppColors.error),
-            child: const Text('Effacer le code'),
+            child: const LibelleBouton('Effacer le code'),
           ),
         ],
       ),
@@ -211,9 +212,9 @@ class _PinLockPageState extends ConsumerState<PinLockPage> {
         // Sans titre à afficher, le bloc logo + cases descend vers le centre.
         topSpacing: 48,
         prompt: biometrie == null
-            ? 'Veuillez saisir votre code TMK'
+            ? 'Veuillez saisir votre code'
             : 'Utilisez ${biometrie.libelleAvecArticle} '
-                'ou saisissez votre code TMK',
+                'ou saisissez votre code',
         length: PinService.codeLength,
         filled: _code.length,
         errorTick: _errorTick,
@@ -238,8 +239,8 @@ class _PinLockPageState extends ConsumerState<PinLockPage> {
         footer: TextButton(
           onPressed: _busy ? null : _confirmForget,
           style: TextButton.styleFrom(foregroundColor: AppColors.dark),
-          child: const Text(
-            'Code TMK oublié ?',
+          child: const LibelleBouton(
+            'Code oublié ?',
             style: TextStyle(fontWeight: FontWeight.w600),
           ),
         ),
@@ -263,7 +264,7 @@ class _LogoutDialog extends StatelessWidget {
         style: TextStyle(fontSize: 18, color: AppColors.dark),
       ),
       content: Text(
-        'Vous gardez votre code TMK : il vous sera simplement redemandé à la '
+        'Vous gardez votre code : il vous sera simplement redemandé à la '
         'prochaine connexion.',
         textAlign: TextAlign.center,
         style: TextStyle(fontSize: 13, color: AppColors.label, height: 1.4),
@@ -290,7 +291,7 @@ class _LogoutDialog extends StatelessWidget {
                 borderRadius: BorderRadius.circular(12),
               ),
             ),
-            child: const Text(
+            child: const LibelleBouton(
               'NON',
               style: TextStyle(fontWeight: FontWeight.w700),
             ),

@@ -10,6 +10,7 @@ import '../../../immeuble/domain/entities/immeuble.dart';
 import '../../../immeuble/presentation/providers/immeuble_providers.dart';
 import '../../domain/entities/appartement.dart';
 import '../providers/appartement_providers.dart';
+import '../../../../core/utils/insets_systeme.dart';
 
 /// Création d'un local dans un bien, ou modification d'un local.
 class AppartementFormPage extends ConsumerStatefulWidget {
@@ -88,7 +89,7 @@ class _AppartementFormPageState extends ConsumerState<AppartementFormPage> {
       body: Form(
         key: _formKey,
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 4, 16, 32),
+          padding: EdgeInsets.fromLTRB(16, 4, 16, 32 + context.basSysteme),
           children: [
             GroupeChamps(titre: 'Local', icone: Icons.home_work_outlined, children: [
               ChampChoix<TypeLogement>(

@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../app/droits_ecriture.dart';
+import '../app/droits.dart';
+import '../providers/core_providers.dart';
 import '../theme/app_colors.dart';
+import 'dialogs.dart';
 
 /// En-tête standard de toutes les pages.
 ///
@@ -260,37 +263,120 @@ class AppHeaderAction extends StatelessWidget {
   }
 }
 
-/// Actions d'en-tête des pages de détail : corbeille (facultative) puis
-/// « Modifier », côte à côte.
+/// Actions d'en-tête des pages de détail : menu « ⋯ » (suppression), puis
+/// « Modifier ».
+///
+/// Chaque action ne paraît que si le rôle la permet ([Droits]) : « Modifier »
+/// demande [ActionMetier.ecrire], la suppression [droitSuppression]. Le menu
+/// demande au serveur, à l'ouverture, si l'état de la donnée (bail,
+/// historique…) autorise la suppression : sinon il la grise et dit pourquoi,
+/// au lieu d'échouer après confirmation.
 class ActionsDetail extends StatelessWidget {
   final VoidCallback? onModifier;
   final VoidCallback? onSupprimer;
 
+  /// Rôle requis pour supprimer, selon la matrice des droits.
+  final ActionMetier droitSuppression;
+
+  /// Ressource dont le serveur expose `GET <ressource>/suppression`
+  /// (ex. `/immeubles/12`) ; sans elle, la suppression n'est pas pré-vérifiée.
+  final String? ressource;
+
   /// Action supplémentaire placée en tête (ex. appeler un locataire).
   final AppHeaderAction? extra;
 
-  const ActionsDetail({super.key, this.onModifier, this.onSupprimer, this.extra});
+  const ActionsDetail({
+    super.key,
+    this.onModifier,
+    this.onSupprimer,
+    this.droitSuppression = ActionMetier.ecrire,
+    this.ressource,
+    this.extra,
+  });
 
   @override
   Widget build(BuildContext context) {
     // Lecteur ou abonnement en lecture seule : la fiche se consulte seulement.
-    final ecriture = DroitsEcriture.de(context);
-    final onSupprimer = ecriture ? this.onSupprimer : null;
-    final onModifier = ecriture ? this.onModifier : null;
+    final onSupprimer = Droits.peut(context, droitSuppression) ? this.onSupprimer : null;
+    final onModifier = Droits.ecriture(context) ? this.onModifier : null;
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         if (extra != null) ...[extra!, const SizedBox(width: 6)],
         if (onSupprimer != null)
           Tooltip(
-            message: 'Supprimer',
+            message: 'Plus d\'actions',
             child: AppHeaderAction(
-                icon: Icons.delete_outline_rounded, onTap: onSupprimer),
+              icon: Icons.more_horiz_rounded,
+              onTap: () async {
+                final supprimer = await afficherFeuille<bool>(context,
+                    builder: (_) => _FeuilleActions(ressource: ressource));
+                if (supprimer == true) onSupprimer();
+              },
+            ),
           ),
         if (onSupprimer != null && onModifier != null) const SizedBox(width: 6),
         if (onModifier != null)
           AppHeaderAction(label: 'Modifier', onTap: onModifier),
       ],
     );
+  }
+}
+
+/// Feuille du menu « ⋯ » : « Supprimer », grisé avec son motif quand l'état
+/// de la donnée l'interdit. Renvoie `true` pour lancer la suppression.
+class _FeuilleActions extends ConsumerStatefulWidget {
+  final String? ressource;
+
+  const _FeuilleActions({this.ressource});
+
+  @override
+  ConsumerState<_FeuilleActions> createState() => _FeuilleActionsState();
+}
+
+class _FeuilleActionsState extends ConsumerState<_FeuilleActions> {
+  /// Motif du refus, nul si la suppression est possible.
+  String? _blocage;
+  bool _verification = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final ressource = widget.ressource;
+    if (ressource == null) return;
+    _verification = true;
+    ref.read(apiClientProvider).get('$ressource/suppression').then((r) {
+      if (!mounted) return;
+      final etat = r is Map<String, dynamic> ? r : const <String, dynamic>{};
+      setState(() {
+        _verification = false;
+        _blocage = etat['possible'] == false
+            ? etat['motif'] as String? ?? 'Cet élément ne peut pas être supprimé.'
+            : null;
+      });
+    }, onError: (_) {
+      // Vérification impossible (réseau) : on laisse tenter, le serveur
+      // refusera s'il le faut, avec son motif.
+      if (mounted) setState(() => _verification = false);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bloque = _blocage != null;
+    final couleur = bloque ? AppColors.hint : AppColors.error;
+    return Column(mainAxisSize: MainAxisSize.min, children: [
+      ListTile(
+        enabled: !bloque && !_verification,
+        leading: _verification
+            ? const SizedBox(width: 24, height: 24, child: Padding(
+                padding: EdgeInsets.all(3), child: CircularProgressIndicator(strokeWidth: 2)))
+            : Icon(Icons.delete_outline_rounded, color: couleur),
+        title: Text('Supprimer', style: TextStyle(fontWeight: FontWeight.w700, color: couleur)),
+        subtitle: bloque ? Text(_blocage!) : null,
+        onTap: () => Navigator.pop(context, true),
+      ),
+      const SizedBox(height: 8),
+    ]);
   }
 }

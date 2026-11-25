@@ -30,7 +30,7 @@ class PinLayout extends StatelessWidget {
   /// l'application de lui donner l'allure de ses en-têtes.
   final Widget? leading;
 
-  /// Lien de pied de page (« Code TMK oublié ? », « Plus tard »).
+  /// Lien de pied de page (« Code oublié ? », « Plus tard »).
   final Widget? footer;
 
   final int length;

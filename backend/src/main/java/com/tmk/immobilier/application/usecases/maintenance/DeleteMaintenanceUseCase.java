@@ -1,5 +1,9 @@
 package com.tmk.immobilier.application.usecases.maintenance;
 
+import com.tmk.immobilier.application.usecases.journal.JournalActions;
+import com.tmk.immobilier.application.usecases.journal.InstantanesMetier;
+import com.tmk.immobilier.application.domain.journal.Instantane;
+import com.tmk.immobilier.application.domain.journal.TypeEntite;
 import com.tmk.immobilier.application.domain.maintenance.Maintenance;
 import com.tmk.immobilier.application.domain.maintenance.StatutMaintenance;
 import com.tmk.immobilier.application.exception.RegleMetierException;
@@ -16,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class DeleteMaintenanceUseCase {
 
     private final MaintenanceRepository maintenanceRepository;
+    private final JournalActions journal;
 
     @Transactional
     public void execute(Long id) {
@@ -25,6 +30,8 @@ public class DeleteMaintenanceUseCase {
             throw new RegleMetierException("MAINTENANCE_NON_SUPPRIMABLE",
                     "Seule une intervention simplement signalée peut être supprimée ; annulez-la plutôt.");
         }
+        journal.suppression(TypeEntite.TRAVAUX, id, maintenance.getTitre(), InstantanesMetier.lieu(maintenance),
+                InstantanesMetier.de(maintenance));
         maintenanceRepository.deleteById(id);
     }
 }

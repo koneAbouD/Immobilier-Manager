@@ -7,6 +7,7 @@ library;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import '../app/sorties_application.dart';
 
 const MethodChannel _canal = MethodChannel('immo/partage');
 
@@ -33,12 +34,14 @@ Future<IssuePartage> partagerFichier({
 }) async {
   if (!_android) return IssuePartage.indisponible;
   try {
-    final issue = await _canal.invokeMethod<String>('partagerFichier', {
-      'nomFichier': nomFichier,
-      'octets': octets,
-      'mime': mime,
-      'texte': texte,
-    });
+    // Sortie voulue : la feuille de partage ou WhatsApp ne verrouillent pas.
+    final issue = await SortiesApplication.attendue(
+        () => _canal.invokeMethod<String>('partagerFichier', {
+              'nomFichier': nomFichier,
+              'octets': octets,
+              'mime': mime,
+              'texte': texte,
+            }));
     return issue == 'WHATSAPP' ? IssuePartage.whatsapp : IssuePartage.feuilleDePartage;
   } on PlatformException {
     return IssuePartage.indisponible;

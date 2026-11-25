@@ -6,6 +6,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/app_header.dart';
 import '../providers/auth_provider.dart';
 import 'pin_brand.dart';
+import '../../../../core/widgets/libelle_bouton.dart';
 
 enum _Step { current, create, confirm }
 
@@ -144,19 +145,19 @@ class _PinSetupPageState extends ConsumerState<PinSetupPage> {
       builder: (context) => AlertDialog(
         title: const Text('Se déconnecter ?'),
         content: const Text(
-          'Le code TMK est nécessaire pour utiliser l\'application. Sans lui, '
+          'Le code est nécessaire pour utiliser l\'application. Sans lui, '
           'vous devrez vous reconnecter avec votre téléphone et votre mot de '
           'passe.',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Annuler'),
+            child: const LibelleBouton('Annuler'),
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(true),
             style: TextButton.styleFrom(foregroundColor: AppColors.error),
-            child: const Text('Se déconnecter'),
+            child: const LibelleBouton('Se déconnecter'),
           ),
         ],
       ),
@@ -167,9 +168,9 @@ class _PinSetupPageState extends ConsumerState<PinSetupPage> {
   }
 
   String get _title => switch (_step) {
-        _Step.current => 'Code TMK actuel',
+        _Step.current => 'Code actuel',
         _Step.create => widget.requireCurrentCode
-            ? 'Nouveau code TMK'
+            ? 'Nouveau code'
             : (widget.displayName == null
                 ? 'Bienvenue'
                 : 'Bienvenue ${widget.displayName}'),
@@ -180,7 +181,7 @@ class _PinSetupPageState extends ConsumerState<PinSetupPage> {
         _Step.current => 'Saisissez votre code actuel',
         _Step.create => widget.requireCurrentCode
             ? 'Choisissez vos ${PinService.codeLength} nouveaux chiffres'
-            : 'Choisissez un code TMK à ${PinService.codeLength} chiffres\n'
+            : 'Choisissez un code à ${PinService.codeLength} chiffres\n'
                 'pour accéder plus vite à l\'application',
         _Step.confirm => 'Saisissez à nouveau les ${PinService.codeLength} '
             'chiffres',

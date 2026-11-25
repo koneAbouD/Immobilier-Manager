@@ -31,6 +31,24 @@ class SessionOrganisation {
 /// reste nulle et l'application demande le choix.
 final sessionOrganisationProvider = FutureProvider<SessionOrganisation>((ref) async {
   final storage = ref.watch(secureStorageProvider);
+  final client = ref.watch(apiClientProvider);
+  // Action refusée par le serveur : un administrateur a pu changer le rôle
+  // depuis l'ouverture de la session. On relit le profil, et on ne recharge
+  // la session (donc les droits affichés) que si le rôle a vraiment changé.
+  var verification = false;
+  client.onDroitsRefuses = () async {
+    final active = ref.state.valueOrNull?.active;
+    if (verification || active == null) return;
+    verification = true;
+    try {
+      final relu = await ref.read(organisationRepositoryProvider).moi();
+      final role = relu.fold((_) => null, (p) => p.adhesion(active.organisationId)?.role);
+      if (role != null && role != active.role) ref.invalidateSelf();
+    } finally {
+      verification = false;
+    }
+  };
+  ref.onDispose(() => client.onDroitsRefuses = null);
   final result = await ref.watch(organisationRepositoryProvider).moi();
   final profil = result.fold((f) => throw f.message, (p) => p);
 
@@ -50,11 +68,11 @@ final monRoleProvider = Provider<RoleMembre>(
   (ref) => ref.watch(sessionOrganisationProvider).valueOrNull?.role ?? RoleMembre.lecteur,
 );
 
-/// Vrai si l'utilisateur peut créer et modifier des données : gestionnaire ou
-/// plus, dans une organisation dont l'abonnement autorise l'écriture.
-final peutEcrireProvider = Provider<bool>((ref) {
+/// Vrai si l'abonnement de l'organisation active autorise l'écriture ; le rôle
+/// décide ensuite de chaque action (voir `ActionMetier`).
+final ecritureOuverteProvider = Provider<bool>((ref) {
   final active = ref.watch(sessionOrganisationProvider).valueOrNull?.active;
-  return active != null && active.role.peutEcrire && active.acces == AccesOrganisation.complet;
+  return active != null && active.acces == AccesOrganisation.complet;
 });
 
 /// Organisation courante, abonnement compris ; à invalider après modification.

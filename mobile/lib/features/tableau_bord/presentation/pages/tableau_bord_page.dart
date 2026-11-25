@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../../core/error/exception.dart';
 import '../../../../core/network/page_result.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/formatters.dart';
@@ -21,6 +22,8 @@ import '../../../loyer/presentation/widgets/encaissement_sheet.dart';
 import '../../../maintenance/presentation/pages/maintenances_page.dart';
 import '../../domain/entities/tableau_bord.dart';
 import '../providers/tableau_bord_providers.dart';
+import '../../../../core/app/sorties_application.dart';
+import '../../../../core/widgets/libelle_bouton.dart';
 
 /// Sections de l'application, ouvertes en pages depuis l'accueil.
 enum _Section {
@@ -77,7 +80,7 @@ class TableauBordPage extends ConsumerWidget {
 
     return async.when(
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, _) => ErrorView(message: '$e', onRetry: () => _rafraichir(ref)),
+      error: (e, _) => ErrorView(message: messageErreur(e), onRetry: () => _rafraichir(ref)),
       data: (t) => RefreshIndicator(
         onRefresh: () async => _rafraichir(ref),
         child: ListView(
@@ -552,7 +555,7 @@ class _Chargement<T> extends StatelessWidget {
       error: (e, _) => TextButton.icon(
         onPressed: onRetry,
         icon: const Icon(Icons.refresh_rounded, size: 18),
-        label: Text('$e — Réessayer', maxLines: 2, overflow: TextOverflow.ellipsis),
+        label: LibelleBouton('${messageErreur(e)} — Réessayer'),
       ),
     );
   }
@@ -735,7 +738,8 @@ class _CarteRetard extends StatelessWidget {
                     if (telephone != null && telephone.isNotEmpty) ...[
                       IconButton.outlined(
                         tooltip: 'Appeler',
-                        onPressed: () => launchUrl(Uri(scheme: 'tel', path: telephone)),
+                        onPressed: () => SortiesApplication.attendue(
+                            () => launchUrl(Uri(scheme: 'tel', path: telephone))),
                         icon: const Icon(Icons.call_outlined, size: 18),
                         style: IconButton.styleFrom(
                           visualDensity: VisualDensity.compact,
@@ -748,7 +752,7 @@ class _CarteRetard extends StatelessWidget {
                     FilledButton.icon(
                       onPressed: onEncaisser,
                       icon: const Icon(Icons.payments_outlined, size: 16),
-                      label: const Text('Encaisser'),
+                      label: const LibelleBouton('Encaisser'),
                       style: FilledButton.styleFrom(
                         visualDensity: VisualDensity.compact,
                         padding: const EdgeInsets.symmetric(horizontal: 14),

@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../app/droits_ecriture.dart';
+import '../app/droits.dart';
 import '../theme/app_colors.dart';
 import '../utils/formatters.dart';
 import 'date_filter_dialogs.dart';
 import 'premium_select_field.dart';
+import 'libelle_bouton.dart';
+import '../utils/separateur_milliers.dart';
 
 /// Espacement standard entre champs de formulaire.
 const kGapChamps = SizedBox(height: 14);
@@ -108,7 +110,8 @@ class ChampTexte extends StatelessWidget {
   }
 }
 
-/// Champ montant en FCFA (chiffres uniquement).
+/// Champ montant en FCFA (chiffres uniquement), milliers séparés pendant la
+/// saisie (« 1 500 000 »). Valeur initiale : [saisieMontant].
 class ChampMontant extends StatelessWidget {
   final TextEditingController controller;
   final String label;
@@ -131,7 +134,7 @@ class ChampMontant extends StatelessWidget {
       child: TextFormField(
         controller: controller,
         keyboardType: TextInputType.number,
-        inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9 ]'))],
+        inputFormatters: const [SeparateurMilliersFormatter()],
         style: _styleSaisie,
         decoration: decorationPilule(hint: '0', suffixText: 'FCFA'),
         validator: (v) {
@@ -447,7 +450,7 @@ class _ChampRechercheState extends State<ChampRecherche> {
         ),
       ),
     );
-    if (widget.onAjouter == null || !DroitsEcriture.de(context)) return barre;
+    if (widget.onAjouter == null || !Droits.ecriture(context)) return barre;
     return Row(children: [
       Expanded(child: barre),
       const SizedBox(width: 8),
@@ -521,7 +524,7 @@ class BoutonPrincipal extends StatelessWidget {
               Icon(icon, size: 18),
               const SizedBox(width: 8),
             ],
-            Flexible(child: Text(label, overflow: TextOverflow.ellipsis)),
+            Flexible(child: LibelleBouton(label)),
           ]);
     return SizedBox(
       height: 50,
@@ -562,7 +565,7 @@ class BoutonSecondaire extends StatelessWidget {
       child: OutlinedButton.icon(
         onPressed: onPressed,
         icon: icon == null ? const SizedBox.shrink() : Icon(icon, size: 18),
-        label: Text(label),
+        label: LibelleBouton(label),
         style: OutlinedButton.styleFrom(
           foregroundColor: couleur,
           backgroundColor: AppColors.blanc,

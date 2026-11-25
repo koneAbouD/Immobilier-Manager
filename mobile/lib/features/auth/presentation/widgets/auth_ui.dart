@@ -498,6 +498,8 @@ class AuthPrimaryButton extends StatelessWidget {
                           Flexible(
                             child: Text(
                               label,
+                              maxLines: 1,
+                              softWrap: false,
                               overflow: TextOverflow.ellipsis,
                               style: const TextStyle(
                                 color: Colors.white,

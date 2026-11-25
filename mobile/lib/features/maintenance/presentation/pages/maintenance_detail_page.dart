@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fpdart/fpdart.dart';
 
+import '../../../../core/error/exception.dart';
 import '../../../../core/error/failure.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/formatters.dart';
@@ -13,6 +14,8 @@ import '../../../../core/widgets/form_fields.dart';
 import '../../domain/entities/maintenance.dart';
 import '../providers/maintenance_providers.dart';
 import 'maintenance_form_page.dart';
+import '../../../../core/utils/insets_systeme.dart';
+import '../../../../core/utils/separateur_milliers.dart';
 
 class MaintenanceDetailPage extends ConsumerStatefulWidget {
   final int maintenanceId;
@@ -36,7 +39,7 @@ class _MaintenanceDetailPageState extends ConsumerState<MaintenanceDetailPage> {
   }
 
   Future<void> _terminer(Maintenance m) async {
-    final cout = TextEditingController(text: m.coutEstime?.toStringAsFixed(0));
+    final cout = TextEditingController(text: saisieMontant(m.coutEstime));
     final ok = await dialogueSaisie(context,
         titre: 'Terminer l\'intervention',
         contenu: ChampMontant(controller: cout, label: 'Coût réel'),
@@ -79,7 +82,7 @@ class _MaintenanceDetailPageState extends ConsumerState<MaintenanceDetailPage> {
           body: Center(child: CircularProgressIndicator())),
       error: (e, _) => Scaffold(
           appBar: const AppHeader(title: ''),
-          body: ErrorView(message: '$e', onRetry: _rafraichir)),
+          body: ErrorView(message: messageErreur(e), onRetry: _rafraichir)),
       data: (m) => Scaffold(
         appBar: AppHeader(
           title: 'Intervention',
@@ -95,7 +98,7 @@ class _MaintenanceDetailPageState extends ConsumerState<MaintenanceDetailPage> {
           ),
         ),
         body: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 4, 16, 32),
+          padding: EdgeInsets.fromLTRB(16, 4, 16, 32 + context.basSysteme),
           children: [
             DetailHeroCard(
               icon: m.categorie.icone,

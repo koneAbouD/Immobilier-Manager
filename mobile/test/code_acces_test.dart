@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fpdart/fpdart.dart';
+import 'package:immobilier_manager/core/app/sorties_application.dart';
 import 'package:immobilier_manager/core/error/failure.dart';
 import 'package:immobilier_manager/core/storage/secure_storage.dart';
 import 'package:immobilier_manager/features/auth/domain/repositories/auth_repository.dart';
@@ -132,19 +133,81 @@ void main() {
     expect(auth.state, isA<AuthPinSetup>());
   });
 
-  test('absence brève : pas de verrou ; longue : verrou, jetons effacés',
-      () async {
-    final auth = await session();
-    auth.enArrierePlan();
-    await auth.auPremierPlan(DateTime.now().add(const Duration(seconds: 5)));
-    expect(auth.state, isA<AuthAuthenticated>());
+  group('départ en arrière-plan', () {
+    late DateTime maintenant;
 
-    auth.enArrierePlan();
-    await auth.auPremierPlan(DateTime.now().add(AuthNotifier.delaiDeGrace));
-    expect(auth.state, isA<AuthLocked>());
-    expect(await storage.getRefreshToken(), isNull);
-    expect(await storage.getOrganisationId(), 1,
-        reason: 'le déverrouillage rouvre la même organisation');
+    setUp(() {
+      maintenant = DateTime(2026, 11, 25, 10);
+      SortiesApplication.instance
+        ..reinitialiser()
+        ..horloge = () => maintenant;
+    });
+
+    tearDown(() => SortiesApplication.instance.reinitialiser());
+
+    Future<AuthNotifier> ouverte() async =>
+        (await session())..horloge = () => maintenant;
+
+    test('quitter l\'application la verrouille aussitôt, jetons effacés',
+        () async {
+      final auth = await ouverte();
+      await auth.enArrierePlan();
+      expect(auth.state, isA<AuthLocked>());
+      expect(await storage.getRefreshToken(), isNull);
+      expect(await storage.getOrganisationId(), 1,
+          reason: 'le déverrouillage rouvre la même organisation');
+    });
+
+    test('hidden puis paused d\'un même départ : un seul verrouillage',
+        () async {
+      final auth = await ouverte();
+      await auth.enArrierePlan();
+      await auth.enArrierePlan();
+      expect(auth.state, isA<AuthLocked>());
+    });
+
+    test('sortie voulue (photo) : pas de verrou au retour', () async {
+      final auth = await ouverte();
+      await SortiesApplication.attendue(() async {
+        await auth.enArrierePlan();
+        maintenant = maintenant.add(const Duration(minutes: 2));
+      });
+      await auth.auPremierPlan();
+      expect(auth.state, isA<AuthAuthenticated>());
+    });
+
+    test('sortie voulue trop longue : le code est redemandé', () async {
+      final auth = await ouverte();
+      await SortiesApplication.attendue(() async {
+        await auth.enArrierePlan();
+        maintenant = maintenant
+            .add(AuthNotifier.absenceVoulueMax + const Duration(seconds: 1));
+      });
+      await auth.auPremierPlan();
+      expect(auth.state, isA<AuthLocked>());
+    });
+
+    test('lien ouvert (WhatsApp) : départ tardif mais voulu', () async {
+      final auth = await ouverte();
+      // launchUrl rend la main aussitôt ; l'écran commence à céder la place…
+      await SortiesApplication.attendue(() async {});
+      auth.inactive();
+      // … et Android ne signale le départ que bien plus tard.
+      maintenant = maintenant.add(const Duration(seconds: 8));
+      await auth.enArrierePlan();
+      expect(auth.state, isA<AuthAuthenticated>());
+      await auth.auPremierPlan();
+      expect(auth.state, isA<AuthAuthenticated>());
+    });
+
+    test('sortie voulue terminée depuis longtemps : départ ordinaire',
+        () async {
+      final auth = await ouverte();
+      await SortiesApplication.attendue(() async {});
+      maintenant = maintenant.add(const Duration(seconds: 10));
+      await auth.enArrierePlan();
+      expect(auth.state, isA<AuthLocked>());
+    });
   });
 
   test('code faux puis bon : la session est rouverte côté serveur', () async {

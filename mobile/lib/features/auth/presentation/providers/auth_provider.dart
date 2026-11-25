@@ -6,6 +6,7 @@ import 'package:fpdart/fpdart.dart';
 import 'package:tmk_pin/tmk_pin.dart';
 
 import '../../../../core/app/redemarrage.dart';
+import '../../../../core/app/sorties_application.dart';
 import '../../../../core/error/failure.dart';
 import '../../../../core/providers/core_providers.dart';
 import '../../../../core/storage/secure_storage.dart';
@@ -37,7 +38,7 @@ final pinServiceProvider = Provider<PinService>((_) => _pinService);
 final biometricServiceProvider =
     Provider<BiometricService>((_) => BiometricService());
 
-/// Session, code d'accès TMK et déverrouillage biométrique — sur le modèle de
+/// Session, code d'accès et déverrouillage biométrique — sur le modèle de
 /// VTC Manager.
 ///
 /// Le code à 5 chiffres ne remplace pas la connexion : il rouvre une session
@@ -76,17 +77,31 @@ class AuthNotifier extends StateNotifier<AuthState> {
   @visibleForTesting
   static void reinitialiserPourTests() => _sessionOuverte = false;
 
-  /// Absence en deçà de laquelle le retour au premier plan ne verrouille pas :
-  /// prendre une photo de bail, choisir un fichier ou partager une quittance
-  /// fait passer l'application en arrière-plan quelques secondes, sans que
-  /// l'utilisateur l'ait quittée pour autant.
-  static const delaiDeGrace = Duration(seconds: 30);
+  /// Sortie voulue par l'application (photo de bail, fichier, partage d'une
+  /// quittance, WhatsApp, itinéraire, appel — voir [SortiesApplication]) : au-
+  /// delà de cette absence, le retour redemande quand même le code, le
+  /// téléphone a pu être posé et changer de mains. Toute autre sortie
+  /// verrouille aussitôt.
+  static const absenceVoulueMax = Duration(minutes: 10);
 
   /// Au-delà, le déverrouillage rend la main plutôt que de faire patienter
   /// devant un écran figé : l'application s'ouvre en consultation.
   static const _delaiReouverture = Duration(seconds: 8);
 
+  /// Heure du départ pour une sortie voulue, `null` au premier plan.
   DateTime? _depart;
+
+  /// L'écran a commencé à céder la place (inactive) pendant une sortie voulue :
+  /// le départ qui suit est le sien, si tard qu'il arrive. Android ne signale
+  /// le départ (paused) qu'une fois l'autre application affichée — plusieurs
+  /// secondes quand WhatsApp démarre à froid —, le premier signal (inactive)
+  /// arrive aussitôt.
+  bool _departVoulu = false;
+
+  DateTime Function() _maintenant = DateTime.now;
+
+  @visibleForTesting
+  set horloge(DateTime Function() horloge) => _maintenant = horloge;
 
   /// Invite biométrique de l'OS ouverte : elle fait passer l'application
   /// « inactive », voire en arrière-plan ; ce n'est pas un départ.
@@ -255,7 +270,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
-  /// « Code TMK oublié ? » depuis la reprise : la session restant ouverte, on
+  /// « Code oublié ? » depuis la reprise : la session restant ouverte, on
   /// passe au choix d'un nouveau code sans redemander le mot de passe.
   Future<void> restartPinSetup() async {
     final nom = state is AuthPinResume
@@ -286,26 +301,47 @@ class AuthNotifier extends StateNotifier<AuthState> {
   /// dès la frame suivante —, l'effacement suit.
   Future<void> lock({String? message}) async {
     if (state is! AuthAuthenticated) return;
+    _depart = null;
+    _departVoulu = false;
     _pin.lock();
     state = AuthLocked(displayName: _nom, message: message);
     await _storage.clearSessionTokens();
   }
 
-  /// L'application passe en arrière-plan.
-  void enArrierePlan() {
-    if (_inviteSysteme || state is! AuthAuthenticated) return;
-    _depart ??= DateTime.now();
+  /// L'écran cède la place (volet de notifications, centre de contrôle,
+  /// invite système, début d'un départ) : rien à verrouiller, sauf à retenir
+  /// qu'une sortie voulue commence.
+  void inactive() {
+    if (state is AuthAuthenticated && SortiesApplication.instance.voulue) {
+      _departVoulu = true;
+    }
   }
 
-  /// Retour au premier plan : verrouille après une absence d'au moins
-  /// [delaiDeGrace]. [maintenant] pour les tests.
-  Future<void> auPremierPlan([DateTime? maintenant]) async {
+  /// L'application passe en arrière-plan : verrouillage immédiat, avant même
+  /// le retour — l'aperçu du sélecteur d'applications et le retour montrent
+  /// l'écran de code, jamais les données. Seule une sortie voulue y échappe.
+  Future<void> enArrierePlan() async {
+    // Invite biométrique, ou hidden puis paused d'une même sortie : déjà
+    // traité.
+    if (_inviteSysteme || state is! AuthAuthenticated || _depart != null) {
+      return;
+    }
+    final voulue = SortiesApplication.instance.voulue || _departVoulu;
+    _departVoulu = false;
+    if (voulue) {
+      _depart = _maintenant();
+      return;
+    }
+    await lock();
+  }
+
+  /// Retour au premier plan : une sortie voulue trop longue verrouille.
+  Future<void> auPremierPlan() async {
+    _departVoulu = false;
     final depart = _depart;
     _depart = null;
     if (depart == null || state is! AuthAuthenticated) return;
-    if ((maintenant ?? DateTime.now()).difference(depart) >= delaiDeGrace) {
-      await lock();
-    }
+    if (_maintenant().difference(depart) > absenceVoulueMax) await lock();
   }
 
   /// Vérifie le code saisi et, s'il est bon, rouvre la session.
@@ -344,7 +380,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
         if (result == null) {
           return const UnlockBiometricsFailed(
             'Le déverrouillage biométrique a été réinitialisé. '
-            'Saisissez votre code TMK.',
+            'Saisissez votre code.',
           );
         }
         return _traiterDeverrouillage(result);
@@ -476,7 +512,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
         final ok = await _pin.enableBiometrics();
         return ok
             ? null
-            : 'Session verrouillée. Saisissez votre code TMK, puis réessayez.';
+            : 'Session verrouillée. Saisissez votre code, puis réessayez.';
     }
   }
 
@@ -494,7 +530,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     state = const AuthUnauthenticated();
   }
 
-  /// « Code TMK oublié ? » depuis l'écran de code : le code est effacé, retour
+  /// « Code oublié ? » depuis l'écran de code : le code est effacé, retour
   /// à la connexion complète.
   Future<void> forgetPin() async {
     await _pin.reset();

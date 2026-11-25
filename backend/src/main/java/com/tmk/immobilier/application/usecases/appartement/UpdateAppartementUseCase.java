@@ -1,5 +1,9 @@
 package com.tmk.immobilier.application.usecases.appartement;
 
+import com.tmk.immobilier.application.usecases.journal.JournalActions;
+import com.tmk.immobilier.application.usecases.journal.InstantanesMetier;
+import com.tmk.immobilier.application.domain.journal.Instantane;
+import com.tmk.immobilier.application.domain.journal.TypeEntite;
 import com.tmk.immobilier.application.domain.appartement.Appartement;
 import com.tmk.immobilier.application.domain.appartement.TypeLogement;
 import com.tmk.immobilier.application.exception.RegleMetierException;
@@ -21,11 +25,13 @@ import java.math.BigDecimal;
 public class UpdateAppartementUseCase {
 
     private final AppartementRepository appartementRepository;
+    private final JournalActions journal;
 
     @Transactional
     public Appartement execute(Long id, Appartement modifications) {
         Appartement existant = appartementRepository.findById(id)
                 .orElseThrow(() -> ResourceNotFoundException.of("Logement", id));
+        Instantane avant = InstantanesMetier.de(existant);
         String reference = modifications.getReference().trim();
         Long immeubleId = existant.getImmeuble().getId();
         if (appartementRepository.existsByImmeubleIdAndReferenceIgnoreCaseAndIdNot(immeubleId, reference, id)) {
@@ -44,6 +50,9 @@ public class UpdateAppartementUseCase {
         if (modifications.getCharges() != null) existant.setCharges(modifications.getCharges());
         existant.setDescription(modifications.getDescription());
         existant.changerStatutManuellement(modifications.getStatut());
-        return appartementRepository.save(existant);
+        Appartement enregistre = appartementRepository.save(existant);
+        journal.modification(TypeEntite.LOCAL, id, existant.getReference(), InstantanesMetier.contexte(existant),
+                avant, InstantanesMetier.de(existant));
+        return enregistre;
     }
 }

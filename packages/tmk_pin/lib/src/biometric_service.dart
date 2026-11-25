@@ -237,7 +237,7 @@ class BiometricService {
       );
     } on PlatformException {
       return const BiometricUnavailable(
-        'Le déverrouillage biométrique a échoué. Saisissez votre code TMK.',
+        'Le déverrouillage biométrique a échoué. Saisissez votre code.',
       );
     }
   }
@@ -256,12 +256,12 @@ class BiometricService {
         LocalAuthExceptionCode.noBiometricsEnrolled =>
           const BiometricUnavailable(
             'Aucune donnée biométrique n\'est enregistrée sur cet appareil. '
-            'Saisissez votre code TMK.',
+            'Saisissez votre code.',
             definitif: true,
           ),
         LocalAuthExceptionCode.noCredentialsSet => const BiometricUnavailable(
             'Aucun verrouillage n\'est configuré sur cet appareil. '
-            'Saisissez votre code TMK.',
+            'Saisissez votre code.',
             definitif: true,
           ),
         LocalAuthExceptionCode.noBiometricHardware => const BiometricUnavailable(
@@ -274,21 +274,21 @@ class BiometricService {
         LocalAuthExceptionCode.biometricHardwareTemporarilyUnavailable =>
           const BiometricUnavailable(
             'Le capteur biométrique est momentanément indisponible. '
-            'Saisissez votre code TMK.',
+            'Saisissez votre code.',
           ),
         LocalAuthExceptionCode.temporaryLockout => const BiometricUnavailable(
-            'Trop de tentatives biométriques. Saisissez votre code TMK.',
+            'Trop de tentatives biométriques. Saisissez votre code.',
           ),
         LocalAuthExceptionCode.biometricLockout => const BiometricUnavailable(
             'La biométrie est bloquée jusqu\'au prochain déverrouillage de '
-            'votre téléphone. Saisissez votre code TMK.',
+            'votre téléphone. Saisissez votre code.',
           ),
 
         LocalAuthExceptionCode.uiUnavailable ||
         LocalAuthExceptionCode.deviceError ||
         LocalAuthExceptionCode.unknownError =>
           const BiometricUnavailable(
-            'Le déverrouillage biométrique a échoué. Saisissez votre code TMK.',
+            'Le déverrouillage biométrique a échoué. Saisissez votre code.',
           ),
       };
 

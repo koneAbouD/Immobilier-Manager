@@ -26,9 +26,18 @@ class AuthFailure extends Failure {
   const AuthFailure([super.message = 'Authentification échouée.']);
 }
 
-/// Données invalides (400)
+/// Données invalides (400), valeur refusée (422) ou fichier trop lourd (413).
 class ValidationFailure extends Failure {
-  const ValidationFailure(super.message);
+  /// Code renvoyé par le backend (ex. `VALIDATION_FAILED`, `FILE_TOO_LARGE`).
+  final String? code;
+  const ValidationFailure(super.message, {this.code});
+}
+
+/// Droits insuffisants (403) : rôle trop faible ou accès à l'organisation
+/// retiré. Distinct d'[AuthFailure] : la session reste valable.
+class AccesRefuseFailure extends Failure {
+  final String? code;
+  const AccesRefuseFailure(super.message, {this.code});
 }
 
 /// Refus par une règle de gestion ou conflit de données (409).

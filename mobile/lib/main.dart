@@ -7,7 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:tmk_pin/tmk_pin.dart';
 
-import 'core/app/droits_ecriture.dart';
+import 'core/app/droits.dart';
 import 'core/app/redemarrage.dart';
 import 'core/network/etat_reseau.dart';
 import 'core/network/prechargement.dart';
@@ -33,6 +33,10 @@ import 'screens/home_screen.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initializeDateFormatting('fr_FR', null);
+  // Affichage bord à bord sur toutes les versions d'Android (imposé à partir
+  // d'Android 15) : le contenu passe sous les barres système, chaque page
+  // gère elle-même la marge de la barre de navigation.
+  await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
   // L'apparence choisie est lue avant le premier frame : l'application s'ouvre
   // directement dans la bonne couleur, sans flash de l'apparence par défaut.
   final apparence = await ThemeSettings.charger(const SecureStorage());
@@ -136,9 +140,10 @@ class _ImmobilierManagerAppState extends ConsumerState<ImmobilierManagerApp>
     switch (etat) {
       case AppLifecycleState.hidden:
       case AppLifecycleState.paused:
-        auth.enArrierePlan();
+        // Départ : verrouillage immédiat, sauf sortie voulue (comme VTC).
+        unawaited(auth.enArrierePlan());
       case AppLifecycleState.resumed:
-        // Retour au premier plan : verrou si l'absence a duré, sinon
+        // Retour d'une sortie voulue : verrou si elle a trop duré, sinon
         // renouvellement forcé de la session (comme VTC Manager).
         unawaited(auth.auPremierPlan().then((_) {
           if (mounted && ref.read(authNotifierProvider) is AuthAuthenticated) {
@@ -147,7 +152,9 @@ class _ImmobilierManagerAppState extends ConsumerState<ImmobilierManagerApp>
         }));
       // `inactive` n'est pas un départ : la fenêtre Face ID, un appel entrant
       // ou le centre de contrôle le déclenchent sans quitter l'application.
+      // Pendant une sortie voulue, c'est en revanche le début du départ.
       case AppLifecycleState.inactive:
+        auth.inactive();
       case AppLifecycleState.detached:
         break;
     }
@@ -224,14 +231,30 @@ class _ImmobilierManagerAppState extends ConsumerState<ImmobilierManagerApp>
         // transition mêlerait l'ancien et le nouveau jeu pendant 200 ms.
         themeAnimationDuration: Duration.zero,
         builder: (context, child) => AnnotatedRegion<SystemUiOverlayStyle>(
+          // Bord à bord : barres d'état et de navigation transparentes, icônes
+          // accordées à l'apparence. Les pages réservent la hauteur de la
+          // barre de navigation (voir `InsetsSysteme`).
           value: (AppColors.estSombre
                   ? SystemUiOverlayStyle.light
                   : SystemUiOverlayStyle.dark)
-              .copyWith(statusBarColor: Colors.transparent),
+              .copyWith(
+            statusBarColor: Colors.transparent,
+            systemNavigationBarColor: Colors.transparent,
+            systemNavigationBarDividerColor: Colors.transparent,
+            systemNavigationBarIconBrightness:
+                AppColors.estSombre ? Brightness.light : Brightness.dark,
+            // Sans quoi Android voile la barre à trois boutons d'un fond
+            // translucide.
+            systemNavigationBarContrastEnforced: false,
+          ),
           // Au-dessus du navigateur : toutes les pages voient les droits.
-          child: DroitsEcriture(
-            peutEcrire: authState is AuthAuthenticated
-                ? ref.watch(peutEcrireProvider)
+          // Hors session (écrans d'authentification), rien n'est restreint.
+          child: Droits(
+            role: authState is AuthAuthenticated
+                ? ref.watch(monRoleProvider)
+                : RoleMembre.proprietaire,
+            ecritureOuverte: authState is AuthAuthenticated
+                ? ref.watch(ecritureOuverteProvider)
                 : true,
             // Serveur hors d'atteinte : un bandeau dit pourquoi (accès
             // coupé, internet absent, serveur en panne) et quoi faire.

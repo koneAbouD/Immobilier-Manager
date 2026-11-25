@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fpdart/fpdart.dart' hide State;
 
+import '../../../../core/error/exception.dart';
 import '../../../../core/error/failure.dart';
 
 import '../../../../core/theme/app_colors.dart';
@@ -14,6 +15,7 @@ import '../../../../core/widgets/form_fields.dart';
 import '../../domain/entities/organisation.dart';
 import '../providers/organisation_providers.dart';
 import '../widgets/carte_organisation.dart';
+import '../../../../core/utils/insets_systeme.dart';
 
 /// Équipe de l'organisation : collaborateurs, rôles et accès. Réservé aux
 /// administrateurs (le backend applique les mêmes règles).
@@ -71,11 +73,11 @@ class EquipePage extends ConsumerWidget {
       ),
       body: membres.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => ErrorView(message: '$e', onRetry: () => ref.invalidate(membresProvider)),
+        error: (e, _) => ErrorView(message: messageErreur(e), onRetry: () => ref.invalidate(membresProvider)),
         data: (liste) => RefreshIndicator(
           onRefresh: () async => ref.invalidate(membresProvider),
           child: ListView(
-            padding: const EdgeInsets.fromLTRB(16, 4, 16, 32),
+            padding: EdgeInsets.fromLTRB(16, 4, 16, 32 + context.basSysteme),
             children: [
               if (organisation != null)
                 Padding(

@@ -8,6 +8,7 @@ import '../../../../core/widgets/app_header.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../providers/organisation_providers.dart';
 import '../widgets/carte_organisation.dart';
+import '../../../../core/utils/insets_systeme.dart';
 
 /// Choix de l'organisation de travail. Au démarrage (plusieurs organisations,
 /// aucun choix mémorisé) l'écran est imposé ; depuis les réglages il permet de
@@ -40,7 +41,7 @@ class ChoixOrganisationPage extends ConsumerWidget {
               ),
       ),
       body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+        padding: EdgeInsets.fromLTRB(16, 8, 16, 32 + context.basSysteme),
         children: [
           Text(
             depuisReglages

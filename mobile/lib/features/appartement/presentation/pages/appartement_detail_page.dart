@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/app/droits.dart';
+import '../../../../core/error/exception.dart';
 import '../../../../core/widgets/app_header.dart';
 import '../../../../core/widgets/detail_carte.dart';
 import '../../../../core/widgets/dialogs.dart';
@@ -12,6 +14,7 @@ import '../../../maintenance/presentation/pages/maintenance_form_page.dart';
 import '../../domain/entities/appartement.dart';
 import '../providers/appartement_providers.dart';
 import 'appartement_form_page.dart';
+import '../../../../core/utils/insets_systeme.dart';
 
 class AppartementDetailPage extends ConsumerStatefulWidget {
   final int appartementId;
@@ -59,7 +62,7 @@ class _AppartementDetailPageState extends ConsumerState<AppartementDetailPage> {
           body: Center(child: CircularProgressIndicator())),
       error: (e, _) => Scaffold(
           appBar: const AppHeader(title: ''),
-          body: ErrorView(message: '$e', onRetry: _rafraichir)),
+          body: ErrorView(message: messageErreur(e), onRetry: _rafraichir)),
       data: (a) => Scaffold(
         appBar: AppHeader(
           title: 'Local',
@@ -67,12 +70,14 @@ class _AppartementDetailPageState extends ConsumerState<AppartementDetailPage> {
             onModifier: () =>
                 _ouvrir(AppartementFormPage(immeubleId: a.immeubleId, appartement: a)),
             onSupprimer: () => _supprimer(a),
+            droitSuppression: ActionMetier.supprimerLocal,
+            ressource: '/appartements/${a.id}',
           ),
         ),
         body: RefreshIndicator(
           onRefresh: () async => _rafraichir(),
           child: ListView(
-            padding: const EdgeInsets.fromLTRB(16, 4, 16, 32),
+            padding: EdgeInsets.fromLTRB(16, 4, 16, 32 + context.basSysteme),
             children: [
               DetailHeroCard(
                 icon: Icons.door_front_door_outlined,

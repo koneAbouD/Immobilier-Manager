@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../pagination/paged_list_notifier.dart';
 import 'feedback.dart';
+import '../utils/insets_systeme.dart';
 
 /// Liste paginée à scroll infini, avec pull-to-refresh, état vide et erreur.
 ///
@@ -20,6 +21,11 @@ class PagedListView<T> extends StatefulWidget {
   final String? emptyActionLabel;
   final VoidCallback? onEmptyAction;
 
+  /// En-tête de groupe placé au-dessus d'un élément (ex. « Aujourd'hui ») :
+  /// reçoit l'élément précédent (nul pour le premier) et renvoie nul quand
+  /// l'élément reste dans le groupe du précédent.
+  final Widget? Function(T? precedent, T courant)? enTete;
+
   const PagedListView({
     super.key,
     required this.fetcher,
@@ -30,6 +36,7 @@ class PagedListView<T> extends StatefulWidget {
     this.padding = const EdgeInsets.fromLTRB(16, 6, 16, 32),
     this.emptyActionLabel,
     this.onEmptyAction,
+    this.enTete,
   });
 
   @override
@@ -98,12 +105,20 @@ class PagedListViewState<T> extends State<PagedListView<T>> {
           : ListView.separated(
               controller: _scroll,
               physics: const AlwaysScrollableScrollPhysics(),
-              padding: widget.padding,
+              padding: widget.padding.resolve(Directionality.of(context)) +
+                  EdgeInsets.only(bottom: context.basSysteme),
               itemCount: s.items.length + (s.loadingMore ? 1 : 0),
               separatorBuilder: (_, _) => const SizedBox(height: 8),
-              itemBuilder: (context, i) => i >= s.items.length
-                  ? const PagedListLoadMoreTile()
-                  : widget.itemBuilder(context, s.items[i]),
+              itemBuilder: (context, i) {
+                if (i >= s.items.length) return const PagedListLoadMoreTile();
+                final element = widget.itemBuilder(context, s.items[i]);
+                final entete = widget.enTete?.call(i == 0 ? null : s.items[i - 1], s.items[i]);
+                if (entete == null) return element;
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [entete, element],
+                );
+              },
             ),
     );
   }

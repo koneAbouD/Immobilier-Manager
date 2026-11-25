@@ -3,6 +3,7 @@ package com.tmk.immobilier.interfaces.rest.locataire;
 import com.tmk.immobilier.application.domain.locataire.SituationLocataire;
 import com.tmk.immobilier.application.usecases.locataire.*;
 import com.tmk.immobilier.interfaces.rest.common.PageResponse;
+import com.tmk.immobilier.interfaces.rest.common.SuppressionResponse;
 import com.tmk.immobilier.interfaces.rest.locataire.dto.request.LocataireRequest;
 import com.tmk.immobilier.interfaces.rest.locataire.dto.response.ComptesSituationsResponse;
 import com.tmk.immobilier.interfaces.rest.locataire.dto.response.LocataireResponse;
@@ -79,6 +80,12 @@ public class LocataireController {
     @PutMapping("/{id}")
     public LocataireResponse update(@PathVariable Long id, @Valid @RequestBody LocataireRequest request) {
         return mapper.toResponse(updateLocataireUseCase.execute(id, mapper.toDomain(request)));
+    }
+
+    @GetMapping("/{id}/suppression")
+    @Operation(summary = "Peut-on supprimer le locataire ?", description = "Selon son état (baux, historique), pas selon le rôle")
+    public SuppressionResponse suppression(@PathVariable Long id) {
+        return SuppressionResponse.depuis(deleteLocataireUseCase.blocage(id));
     }
 
     @DeleteMapping("/{id}")

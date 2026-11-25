@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart';
 
+import '../../../../core/error/exception.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/app_header.dart';
 import '../../../../core/widgets/carte_position.dart';
@@ -9,6 +10,7 @@ import '../../../../core/widgets/feedback.dart';
 import '../../../../core/widgets/form_fields.dart';
 import '../../domain/entities/immeuble.dart';
 import '../providers/immeuble_providers.dart';
+import '../../../../core/utils/insets_systeme.dart';
 
 /// Création (bien nul) ou modification d'un bien : immeuble, cour basse ou
 /// terrain, avec sa position GPS.
@@ -54,7 +56,7 @@ class _ImmeubleFormPageState extends ConsumerState<ImmeubleFormPage> {
       final p = await positionActuelle();
       if (mounted) setState(() => _position = p);
     } catch (e) {
-      if (mounted) showError(context, '$e');
+      if (mounted) showError(context, messageErreur(e));
     } finally {
       if (mounted) setState(() => _localisation = false);
     }
@@ -99,7 +101,7 @@ class _ImmeubleFormPageState extends ConsumerState<ImmeubleFormPage> {
       body: Form(
         key: _formKey,
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 4, 16, 32),
+          padding: EdgeInsets.fromLTRB(16, 4, 16, 32 + context.basSysteme),
           children: [
             GroupeChamps(titre: 'Bien', icone: _type?.icone ?? Icons.apartment_rounded, children: [
               ChampChoix<TypeBien>(

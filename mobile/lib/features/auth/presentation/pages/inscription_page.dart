@@ -62,7 +62,7 @@ class _InscriptionPageState extends ConsumerState<InscriptionPage> {
           telephone: _telephone.text,
           motDePasse: _motDePasse.text,
         );
-    // En cas de succès, la session est ouverte et le choix du code TMK prend
+    // En cas de succès, la session est ouverte et le choix du code prend
     // la place de cette page.
     if (!mounted || erreur == null) return;
     setState(() {
@@ -207,7 +207,10 @@ class _InscriptionPageState extends ConsumerState<InscriptionPage> {
                                 style: TextStyle(color: kAuthPrimary, fontWeight: FontWeight.w700),
                               ),
                             ],
-                          )),
+                          ),
+                              maxLines: 1,
+                              softWrap: false,
+                              overflow: TextOverflow.ellipsis),
                         ),
                       ],
                     ),

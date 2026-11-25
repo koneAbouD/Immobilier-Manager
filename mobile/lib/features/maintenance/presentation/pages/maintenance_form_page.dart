@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/error/exception.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/app_header.dart';
@@ -13,6 +14,8 @@ import '../../../immeuble/domain/entities/immeuble.dart';
 import '../../../immeuble/presentation/providers/immeuble_providers.dart';
 import '../../domain/entities/maintenance.dart';
 import '../providers/maintenance_providers.dart';
+import '../../../../core/utils/insets_systeme.dart';
+import '../../../../core/utils/separateur_milliers.dart';
 
 /// Signalement d'une intervention, ou modification d'une intervention ouverte.
 class MaintenanceFormPage extends ConsumerStatefulWidget {
@@ -37,7 +40,7 @@ class _MaintenanceFormPageState extends ConsumerState<MaintenanceFormPage> {
   late final _titre = TextEditingController(text: m?.titre);
   late final _description = TextEditingController(text: m?.description);
   late final _prestataire = TextEditingController(text: m?.prestataire);
-  late final _cout = TextEditingController(text: m?.coutEstime?.toStringAsFixed(0));
+  late final _cout = TextEditingController(text: saisieMontant(m?.coutEstime));
   late int? _immeubleId = m?.immeubleId ?? widget.immeubleIdInitial;
   late int? _appartementId = m?.appartementId ?? widget.appartementInitial?.id;
   late String? _appartementLibelle = m?.appartementReference ?? widget.appartementInitial?.reference;
@@ -105,12 +108,12 @@ class _MaintenanceFormPageState extends ConsumerState<MaintenanceFormPage> {
       body: Form(
         key: _formKey,
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 4, 16, 32),
+          padding: EdgeInsets.fromLTRB(16, 4, 16, 32 + context.basSysteme),
           children: [
             GroupeChamps(titre: 'Localisation', icone: Icons.place_outlined, children: [
               immeubles.when(
                 loading: () => const LinearProgressIndicator(),
-                error: (e, _) => Text('$e', style: TextStyle(color: AppColors.error)),
+                error: (e, _) => Text(messageErreur(e), style: TextStyle(color: AppColors.error)),
                 data: (liste) => ChampChoix<int>(
                   label: 'Bien',
                   valeur: _immeubleId,

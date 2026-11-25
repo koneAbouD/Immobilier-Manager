@@ -11,10 +11,12 @@ import '../theme/app_colors.dart';
 import 'app_header.dart';
 import 'feedback.dart';
 import 'form_fields.dart';
-
+import '../app/sorties_application.dart';
+import '../utils/insets_systeme.dart';
 
 /// Envoie le PDF assemblé ; renvoie un message d'erreur, ou null si c'est bon.
-typedef EnvoiDocument = Future<String?> Function(Uint8List pdf, String nomFichier);
+typedef EnvoiDocument =
+    Future<String?> Function(Uint8List pdf, String nomFichier);
 
 /// Numérise un document papier (contrat signé, pièce d'identité…) : une photo
 /// par page, réunies en un seul PDF, ou un PDF déjà numérisé. Le PDF est
@@ -60,23 +62,40 @@ class _CaptureDocumentPageState extends State<CaptureDocumentPage> {
   bool _envoi = false;
 
   Future<void> _photographier() async {
-    final photo = await _picker.pickImage(
-        source: ImageSource.camera, imageQuality: 70, maxWidth: 2000, maxHeight: 2000);
+    final photo = await SortiesApplication.attendue(
+      () => _picker.pickImage(
+        source: ImageSource.camera,
+        imageQuality: 70,
+        maxWidth: 2000,
+        maxHeight: 2000,
+      ),
+    );
     if (photo == null) return;
     final octets = await photo.readAsBytes();
     setState(() => _pages.add(octets));
   }
 
   Future<void> _choisirPhotos() async {
-    final photos = await _picker.pickMultiImage(imageQuality: 70, maxWidth: 2000, maxHeight: 2000);
+    final photos = await SortiesApplication.attendue(
+      () => _picker.pickMultiImage(
+        imageQuality: 70,
+        maxWidth: 2000,
+        maxHeight: 2000,
+      ),
+    );
     if (photos.isEmpty) return;
     final octets = await Future.wait(photos.map((p) => p.readAsBytes()));
     setState(() => _pages.addAll(octets));
   }
 
   Future<void> _choisirPdf() async {
-    final resultat = await FilePicker.pickFiles(
-        type: FileType.custom, allowedExtensions: const ['pdf'], withData: true);
+    final resultat = await SortiesApplication.attendue(
+      () => FilePicker.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: const ['pdf'],
+        withData: true,
+      ),
+    );
     final fichier = resultat?.files.single;
     if (fichier?.bytes == null) return;
     await _envoyer(fichier!.bytes!, fichier.name);
@@ -87,11 +106,14 @@ class _CaptureDocumentPageState extends State<CaptureDocumentPage> {
     final doc = pw.Document(title: widget.titre);
     for (final page in _pages) {
       final image = pw.MemoryImage(page);
-      doc.addPage(pw.Page(
-        pageFormat: PdfPageFormat.a4,
-        margin: const pw.EdgeInsets.all(12),
-        build: (_) => pw.Center(child: pw.Image(image, fit: pw.BoxFit.contain)),
-      ));
+      doc.addPage(
+        pw.Page(
+          pageFormat: PdfPageFormat.a4,
+          margin: const pw.EdgeInsets.all(12),
+          build: (_) =>
+              pw.Center(child: pw.Image(image, fit: pw.BoxFit.contain)),
+        ),
+      );
     }
     return doc.save();
   }
@@ -120,10 +142,13 @@ class _CaptureDocumentPageState extends State<CaptureDocumentPage> {
     return Scaffold(
       appBar: AppHeader(title: widget.titre),
       body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 4, 16, 32),
+        padding: EdgeInsets.fromLTRB(16, 4, 16, 32 + context.basSysteme),
         children: [
           if (widget.sousTitre != null) ...[
-            Text(widget.sousTitre!, style: TextStyle(fontSize: 13, color: AppColors.label)),
+            Text(
+              widget.sousTitre!,
+              style: TextStyle(fontSize: 13, color: AppColors.label),
+            ),
             const SizedBox(height: 14),
           ],
           if (_pages.isEmpty) ...[
@@ -152,8 +177,14 @@ class _CaptureDocumentPageState extends State<CaptureDocumentPage> {
               const Center(child: CircularProgressIndicator()),
             ],
           ] else ...[
-            Text('${_pages.length} page(s)',
-                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: AppColors.dark)),
+            Text(
+              '${_pages.length} page(s)',
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w800,
+                color: AppColors.dark,
+              ),
+            ),
             const SizedBox(height: 10),
             GridView.count(
               crossAxisCount: 3,
@@ -164,59 +195,81 @@ class _CaptureDocumentPageState extends State<CaptureDocumentPage> {
               childAspectRatio: 0.72,
               children: [
                 for (final (i, page) in _pages.indexed)
-                  Stack(children: [
-                    Positioned.fill(
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(10),
-                        child: Image.memory(page, fit: BoxFit.cover),
+                  Stack(
+                    children: [
+                      Positioned.fill(
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(10),
+                          child: Image.memory(page, fit: BoxFit.cover),
+                        ),
                       ),
-                    ),
-                    Positioned(
-                      left: 6,
-                      bottom: 6,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                        decoration: BoxDecoration(
+                      Positioned(
+                        left: 6,
+                        bottom: 6,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 7,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
                             color: Colors.black.withValues(alpha: 0.6),
-                            borderRadius: BorderRadius.circular(10)),
-                        child: Text('${i + 1}',
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Text(
+                            '${i + 1}',
                             style: const TextStyle(
-                                color: Colors.white, fontSize: 11, fontWeight: FontWeight.w700)),
+                              color: Colors.white,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
                       ),
-                    ),
-                    Positioned(
-                      right: 2,
-                      top: 2,
-                      child: IconButton.filled(
-                        tooltip: 'Retirer la page',
-                        visualDensity: VisualDensity.compact,
-                        iconSize: 16,
-                        style: IconButton.styleFrom(backgroundColor: Colors.black.withValues(alpha: 0.6)),
-                        onPressed: _envoi ? null : () => setState(() => _pages.removeAt(i)),
-                        icon: const Icon(Icons.close_rounded, color: Colors.white),
+                      Positioned(
+                        right: 2,
+                        top: 2,
+                        child: IconButton.filled(
+                          tooltip: 'Retirer la page',
+                          visualDensity: VisualDensity.compact,
+                          iconSize: 16,
+                          style: IconButton.styleFrom(
+                            backgroundColor: Colors.black.withValues(
+                              alpha: 0.6,
+                            ),
+                          ),
+                          onPressed: _envoi
+                              ? null
+                              : () => setState(() => _pages.removeAt(i)),
+                          icon: const Icon(
+                            Icons.close_rounded,
+                            color: Colors.white,
+                          ),
+                        ),
                       ),
-                    ),
-                  ]),
+                    ],
+                  ),
               ],
             ),
             const SizedBox(height: 14),
-            Row(children: [
-              Expanded(
-                child: BoutonSecondaire(
-                  label: 'Photo',
-                  icon: Icons.add_a_photo_outlined,
-                  onPressed: _envoi ? null : _photographier,
+            Row(
+              children: [
+                Expanded(
+                  child: BoutonSecondaire(
+                    label: 'Photo',
+                    icon: Icons.add_a_photo_outlined,
+                    onPressed: _envoi ? null : _photographier,
+                  ),
                 ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: BoutonSecondaire(
-                  label: 'Galerie',
-                  icon: Icons.add_photo_alternate_outlined,
-                  onPressed: _envoi ? null : _choisirPhotos,
+                const SizedBox(width: 10),
+                Expanded(
+                  child: BoutonSecondaire(
+                    label: 'Galerie',
+                    icon: Icons.add_photo_alternate_outlined,
+                    onPressed: _envoi ? null : _choisirPhotos,
+                  ),
                 ),
-              ),
-            ]),
+              ],
+            ),
             const SizedBox(height: 16),
             BoutonPrincipal(
               label: widget.libelleEnvoi,
@@ -237,7 +290,12 @@ class _GrandeAction extends StatelessWidget {
   final String detail;
   final VoidCallback? onTap;
 
-  const _GrandeAction({required this.icone, required this.titre, required this.detail, this.onTap});
+  const _GrandeAction({
+    required this.icone,
+    required this.titre,
+    required this.detail,
+    this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -253,24 +311,41 @@ class _GrandeAction extends StatelessWidget {
             borderRadius: BorderRadius.circular(16),
             border: Border.all(color: AppColors.border),
           ),
-          child: Row(children: [
-            Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(color: AppColors.primaryTint, shape: BoxShape.circle),
-              child: Icon(icone, color: AppColors.primaryDark),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(titre,
-                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.dark)),
-                const SizedBox(height: 2),
-                Text(detail, style: TextStyle(fontSize: 12, color: AppColors.label)),
-              ]),
-            ),
-            Icon(Icons.chevron_right_rounded, color: AppColors.grey400),
-          ]),
+          child: Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: AppColors.primaryTint,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(icone, color: AppColors.primaryDark),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      titre,
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.dark,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      detail,
+                      style: TextStyle(fontSize: 12, color: AppColors.label),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(Icons.chevron_right_rounded, color: AppColors.grey400),
+            ],
+          ),
         ),
       ),
     );
@@ -285,21 +360,52 @@ class ApercuPdfPage extends StatelessWidget {
   final String nomFichier;
   final Uint8List pdf;
 
-  const ApercuPdfPage({super.key, required this.titre, required this.nomFichier, required this.pdf});
+  const ApercuPdfPage({
+    super.key,
+    required this.titre,
+    required this.nomFichier,
+    required this.pdf,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppHeader(title: titre),
-      body: PdfPreview(
-        build: (_) async => pdf,
-        pdfFileName: nomFichier,
-        canChangeOrientation: false,
-        canChangePageFormat: false,
-        canDebug: false,
-        allowSharing: true,
-        allowPrinting: true,
-        loadingWidget: const Center(child: CircularProgressIndicator()),
+      body: SafeArea(
+        top: false,
+        child: PdfPreview(
+          build: (_) async => pdf,
+          pdfFileName: nomFichier,
+          canChangeOrientation: false,
+          canChangePageFormat: false,
+          canDebug: false,
+          // Impression et partage passent par des actions maison : sorties
+          // voulues, elles ne verrouillent pas l'application.
+          allowSharing: false,
+          allowPrinting: false,
+          actions: [
+            PdfPreviewAction(
+              icon: const Icon(Icons.print_outlined),
+              onPressed: (_, build, format) => SortiesApplication.attendue(
+                () => Printing.layoutPdf(
+                  onLayout: build,
+                  name: nomFichier,
+                  format: format,
+                ),
+              ),
+            ),
+            PdfPreviewAction(
+              icon: const Icon(Icons.share_outlined),
+              onPressed: (_, build, format) => SortiesApplication.attendue(
+                () async => Printing.sharePdf(
+                  bytes: await build(format),
+                  filename: nomFichier,
+                ),
+              ),
+            ),
+          ],
+          loadingWidget: const Center(child: CircularProgressIndicator()),
+        ),
       ),
     );
   }

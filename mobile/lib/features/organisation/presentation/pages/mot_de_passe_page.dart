@@ -6,6 +6,7 @@ import '../../../../core/widgets/app_header.dart';
 import '../../../../core/widgets/feedback.dart';
 import '../../../../core/widgets/form_fields.dart';
 import '../providers/organisation_providers.dart';
+import '../../../../core/utils/insets_systeme.dart';
 
 /// Changement de mot de passe, sur présentation de l'actuel.
 class MotDePassePage extends ConsumerStatefulWidget {
@@ -70,7 +71,7 @@ class _MotDePassePageState extends ConsumerState<MotDePassePage> {
       body: Form(
         key: _formKey,
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 4, 16, 32),
+          padding: EdgeInsets.fromLTRB(16, 4, 16, 32 + context.basSysteme),
           children: [
             GroupeChamps(titre: 'Changer de mot de passe', icone: Icons.lock_reset_rounded, children: [
               _champ(_actuel, 'Mot de passe actuel', (v) => v == null || v.isEmpty ? 'Champ obligatoire.' : null),

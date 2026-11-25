@@ -26,12 +26,38 @@ enum RoleMembre {
   bool get peutEcrire => inclut(RoleMembre.gestionnaire);
   bool get estAdmin => inclut(RoleMembre.admin);
 
+  /// Vrai si ce rôle autorise [action] (hors état de l'abonnement).
+  bool peut(ActionMetier action) => inclut(action.roleMinimal);
+
   Color get couleur => switch (this) {
         RoleMembre.proprietaire => AppColors.ambre,
         RoleMembre.admin => AppColors.primary,
         RoleMembre.gestionnaire => AppColors.info,
         RoleMembre.lecteur => AppColors.label,
       };
+}
+
+/// Matrice des actions sur les données métier : le rôle minimal de chacune.
+/// Miroir des règles de `SecurityConfig` côté backend, qui fait foi (et que
+/// `MatriceDroitsTest` fige) : toute modification se fait des deux côtés.
+enum ActionMetier {
+  /// Créer et modifier biens, locaux, locataires, baux, loyers, travaux.
+  ecrire(RoleMembre.gestionnaire),
+
+  /// Supprimer un locataire saisi par erreur (jamais loué).
+  supprimerLocataire(RoleMembre.gestionnaire),
+
+  /// Supprimer un local : touche au patrimoine, ne s'annule pas.
+  supprimerLocal(RoleMembre.admin),
+
+  /// Supprimer un bien, avec ses photos.
+  supprimerBien(RoleMembre.admin),
+
+  /// Consulter le journal des modifications et suppressions (supervision).
+  consulterJournal(RoleMembre.admin);
+
+  final RoleMembre roleMinimal;
+  const ActionMetier(this.roleMinimal);
 }
 
 /// Ce que l'abonnement permet aujourd'hui.

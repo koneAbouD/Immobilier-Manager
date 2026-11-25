@@ -8,6 +8,7 @@ import '../../../../core/widgets/app_header.dart';
 import '../../../../core/widgets/dialogs.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../auth/presentation/pages/pin_setup_page.dart';
+import '../../../journal/presentation/pages/journal_actions_page.dart';
 import '../../../organisation/domain/entities/organisation.dart';
 import '../../../organisation/presentation/pages/abonnement_page.dart';
 import '../../../organisation/presentation/pages/choix_organisation_page.dart';
@@ -18,6 +19,7 @@ import '../../../organisation/presentation/pages/plateforme_page.dart';
 import '../../../organisation/presentation/providers/organisation_providers.dart';
 import '../widgets/settings_tile.dart';
 import 'apparence_page.dart';
+import '../../../../core/utils/insets_systeme.dart';
 
 const _kAppName = 'Immobilier Manager';
 const _kAppVersion = '1.0.0';
@@ -63,7 +65,7 @@ class SettingsScreen extends ConsumerWidget {
             detail: active == null ? '' : '${role.libelle} · ${active.organisation}',
           ),
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+            padding: EdgeInsets.fromLTRB(16, 16, 16, 24 + context.basSysteme),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -84,6 +86,15 @@ class SettingsScreen extends ConsumerWidget {
                             ? 'Collaborateurs et rôles'
                             : '${abonnement.membres} utilisateur${abonnement.membres > 1 ? 's' : ''} actif${abonnement.membres > 1 ? 's' : ''}',
                         onTap: () => _ouvrir(context, const EquipePage()),
+                      ),
+                    // Lecture seule du journal : il reste consultable même quand
+                    // l'abonnement ne permet plus d'écrire.
+                    if (role.peut(ActionMetier.consulterJournal))
+                      SettingsTile(
+                        icon: Icons.history_rounded,
+                        title: 'Journal des actions',
+                        description: 'Modifications et suppressions : biens, locaux, locataires, travaux',
+                        onTap: () => _ouvrir(context, const JournalActionsPage()),
                       ),
                     SettingsTile(
                       icon: Icons.workspace_premium_outlined,
@@ -115,7 +126,7 @@ class SettingsScreen extends ConsumerWidget {
                     SettingsTile(
                       icon: Icons.dialpad_rounded,
                       title: 'Modifier mon code',
-                      description: 'Code TMK à ${PinService.codeLength} '
+                      description: 'Code à ${PinService.codeLength} '
                           'chiffres d\'ouverture de l\'application',
                       // Le code est toujours installé (il conditionne
                       // l'ouverture) : droit au changement, code actuel exigé.
@@ -324,7 +335,7 @@ class _LigneBiometrieState extends ConsumerState<_LigneBiometrie> {
         null => 'Vérification de cet appareil…',
         BiometricAvailability(disponible: true, :final libelleAvecArticle) =>
           'Ouvrir l\'application avec $libelleAvecArticle, sans saisir '
-              'le code TMK',
+              'le code',
         BiometricAvailability(:final raison?) => raison,
         _ => 'Cet appareil ne dispose pas de capteur biométrique',
       },

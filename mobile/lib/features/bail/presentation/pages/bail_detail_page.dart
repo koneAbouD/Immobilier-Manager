@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/error/exception.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../core/widgets/app_header.dart';
@@ -15,6 +16,7 @@ import '../../domain/entities/bail.dart';
 import '../providers/bail_providers.dart';
 import 'bail_modifier_page.dart';
 import '../widgets/contrat_bail.dart';
+import '../../../../core/utils/insets_systeme.dart';
 
 class BailDetailPage extends ConsumerStatefulWidget {
   final int bailId;
@@ -71,7 +73,7 @@ class _BailDetailPageState extends ConsumerState<BailDetailPage> {
           body: Center(child: CircularProgressIndicator())),
       error: (e, _) => Scaffold(
           appBar: const AppHeader(title: ''),
-          body: ErrorView(message: '$e', onRetry: _rafraichir)),
+          body: ErrorView(message: messageErreur(e), onRetry: _rafraichir)),
       data: (b) => Scaffold(
         appBar: AppHeader(
           title: b.reference ?? 'Bail',
@@ -81,7 +83,7 @@ class _BailDetailPageState extends ConsumerState<BailDetailPage> {
         body: RefreshIndicator(
           onRefresh: () async => _rafraichir(),
           child: ListView(
-            padding: const EdgeInsets.fromLTRB(16, 4, 16, 32),
+            padding: EdgeInsets.fromLTRB(16, 4, 16, 32 + context.basSysteme),
             children: [
               DetailHeroCard(
                 icon: Icons.description_outlined,

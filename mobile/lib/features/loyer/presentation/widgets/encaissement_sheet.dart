@@ -9,6 +9,7 @@ import '../../domain/entities/echeance.dart';
 import '../../domain/entities/paiement.dart';
 import '../pages/echeance_page.dart';
 import '../providers/loyer_providers.dart';
+import '../../../../core/utils/separateur_milliers.dart';
 
 /// Ouvre la fiche d'un loyer : ses paiements et l'encaissement du reste dû.
 /// Renvoie vrai si quelque chose a changé (paiement enregistré ou annulé).
@@ -38,7 +39,7 @@ class _FormulaireEncaissement extends ConsumerStatefulWidget {
 
 class _FormulaireEncaissementState extends ConsumerState<_FormulaireEncaissement> {
   final _formKey = GlobalKey<FormState>();
-  late final _montant = TextEditingController(text: widget.echeance.resteDu.toStringAsFixed(0));
+  late final _montant = TextEditingController(text: saisieMontant(widget.echeance.resteDu));
   final _reference = TextEditingController();
   ModePaiement _mode = ModePaiement.especes;
   DateTime? _date = DateTime.now();

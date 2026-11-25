@@ -63,6 +63,13 @@ public class SecurityConfig {
                         // Données métier : consultation pour tout membre, écriture à partir
                         // de gestionnaire. La piste d'audit (created_by, annule_par…)
                         // nomme toujours un membre authentifié.
+                        // Supprimer un bien ou un local touche au patrimoine et ne s'annule
+                        // pas : réservé aux administrateurs (« * » = un seul segment, la
+                        // suppression d'une photo reste ouverte au gestionnaire). Matrice
+                        // reprise côté mobile dans `ActionMetier` (core/app/droits.dart).
+                        .requestMatchers(HttpMethod.DELETE, "/api/immeubles/*", "/api/appartements/*").hasRole("ADMIN")
+                        // Journal des actions : supervision, réservée aux administrateurs.
+                        .requestMatchers("/api/journal/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/**").hasRole("LECTEUR")
                         .requestMatchers("/api/**").hasRole("GESTIONNAIRE")
                         .anyRequest().authenticated()

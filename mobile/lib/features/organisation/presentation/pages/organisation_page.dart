@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../../../../core/error/exception.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/app_header.dart';
 import '../../../../core/widgets/dialogs.dart';
@@ -10,6 +11,9 @@ import '../../../../core/widgets/form_fields.dart';
 import '../../domain/entities/organisation.dart';
 import '../providers/organisation_providers.dart';
 import '../widgets/carte_organisation.dart';
+import '../../../../core/app/sorties_application.dart';
+import '../../../../core/utils/insets_systeme.dart';
+import '../../../../core/widgets/libelle_bouton.dart';
 
 /// Identité de l'organisation : c'est le bailleur imprimé sur les contrats et
 /// les quittances (nom, représentant, coordonnées, ville de signature, logo).
@@ -24,7 +28,7 @@ class OrganisationPage extends ConsumerWidget {
       appBar: AppHeader(title: 'Mon organisation'),
       body: organisation.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => ErrorView(message: '$e', onRetry: () => ref.invalidate(organisationCouranteProvider)),
+        error: (e, _) => ErrorView(message: messageErreur(e), onRetry: () => ref.invalidate(organisationCouranteProvider)),
         data: (o) => _Formulaire(organisation: o, modifiable: ref.watch(monRoleProvider).estAdmin),
       ),
     );
@@ -84,7 +88,8 @@ class _FormulaireState extends ConsumerState<_Formulaire> {
   }
 
   Future<void> _changerLogo() async {
-    final image = await ImagePicker().pickImage(source: ImageSource.gallery, maxWidth: 800, imageQuality: 90);
+    final image = await SortiesApplication.attendue(() =>
+        ImagePicker().pickImage(source: ImageSource.gallery, maxWidth: 800, imageQuality: 90));
     if (image == null) return;
     setState(() => _logoEnCours = true);
     final octets = await image.readAsBytes();
@@ -114,7 +119,7 @@ class _FormulaireState extends ConsumerState<_Formulaire> {
     return Form(
       key: _formKey,
       child: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 4, 16, 32),
+        padding: EdgeInsets.fromLTRB(16, 4, 16, 32 + context.basSysteme),
         children: [
           // Logo
           Container(
@@ -153,13 +158,13 @@ class _FormulaireState extends ConsumerState<_Formulaire> {
                       TextButton.icon(
                         onPressed: _logoEnCours ? null : _changerLogo,
                         icon: const Icon(Icons.image_outlined, size: 18),
-                        label: Text(widget.organisation.logo ? 'Changer' : 'Ajouter'),
+                        label: LibelleBouton(widget.organisation.logo ? 'Changer' : 'Ajouter'),
                       ),
                       if (widget.organisation.logo)
                         TextButton(
                           onPressed: _retirerLogo,
                           style: TextButton.styleFrom(foregroundColor: AppColors.error),
-                          child: const Text('Retirer'),
+                          child: const LibelleBouton('Retirer'),
                         ),
                     ]),
                   ],

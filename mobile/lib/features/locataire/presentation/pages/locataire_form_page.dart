@@ -7,6 +7,7 @@ import '../../../../core/widgets/feedback.dart';
 import '../../../../core/widgets/form_fields.dart';
 import '../../domain/entities/locataire.dart';
 import '../providers/locataire_providers.dart';
+import '../../../../core/utils/insets_systeme.dart';
 
 class LocataireFormPage extends ConsumerStatefulWidget {
   final Locataire? locataire;
@@ -80,7 +81,7 @@ class _LocataireFormPageState extends ConsumerState<LocataireFormPage> {
       body: Form(
         key: _formKey,
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 4, 16, 32),
+          padding: EdgeInsets.fromLTRB(16, 4, 16, 32 + context.basSysteme),
           children: [
             GroupeChamps(titre: 'Identité', icone: Icons.person_outline_rounded, children: [
               Row(crossAxisAlignment: CrossAxisAlignment.start, children: [

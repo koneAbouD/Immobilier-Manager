@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../../core/app/droits.dart';
+import '../../../../core/error/exception.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../core/widgets/app_header.dart';
@@ -23,6 +25,9 @@ import '../../../loyer/presentation/widgets/encaissement_sheet.dart';
 import '../../domain/entities/locataire.dart';
 import '../providers/locataire_providers.dart';
 import 'locataire_form_page.dart';
+import '../../../../core/app/sorties_application.dart';
+import '../../../../core/utils/insets_systeme.dart';
+import '../../../../core/widgets/libelle_bouton.dart';
 
 /// Baux du locataire, du plus récent au plus ancien.
 final _bauxLocataireProvider = FutureProvider.autoDispose.family<List<Bail>, int>((ref, id) async {
@@ -142,7 +147,7 @@ class _LocataireDetailPageState extends ConsumerState<LocataireDetailPage> {
           appBar: AppHeader(title: ''), body: Center(child: CircularProgressIndicator())),
       error: (e, _) => Scaffold(
           appBar: const AppHeader(title: ''),
-          body: ErrorView(message: '$e', onRetry: _rafraichir)),
+          body: ErrorView(message: messageErreur(e), onRetry: _rafraichir)),
       data: (l) {
         final baux = ref.watch(_bauxLocataireProvider(_id));
         final aEncaisser = ref.watch(_aEncaisserLocataireProvider(_id));
@@ -152,12 +157,14 @@ class _LocataireDetailPageState extends ConsumerState<LocataireDetailPage> {
             action: ActionsDetail(
               onModifier: () => _ouvrir(LocataireFormPage(locataire: l)),
               onSupprimer: () => _supprimer(l),
+              droitSuppression: ActionMetier.supprimerLocataire,
+              ressource: '/locataires/${l.id}',
             ),
           ),
           body: RefreshIndicator(
             onRefresh: () async => _rafraichir(),
             child: ListView(
-              padding: const EdgeInsets.fromLTRB(16, 4, 16, 32),
+              padding: EdgeInsets.fromLTRB(16, 4, 16, 32 + context.basSysteme),
               children: [
                 _Profil(locataire: l, baux: baux.valueOrNull),
                 const SizedBox(height: 10),
@@ -263,7 +270,8 @@ class _Contacts extends StatelessWidget {
   }
 
   Future<void> _lancer(BuildContext context, Uri uri) async {
-    final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    final ok = await SortiesApplication.attendue(
+        () => launchUrl(uri, mode: LaunchMode.externalApplication));
     if (!ok && context.mounted) showError(context, 'Aucune application ne peut ouvrir ce lien.');
   }
 
@@ -313,7 +321,7 @@ class _BoutonContact extends StatelessWidget {
             child: Column(children: [
               Icon(icone, size: 21, color: AppColors.primaryDark),
               const SizedBox(height: 5),
-              Text(libelle,
+              LibelleBouton(libelle,
                   style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600, color: AppColors.dark)),
             ]),
           ),
@@ -368,7 +376,7 @@ class _Solde extends StatelessWidget {
           FilledButton.icon(
             onPressed: () => onEncaisser(aRegler),
             icon: const Icon(Icons.payments_outlined, size: 17),
-            label: const Text('Encaisser'),
+            label: const LibelleBouton('Encaisser'),
             style: FilledButton.styleFrom(
               backgroundColor: enRetard ? AppColors.error : null,
               textStyle: const TextStyle(fontWeight: FontWeight.w700),
@@ -455,7 +463,7 @@ class _OngletBaux extends StatelessWidget {
     return baux.when(
       loading: () => const Padding(
           padding: EdgeInsets.all(20), child: Center(child: CircularProgressIndicator())),
-      error: (e, _) => TextButton(onPressed: onRetry, child: Text('$e — Réessayer')),
+      error: (e, _) => TextButton(onPressed: onRetry, child: LibelleBouton('${messageErreur(e)} — Réessayer')),
       data: (liste) => Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -473,7 +481,7 @@ class _OngletBaux extends StatelessWidget {
           OutlinedButton.icon(
             onPressed: onNouveau,
             icon: const Icon(Icons.draw_outlined, size: 18),
-            label: const Text('Signer un nouveau bail'),
+            label: const LibelleBouton('Signer un nouveau bail'),
             style: OutlinedButton.styleFrom(
               padding: const EdgeInsets.symmetric(vertical: 14),
               side: BorderSide(color: AppColors.border),
@@ -556,7 +564,7 @@ class _OngletPaiements extends ConsumerWidget {
               padding: EdgeInsets.all(20), child: Center(child: CircularProgressIndicator())),
           error: (e, _) => TextButton(
               onPressed: () => ref.invalidate(_paiementsLocataireProvider(locataireId)),
-              child: Text('$e — Réessayer')),
+              child: LibelleBouton('${messageErreur(e)} — Réessayer')),
           data: (liste) => liste.isEmpty
               ? Padding(
                   padding: const EdgeInsets.all(16),

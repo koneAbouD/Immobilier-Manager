@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../theme/app_colors.dart';
+import 'libelle_bouton.dart';
 
 /// Message affiché à la place d'une liste vide : pastille grise, titre, et
 /// bouton d'action quand il y a quelque chose à créer.
@@ -45,7 +46,7 @@ class EmptyState extends StatelessWidget {
               FilledButton.icon(
                 onPressed: onAction,
                 icon: const Icon(Icons.add_rounded, size: 18),
-                label: Text(actionLabel!),
+                label: LibelleBouton(actionLabel!),
               ),
             ],
           ],
@@ -88,7 +89,7 @@ class ErrorView extends StatelessWidget {
             FilledButton.icon(
               onPressed: onRetry,
               icon: const Icon(Icons.refresh_rounded, size: 18),
-              label: const Text('Réessayer'),
+              label: const LibelleBouton('Réessayer'),
             ),
           ],
         ),
