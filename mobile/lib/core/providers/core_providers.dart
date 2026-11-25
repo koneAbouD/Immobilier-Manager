@@ -11,6 +11,7 @@ final secureStorageProvider =
 final apiClientProvider = Provider<ApiClient>((ref) {
   final storage = ref.watch(secureStorageProvider);
   final client = ApiClient(storage);
+  ref.onDispose(client.arreterRenouvellement);
   // Organisation devenue inaccessible (membre retiré…) : on l'oublie et on
   // repasse par le choix d'organisation, sur un conteneur neuf.
   var enCours = false;

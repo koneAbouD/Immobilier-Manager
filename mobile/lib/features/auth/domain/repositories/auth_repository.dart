@@ -18,6 +18,11 @@ abstract interface class AuthRepository {
 
   Future<void> logout();
 
+  /// Rouvre la session à partir du refresh token sorti du coffre du code
+  /// d'accès. [NetworkFailure] : serveur hors d'atteinte, la session pourra
+  /// reprendre plus tard ; [AuthFailure] : session révoquée.
+  Future<Either<Failure, void>> rouvrirSession(String refreshToken);
+
   /// Vrai si une session (refresh token) est enregistrée sur l'appareil.
   Future<bool> hasSession();
 

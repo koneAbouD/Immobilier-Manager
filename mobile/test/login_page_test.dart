@@ -27,6 +27,10 @@ class _FauxAuthRepository implements AuthRepository {
   Future<void> logout() async {}
 
   @override
+  Future<Either<Failure, void>> rouvrirSession(String refreshToken) async =>
+      const Right(null);
+
+  @override
   Future<bool> hasSession() async => false;
 
   @override

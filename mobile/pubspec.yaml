@@ -53,10 +53,21 @@ dependencies:
   flutter_map: ^8.3.2
   latlong2: ^0.10.1
   geolocator: ^14.0.2
-  # Déverrouillage biométrique (Face ID, Touch ID, empreinte), comme VTC Manager.
-  local_auth: ^3.0.2
-  local_auth_android: ^2.0.8
-  local_auth_darwin: ^2.0.3
+  # Code d'accès TMK et déverrouillage biométrique (Face ID, Touch ID,
+  # empreinte) : paquet repris de VTC Manager, à tenir aligné avec lui.
+  tmk_pin:
+    path: ../packages/tmk_pin
+  # Accès réseau actif (Wi-Fi, données mobiles, aucun) : distingue un
+  # téléphone dont l'accès est coupé d'un accès actif sans internet.
+  # 7.3.1 : la 7.3.2 tire dbus 0.8, incompatible avec file_picker 11.
+  connectivity_plus: ">=7.3.1 <7.3.2"
+  # Cache hors connexion (repris de VTC Manager, paquet tmk_cache) : base
+  # SQLite des dernières réponses, chiffrées en AES-GCM.
+  drift: ^2.26.0
+  sqlite3_flutter_libs: ^0.5.24
+  path_provider: ^2.1.5
+  path: ^1.9.0
+  cryptography: ^2.7.0
 
 dev_dependencies:
   flutter_test:

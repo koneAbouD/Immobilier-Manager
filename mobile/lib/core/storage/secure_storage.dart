@@ -5,12 +5,12 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 class SecureStorage {
   static const _kAccessToken = 'access_token';
   static const _kRefreshToken = 'refresh_token';
+  static const _kAccessExpiry = 'access_token_expiry'; // epoch ms
   static const _kUsername = 'username';
   static const _kThemeAccent = 'theme_accent';
   static const _kThemeMode = 'theme_mode';
   static const _kOrganisationId = 'organisation_id';
-  static const _kBiometrieCompte = 'biometrie_compte';
-  static const _kBiometrieProposee = 'biometrie_proposee_';
+  static const _kDeconnecte = 'deconnecte';
 
   final FlutterSecureStorage _storage;
 
@@ -21,14 +21,31 @@ class SecureStorage {
   Future<String?> getRefreshToken() => _storage.read(key: _kRefreshToken);
   Future<String?> getUsername() => _storage.read(key: _kUsername);
 
+  /// [expiresInSeconds] : durée de vie du jeton d'accès annoncée par le
+  /// serveur. Mémorisée en heure locale — insensible à un téléphone mal
+  /// réglé — pour renouveler la session avant l'expiration.
   Future<void> saveTokens({
     required String accessToken,
     required String? refreshToken,
+    int? expiresInSeconds,
   }) async {
     await _storage.write(key: _kAccessToken, value: accessToken);
     if (refreshToken != null) {
       await _storage.write(key: _kRefreshToken, value: refreshToken);
     }
+    if (expiresInSeconds != null) {
+      await _storage.write(
+          key: _kAccessExpiry,
+          value: '${DateTime.now().add(Duration(seconds: expiresInSeconds)).millisecondsSinceEpoch}');
+    } else {
+      await _storage.delete(key: _kAccessExpiry);
+    }
+  }
+
+  /// Expiration du jeton d'accès, `null` si le serveur ne l'a pas annoncée.
+  Future<DateTime?> getAccessTokenExpiry() async {
+    final ms = int.tryParse(await _storage.read(key: _kAccessExpiry) ?? '');
+    return ms == null ? null : DateTime.fromMillisecondsSinceEpoch(ms);
   }
 
   Future<void> saveUsername(String username) =>
@@ -54,33 +71,36 @@ class SecureStorage {
 
   Future<void> clearOrganisationId() => _storage.delete(key: _kOrganisationId);
 
-  /// Compte (identifiant de connexion) pour lequel le déverrouillage
-  /// biométrique est activé, ou `null` si l'option est coupée.
-  ///
-  /// Rattaché au compte plutôt qu'un simple drapeau : une connexion sous un
-  /// autre identifiant ne doit pas hériter du réglage. Conservé par
-  /// [clearTokens] — le repli vers la connexion par mot de passe ne fait pas
-  /// perdre l'option à celui qui se reconnecte avec le même compte.
-  Future<String?> getBiometrieCompte() => _storage.read(key: _kBiometrieCompte);
+  /// Refresh token sorti du coffre du code d'accès, le temps de la session.
+  Future<void> saveRefreshToken(String refreshToken) =>
+      _storage.write(key: _kRefreshToken, value: refreshToken);
 
-  Future<void> setBiometrieCompte(String? compte) => compte == null
-      ? _storage.delete(key: _kBiometrieCompte)
-      : _storage.write(key: _kBiometrieCompte, value: compte);
+  /// Mise sous clé : les jetons en clair disparaissent, seul le coffre chiffré
+  /// du code d'accès les conserve. L'organisation de travail, elle, reste :
+  /// le déverrouillage rouvre l'application là où elle était.
+  Future<void> clearSessionTokens() async {
+    await _storage.delete(key: _kAccessToken);
+    await _storage.delete(key: _kRefreshToken);
+    await _storage.delete(key: _kAccessExpiry);
+  }
 
-  /// La proposition d'activer la biométrie a-t-elle déjà été faite à ce
-  /// compte sur cet appareil ? Un refus vaut pour toujours : l'option reste
-  /// dans les Réglages, mais on ne la redemande plus.
-  Future<bool> getBiometrieProposee(String compte) async =>
-      (await _storage.read(key: '$_kBiometrieProposee$compte')) == '1';
+  /// Déconnexion volontaire : le coffre du code d'accès est conservé, mais le
+  /// refresh token qu'il protège est révoqué. Au prochain lancement, il n'y a
+  /// plus de session à rouvrir — on passe par la connexion, qui redemandera
+  /// le code au lieu d'en faire choisir un nouveau.
+  Future<bool> isLoggedOut() async =>
+      (await _storage.read(key: _kDeconnecte)) == '1';
 
-  Future<void> setBiometrieProposee(String compte) =>
-      _storage.write(key: '$_kBiometrieProposee$compte', value: '1');
+  Future<void> setLoggedOut(bool deconnecte) => deconnecte
+      ? _storage.write(key: _kDeconnecte, value: '1')
+      : _storage.delete(key: _kDeconnecte);
 
   /// Fin de session : jetons et organisation active partent ensemble, pour
   /// que le compte suivant ne démarre jamais dans l'organisation du précédent.
   Future<void> clearTokens() async {
     await _storage.delete(key: _kAccessToken);
     await _storage.delete(key: _kRefreshToken);
+    await _storage.delete(key: _kAccessExpiry);
     await _storage.delete(key: _kOrganisationId);
   }
 }

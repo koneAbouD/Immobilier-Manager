@@ -1,62 +1,64 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:tmk_pin/tmk_pin.dart';
 
-import '../../../../core/security/biometric_service.dart';
 import '../../../../core/theme/app_colors.dart';
-import '../providers/verrou_biometrique.dart';
+import '../providers/auth_provider.dart';
 import 'auth_ui.dart';
 
-/// Propose une fois d'activer le déverrouillage biométrique, à l'arrivée sur
-/// l'accueil juste après une connexion par mot de passe — repris de VTC
-/// Manager (`BiometricProposal`).
+/// Propose une fois le déverrouillage biométrique, à l'entrée dans
+/// l'application.
 ///
-/// La page de connexion disparaît à l'instant où la session s'ouvre (et le
-/// conteneur Riverpod est recréé) : l'invite s'accroche donc à l'écran qui lui
-/// succède, que ce widget se contente d'envelopper.
+/// L'invite ne peut pas vivre sur l'écran de verrouillage : celui-ci disparaît
+/// à l'instant même où le code est accepté. Elle s'accroche donc à l'écran qui
+/// lui succède — d'où ce widget, qui se contente d'envelopper l'accueil.
 ///
-/// Une seule proposition par compte et par appareil, refus compris : l'option
-/// reste ensuite dans les Réglages.
-class PropositionBiometrie extends ConsumerStatefulWidget {
+/// Une seule proposition dans la vie de l'installation, refus compris :
+/// l'option reste ensuite dans les réglages du code d'accès.
+class BiometricProposal extends ConsumerStatefulWidget {
   final Widget child;
 
-  const PropositionBiometrie({super.key, required this.child});
+  const BiometricProposal({super.key, required this.child});
 
   @override
-  ConsumerState<PropositionBiometrie> createState() =>
-      _PropositionBiometrieState();
+  ConsumerState<BiometricProposal> createState() => _BiometricProposalState();
 }
 
-class _PropositionBiometrieState extends ConsumerState<PropositionBiometrie> {
+class _BiometricProposalState extends ConsumerState<BiometricProposal> {
   @override
   void initState() {
     super.initState();
     // Après le premier rendu : l'accueil est à l'écran, la boîte se pose
-    // dessus au lieu d'en retarder l'affichage.
+    // dessus au lieu de retarder l'affichage.
     WidgetsBinding.instance.addPostFrameCallback((_) => _proposer());
   }
 
   Future<void> _proposer() async {
-    final verrou = ref.read(verrouBiometriqueProvider.notifier);
-    final dispo = await verrou.aProposer();
+    final notifier = ref.read(authNotifierProvider.notifier);
+    final dispo = await notifier.biometricsToPropose();
     if (!mounted || dispo == null) return;
 
-    // Posée avant la réponse : ni un refus ni une interruption ne doivent
-    // faire revenir la question à la prochaine connexion.
-    await verrou.marquerProposee();
+    // Posée avant la réponse : un refus ne doit pas revenir au prochain
+    // démarrage, et une interruption non plus.
+    await notifier.markBiometricsProposed();
     if (!mounted) return;
 
     final accepte = await showDialog<bool>(
       context: context,
-      builder: (context) => _DialogueProposition(dispo: dispo),
+      builder: (context) => _ProposalDialog(availability: dispo),
     );
     if (!mounted || !(accepte ?? false)) return;
 
-    final erreur = await verrou.activer();
+    final erreur = await notifier.enableBiometrics();
     if (!mounted) return;
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(erreur ?? 'Déverrouillage biométrique activé.'),
+        content: Text(
+          erreur ??
+              '${_capitaliser(dispo.libelle)} activé pour déverrouiller '
+                  'l\'application.',
+        ),
         backgroundColor: erreur == null ? AppColors.primary : AppColors.error,
       ),
     );
@@ -66,10 +68,13 @@ class _PropositionBiometrieState extends ConsumerState<PropositionBiometrie> {
   Widget build(BuildContext context) => widget.child;
 }
 
-class _DialogueProposition extends StatelessWidget {
-  final BiometricAvailability dispo;
+String _capitaliser(String texte) =>
+    texte.isEmpty ? texte : texte[0].toUpperCase() + texte.substring(1);
 
-  const _DialogueProposition({required this.dispo});
+class _ProposalDialog extends StatelessWidget {
+  final BiometricAvailability availability;
+
+  const _ProposalDialog({required this.availability});
 
   @override
   Widget build(BuildContext context) {
@@ -90,29 +95,29 @@ class _DialogueProposition extends StatelessWidget {
               color: AppColors.primaryTint,
               shape: BoxShape.circle,
             ),
-            child: Icon(dispo.icone, size: 30, color: AppColors.primary),
+            child: Icon(availability.icone, size: 30, color: AppColors.primary),
           ),
           const SizedBox(height: 14),
           Text(
-            'Utiliser ${dispo.libelleAvecArticle} ?',
+            'Utiliser ${availability.libelleAvecArticle} ?',
             textAlign: TextAlign.center,
             style: TextStyle(fontSize: 18, color: AppColors.dark),
           ),
         ],
       ),
       content: ConstrainedBox(
+        // Sur tablette, le paragraphe ne s'étale pas sur toute la largeur.
         constraints: const BoxConstraints(maxWidth: 360),
         child: Text(
-          'Vous rouvrirez l\'application d\'un geste, sans ressaisir votre '
-          'mot de passe. Il reste toujours possible de vous reconnecter avec '
-          'votre téléphone et votre mot de passe. Vous pourrez changer ce '
-          'choix dans les Réglages.',
+          'Vous ouvrirez l\'application d\'un geste, sans saisir vos cinq '
+          'chiffres. Votre code TMK reste actif et vous sera redemandé si la '
+          'reconnaissance échoue.',
           textAlign: TextAlign.center,
           style: TextStyle(fontSize: 13, color: AppColors.label, height: 1.4),
         ),
       ),
-      // Boutons empilés en pleine largeur : rien ne déborde, quelle que soit
-      // la taille de l'écran.
+      // Boutons empilés en pleine largeur plutôt que deux largeurs fixes côte
+      // à côte : rien ne déborde, quelle que soit la taille de l'écran.
       actions: [
         Column(
           mainAxisSize: MainAxisSize.min,
@@ -128,6 +133,7 @@ class _DialogueProposition extends StatelessWidget {
               style: OutlinedButton.styleFrom(
                 foregroundColor: AppColors.primary,
                 side: BorderSide(color: AppColors.primary),
+                // Même hauteur et même arrondi que AuthPrimaryButton.
                 minimumSize: const Size.fromHeight(54),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(14),

@@ -12,4 +12,8 @@ class Redemarrage {
   static void enregistrer(Future<void> Function() action) => _action = action;
 
   static Future<void> lancer() async => _action?.call();
+
+  /// Vrai quand la racine de l'application a enregistré l'action (toujours,
+  /// sauf dans les tests qui montent un écran seul).
+  static bool get enregistre => _action != null;
 }

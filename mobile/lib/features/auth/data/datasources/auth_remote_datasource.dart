@@ -15,6 +15,10 @@ class AuthRemoteDatasource {
   Future<Map<String, dynamic>> inscrire(Map<String, dynamic> inscription) async =>
       await _client.postPublic('/auth/inscription', inscription) as Map<String, dynamic>;
 
+  /// Renouvelle les jetons à partir du refresh token enregistré (voir
+  /// [ApiClient.renouvelerSession]).
+  Future<bool> renouveler() => _client.renouvelerSession();
+
   Future<void> logout(String refreshToken) async {
     await _client.postPublic('/auth/logout', {'refreshToken': refreshToken});
   }

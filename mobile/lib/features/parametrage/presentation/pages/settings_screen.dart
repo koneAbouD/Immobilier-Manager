@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:tmk_pin/tmk_pin.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/theme_controller.dart';
 import '../../../../core/widgets/app_header.dart';
 import '../../../../core/widgets/dialogs.dart';
-import '../../../../core/security/biometric_service.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
-import '../../../auth/presentation/providers/verrou_biometrique.dart';
+import '../../../auth/presentation/pages/pin_setup_page.dart';
 import '../../../organisation/domain/entities/organisation.dart';
 import '../../../organisation/presentation/pages/abonnement_page.dart';
 import '../../../organisation/presentation/pages/choix_organisation_page.dart';
@@ -111,6 +111,22 @@ class SettingsScreen extends ConsumerWidget {
                       title: 'Mot de passe',
                       description: session?.profil.identifiant,
                       onTap: () => _ouvrir(context, const MotDePassePage()),
+                    ),
+                    SettingsTile(
+                      icon: Icons.dialpad_rounded,
+                      title: 'Modifier mon code',
+                      description: 'Code TMK à ${PinService.codeLength} '
+                          'chiffres d\'ouverture de l\'application',
+                      // Le code est toujours installé (il conditionne
+                      // l'ouverture) : droit au changement, code actuel exigé.
+                      onTap: () => Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (context) => PinSetupPage(
+                            requireCurrentCode: true,
+                            onDone: () => Navigator.of(context).pop(),
+                          ),
+                        ),
+                      ),
                     ),
                     const _LigneBiometrie(),
                     if (session?.profil.superAdmin ?? false)
@@ -254,9 +270,9 @@ class _LigneBiometrieState extends ConsumerState<_LigneBiometrie> {
   }
 
   Future<void> _charger() async {
-    final verrou = ref.read(verrouBiometriqueProvider.notifier);
-    final dispo = await verrou.disponibilite();
-    final active = await verrou.estActif();
+    final auth = ref.read(authNotifierProvider.notifier);
+    final dispo = await auth.biometricAvailability();
+    final active = await auth.isBiometricsEnabled();
     if (!mounted) return;
     setState(() {
       _dispo = dispo;
@@ -269,12 +285,15 @@ class _LigneBiometrieState extends ConsumerState<_LigneBiometrie> {
       _occupee = true;
       _cible = active;
     });
-    final verrou = ref.read(verrouBiometriqueProvider.notifier);
+    // L'activation passe par une validation biométrique de l'OS : sans elle,
+    // on rangerait la clé du coffre pour quelqu'un qui ne saurait pas s'en
+    // servir.
+    final auth = ref.read(authNotifierProvider.notifier);
     String? erreur;
     if (active) {
-      erreur = await verrou.activer();
+      erreur = await auth.enableBiometrics();
     } else {
-      await verrou.desactiver();
+      await auth.disableBiometrics();
     }
     if (!mounted) return;
     setState(() {
@@ -304,7 +323,8 @@ class _LigneBiometrieState extends ConsumerState<_LigneBiometrie> {
       description: switch (dispo) {
         null => 'Vérification de cet appareil…',
         BiometricAvailability(disponible: true, :final libelleAvecArticle) =>
-          'Ouvrir l\'application avec $libelleAvecArticle',
+          'Ouvrir l\'application avec $libelleAvecArticle, sans saisir '
+              'le code TMK',
         BiometricAvailability(:final raison?) => raison,
         _ => 'Cet appareil ne dispose pas de capteur biométrique',
       },

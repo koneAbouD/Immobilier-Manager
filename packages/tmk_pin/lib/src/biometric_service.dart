@@ -78,8 +78,8 @@ class BiometricAccepted extends BiometricOutcome {
   const BiometricAccepted();
 }
 
-/// L'utilisateur a renoncé (annulation, mise en fond). Rien à signaler : il
-/// peut réessayer ou se reconnecter avec son mot de passe.
+/// L'utilisateur a renoncé (annulation, bascule vers le code, mise en fond).
+/// Rien à signaler : il a simplement choisi de saisir son code.
 class BiometricDismissed extends BiometricOutcome {
   const BiometricDismissed();
 }
@@ -100,9 +100,8 @@ class BiometricUnavailable extends BiometricOutcome {
 /// Accès à la biométrie de l'appareil : détection des capacités et demande
 /// d'authentification, avec des messages en français.
 ///
-/// Reprise de VTC Manager (paquet `tmk_pin`). Le service se contente de dire
-/// si l'OS a reconnu l'utilisateur : c'est le verrou d'application
-/// (`VerrouBiometriqueNotifier`) qui décide ce que cela ouvre.
+/// Le service ne connaît rien du code d'accès : il se contente de dire si l'OS
+/// a reconnu l'utilisateur. C'est [PinService] qui décide ce que cela ouvre.
 class BiometricService {
   final LocalAuthentication _auth;
 
@@ -166,8 +165,8 @@ class BiometricService {
   /// Demande à l'OS d'authentifier l'utilisateur.
   ///
   /// [raison] est la phrase affichée dans la fenêtre système (obligatoire sur
-  /// iOS). Seule la biométrie est acceptée : le repli, c'est la connexion
-  /// classique par téléphone et mot de passe, proposée sur l'écran de verrou.
+  /// iOS). Seule la biométrie est acceptée : le repli vers le code de
+  /// verrouillage du téléphone n'aurait pas de sens, l'application a le sien.
   ///
   /// La fenêtre Android est réduite à une seule ligne de texte. Le titre ne
   /// pouvant pas être omis — `androidx.biometric` (1.1.0, la version qu'embarque
@@ -216,18 +215,18 @@ class BiometricService {
             // plugin sur son défaut, « Verify identity », en anglais. AndroidX
             // masque la ligne quand elle est vide.
             signInHint: '',
-            cancelButton: 'Annuler',
+            cancelButton: 'Utiliser mon code',
           ),
           const IOSAuthMessages(
-            cancelButton: 'Annuler',
+            cancelButton: 'Utiliser mon code',
             // Chaîne vide = pas de bouton de repli système : le repli, c'est
-            // la connexion par mot de passe proposée sur l'écran de verrou.
+            // le pavé numérique déjà à l'écran.
             localizedFallbackTitle: '',
           ),
         ],
       );
       // `false` sans exception : l'OS n'a pas reconnu l'utilisateur, sans autre
-      // conséquence. Il peut réessayer ou se reconnecter.
+      // conséquence. Il peut réessayer ou saisir son code.
       return reconnu ? const BiometricAccepted() : const BiometricDismissed();
     } on LocalAuthException catch (e) {
       return _traduire(e.code);
@@ -238,14 +237,14 @@ class BiometricService {
       );
     } on PlatformException {
       return const BiometricUnavailable(
-        'Le déverrouillage biométrique a échoué. Connectez-vous avec votre mot de passe.',
+        'Le déverrouillage biométrique a échoué. Saisissez votre code TMK.',
       );
     }
   }
 
   BiometricOutcome _traduire(LocalAuthExceptionCode code) => switch (code) {
-        // Renoncements : l'utilisateur (ou le système) a interrompu, l'écran
-        // de verrou reste là. Inutile d'afficher quoi que ce soit.
+        // Renoncements : l'utilisateur (ou le système) a interrompu, il reste
+        // le pavé numérique. Inutile d'afficher quoi que ce soit.
         LocalAuthExceptionCode.userCanceled ||
         LocalAuthExceptionCode.userRequestedFallback ||
         LocalAuthExceptionCode.systemCanceled ||
@@ -257,12 +256,12 @@ class BiometricService {
         LocalAuthExceptionCode.noBiometricsEnrolled =>
           const BiometricUnavailable(
             'Aucune donnée biométrique n\'est enregistrée sur cet appareil. '
-            'Connectez-vous avec votre mot de passe.',
+            'Saisissez votre code TMK.',
             definitif: true,
           ),
         LocalAuthExceptionCode.noCredentialsSet => const BiometricUnavailable(
             'Aucun verrouillage n\'est configuré sur cet appareil. '
-            'Connectez-vous avec votre mot de passe.',
+            'Saisissez votre code TMK.',
             definitif: true,
           ),
         LocalAuthExceptionCode.noBiometricHardware => const BiometricUnavailable(
@@ -275,21 +274,21 @@ class BiometricService {
         LocalAuthExceptionCode.biometricHardwareTemporarilyUnavailable =>
           const BiometricUnavailable(
             'Le capteur biométrique est momentanément indisponible. '
-            'Connectez-vous avec votre mot de passe.',
+            'Saisissez votre code TMK.',
           ),
         LocalAuthExceptionCode.temporaryLockout => const BiometricUnavailable(
-            'Trop de tentatives biométriques. Connectez-vous avec votre mot de passe.',
+            'Trop de tentatives biométriques. Saisissez votre code TMK.',
           ),
         LocalAuthExceptionCode.biometricLockout => const BiometricUnavailable(
             'La biométrie est bloquée jusqu\'au prochain déverrouillage de '
-            'votre téléphone. Connectez-vous avec votre mot de passe.',
+            'votre téléphone. Saisissez votre code TMK.',
           ),
 
         LocalAuthExceptionCode.uiUnavailable ||
         LocalAuthExceptionCode.deviceError ||
         LocalAuthExceptionCode.unknownError =>
           const BiometricUnavailable(
-            'Le déverrouillage biométrique a échoué. Connectez-vous avec votre mot de passe.',
+            'Le déverrouillage biométrique a échoué. Saisissez votre code TMK.',
           ),
       };
 

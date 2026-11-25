@@ -1,22 +1,31 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:tmk_pin/tmk_pin.dart';
 
 import 'core/app/droits_ecriture.dart';
 import 'core/app/redemarrage.dart';
+import 'core/network/etat_reseau.dart';
+import 'core/network/prechargement.dart';
+import 'core/providers/core_providers.dart';
 import 'core/storage/secure_storage.dart';
 import 'core/theme/app_colors.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/theme_controller.dart';
+import 'core/widgets/bandeau_hors_ligne.dart';
+import 'core/widgets/prechargement_periodique.dart';
 import 'features/auth/presentation/pages/login_page.dart';
-import 'features/auth/presentation/pages/verrou_biometrique_page.dart';
+import 'features/auth/presentation/pages/pin_brand.dart';
+import 'features/auth/presentation/pages/pin_lock_page.dart';
+import 'features/auth/presentation/pages/pin_resume_page.dart';
+import 'features/auth/presentation/pages/pin_setup_page.dart';
 import 'features/auth/presentation/providers/auth_provider.dart';
 import 'features/auth/presentation/providers/auth_state.dart';
-import 'features/auth/presentation/providers/verrou_biometrique.dart';
-import 'features/auth/presentation/widgets/auth_ui.dart';
-import 'features/auth/presentation/widgets/proposition_biometrie.dart';
+import 'features/auth/presentation/widgets/biometric_proposal.dart';
 import 'features/organisation/presentation/pages/porte_organisation.dart';
 import 'features/organisation/presentation/providers/organisation_providers.dart';
 import 'screens/home_screen.dart';
@@ -27,6 +36,9 @@ void main() async {
   // L'apparence choisie est lue avant le premier frame : l'application s'ouvre
   // directement dans la bonne couleur, sans flash de l'apparence par défaut.
   final apparence = await ThemeSettings.charger(const SecureStorage());
+  // Mode avion, Wi-Fi ou données coupés : le bandeau le dit aussitôt, sans
+  // attendre qu'un appel au serveur échoue.
+  EtatReseau.instance.suivreAccesReseau();
   runApp(RacineApplication(apparence: apparence));
 }
 
@@ -110,17 +122,29 @@ class _ImmobilierManagerAppState extends ConsumerState<ImmobilierManagerApp>
     }
   }
 
-  /// Verrou biométrique : départ et retour au premier plan.
+  /// Sous l'écran de code ou session fermée, rien à lire d'avance (plus de
+  /// jeton).
+  Future<void> _prechargerEcransCles() async {
+    if (ref.read(authNotifierProvider) is! AuthAuthenticated) return;
+    await prechargerEcransCles(ref);
+  }
+
+  /// Code d'accès : départ et retour au premier plan.
   @override
   void didChangeAppLifecycleState(AppLifecycleState etat) {
-    if (ref.read(authNotifierProvider) is! AuthAuthenticated) return;
-    final verrou = ref.read(verrouBiometriqueProvider.notifier);
+    final auth = ref.read(authNotifierProvider.notifier);
     switch (etat) {
       case AppLifecycleState.hidden:
       case AppLifecycleState.paused:
-        verrou.enArrierePlan();
+        auth.enArrierePlan();
       case AppLifecycleState.resumed:
-        verrou.auPremierPlan();
+        // Retour au premier plan : verrou si l'absence a duré, sinon
+        // renouvellement forcé de la session (comme VTC Manager).
+        unawaited(auth.auPremierPlan().then((_) {
+          if (mounted && ref.read(authNotifierProvider) is AuthAuthenticated) {
+            return ref.read(apiClientProvider).renouvelerMaintenant();
+          }
+        }));
       // `inactive` n'est pas un départ : la fenêtre Face ID, un appel entrant
       // ou le centre de contrôle le déclenchent sans quitter l'application.
       case AppLifecycleState.inactive:
@@ -128,12 +152,6 @@ class _ImmobilierManagerAppState extends ConsumerState<ImmobilierManagerApp>
         break;
     }
   }
-
-  /// Sous l'écran de verrou, le bouton retour d'Android ne doit pas dépiler
-  /// les pages cachées dessous : il est absorbé.
-  @override
-  Future<bool> didPopRoute() async =>
-      ref.read(verrouBiometriqueProvider) == Verrou.retour;
 
   Brightness _luminosite(ThemeMode mode) => switch (mode) {
         ThemeMode.light => Brightness.light,
@@ -146,9 +164,6 @@ class _ImmobilierManagerAppState extends ConsumerState<ImmobilierManagerApp>
   Widget build(BuildContext context) {
     final authState = ref.watch(authNotifierProvider);
     final apparence = ref.watch(themeControllerProvider);
-    final verrou = ref.watch(verrouBiometriqueProvider);
-    final couvert =
-        authState is AuthAuthenticated && verrou == Verrou.retour;
 
     // La palette est installée ici, avant que le moindre descendant ne se
     // construise : les widgets lisent AppColors au fil de leur `build`. Ceux
@@ -162,69 +177,108 @@ class _ImmobilierManagerAppState extends ConsumerState<ImmobilierManagerApp>
     }
     _construit = true;
 
+    // Déconnexion, ou passage au choix (à la reprise) du code après une
+    // connexion ou une inscription : les pages empilées — l'inscription
+    // notamment — laissent la place à la page d'accès.
+    // Renouvellement proactif du jeton d'accès, tant que la session est
+    // ouverte : sous l'écran de code, plus aucun jeton en clair.
     ref.listen<AuthState>(authNotifierProvider, (prev, next) {
-      if (next is AuthUnauthenticated) {
+      final client = ref.read(apiClientProvider);
+      next is AuthAuthenticated
+          ? client.demarrerRenouvellement()
+          : client.arreterRenouvellement();
+    });
+
+    ref.listen<AuthState>(authNotifierProvider, (prev, next) {
+      if (next is AuthUnauthenticated ||
+          next is AuthPinSetup ||
+          next is AuthPinResume) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           _navigatorKey.currentState?.popUntil((route) => route.isFirst);
         });
       }
     });
 
-    return MaterialApp(
-      title: 'Immobilier Manager',
+    // Verrouillée puis rouverte dans les dix minutes, l'application revient
+    // sur la page quittée ; au-delà, ou à la déconnexion, la pile est vidée.
+    // Au-dessus du MaterialApp : le retour arrière sous l'écran de code est
+    // intercepté avant que le navigateur ne dépile la page cachée.
+    return ConservationSousVerrou(
+      etat: _etatSession(authState),
       navigatorKey: _navigatorKey,
-      debugShowCheckedModeBanner: false,
-      localizationsDelegates: const [
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-      ],
-      supportedLocales: const [Locale('fr', 'FR'), Locale('en', 'US')],
-      locale: const Locale('fr', 'FR'),
-      theme: AppTheme.clair(apparence.accent),
-      darkTheme: AppTheme.sombre(apparence.accent),
-      themeMode: apparence.mode,
-      // Les couleurs viennent d'AppColors, pas du thème : l'animation de
-      // transition mêlerait l'ancien et le nouveau jeu pendant 200 ms.
-      themeAnimationDuration: Duration.zero,
-      builder: (context, child) => AnnotatedRegion<SystemUiOverlayStyle>(
-        value: (AppColors.estSombre
-                ? SystemUiOverlayStyle.light
-                : SystemUiOverlayStyle.dark)
-            .copyWith(statusBarColor: Colors.transparent),
-        // Au-dessus du navigateur : toutes les pages voient les droits.
-        child: DroitsEcriture(
-          peutEcrire: authState is AuthAuthenticated ? ref.watch(peutEcrireProvider) : true,
-          // Au retour au premier plan, le verrou couvre les pages ouvertes
-          // sans les détruire : une fois déverrouillé, on retrouve la page
-          // quittée. La pile reste toujours au même rang du Stack, pour que
-          // son état survive à l'apparition du verrou.
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              // Masquées et inertes sous le verrou (lecteurs d'écran compris).
-              ExcludeSemantics(
-                excluding: couvert,
+      builder: (context, conservation) => MaterialApp(
+        title: 'Immobilier Manager',
+        navigatorKey: _navigatorKey,
+        debugShowCheckedModeBanner: false,
+        localizationsDelegates: const [
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        supportedLocales: const [Locale('fr', 'FR'), Locale('en', 'US')],
+        locale: const Locale('fr', 'FR'),
+        theme: AppTheme.clair(apparence.accent),
+        darkTheme: AppTheme.sombre(apparence.accent),
+        themeMode: apparence.mode,
+        // Les couleurs viennent d'AppColors, pas du thème : l'animation de
+        // transition mêlerait l'ancien et le nouveau jeu pendant 200 ms.
+        themeAnimationDuration: Duration.zero,
+        builder: (context, child) => AnnotatedRegion<SystemUiOverlayStyle>(
+          value: (AppColors.estSombre
+                  ? SystemUiOverlayStyle.light
+                  : SystemUiOverlayStyle.dark)
+              .copyWith(statusBarColor: Colors.transparent),
+          // Au-dessus du navigateur : toutes les pages voient les droits.
+          child: DroitsEcriture(
+            peutEcrire: authState is AuthAuthenticated
+                ? ref.watch(peutEcrireProvider)
+                : true,
+            // Serveur hors d'atteinte : un bandeau dit pourquoi (accès
+            // coupé, internet absent, serveur en panne) et quoi faire.
+            child: BandeauHorsLigne(
+              // Au retour au premier plan, l'écran de code couvre les pages
+              // ouvertes sans les détruire.
+              child: CouvertureVerrou(
+                conservation: conservation,
+                ecranVerrou: const PinLockPage(),
                 child: child ?? const SizedBox.shrink(),
               ),
-              if (couvert) const VerrouBiometriquePage(),
-            ],
+            ),
           ),
         ),
+        home: switch (authState) {
+          AuthInitial() => const _SplashScreen(),
+          AuthAuthenticated() => _accueil(conservation),
+          // Les écrans ouverts restent construits sous l'écran de code.
+          AuthLocked() when conservation.couverte => _accueil(conservation),
+          AuthLocked() => const PinLockPage(),
+          AuthPinSetup(:final displayName) =>
+            PinSetupPage(displayName: displayName),
+          AuthPinResume(:final displayName) =>
+            PinResumePage(displayName: displayName),
+          _ => const LoginPage(),
+        },
       ),
-      home: switch (authState) {
-        AuthInitial() => const _SplashScreen(),
-        // Session retrouvée au lancement : l'accueil attend la biométrie.
-        AuthAuthenticated() when verrou == Verrou.demarrage =>
-          const VerrouBiometriquePage(),
-        // La proposition d'activer la biométrie s'accroche à l'accueil, une
-        // fois l'organisation choisie.
-        AuthAuthenticated() => const PorteOrganisation(
-            child: PropositionBiometrie(child: HomeScreen())),
-        _ => const LoginPage(),
-      },
     );
   }
+
+  /// Une fois l'organisation choisie, l'accueil porte la proposition
+  /// d'activer la biométrie, et lit d'avance les écrans clés pour qu'ils
+  /// soient servis hors connexion.
+  Widget _accueil(Conservation conservation) => PorteOrganisation(
+        key: conservation.cleAccueil,
+        child: PrechargementPeriodique(
+          precharger: _prechargerEcransCles,
+          child: const BiometricProposal(child: HomeScreen()),
+        ),
+      );
+
+  static EtatSession _etatSession(AuthState state) => switch (state) {
+        AuthAuthenticated() => EtatSession.ouverte,
+        AuthLocked() => EtatSession.verrouillee,
+        AuthUnauthenticated() => EtatSession.fermee,
+        _ => EtatSession.transitoire,
+      };
 }
 
 /// Affiché pendant la vérification de session au démarrage.
@@ -250,11 +304,8 @@ class _SplashScreenState extends ConsumerState<_SplashScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              AuthBrand(
-                assetLogo: 'assets/images/logo_tmk.png',
-                compact: true,
-                subtitle: '',
-              ),
+              // Même logo, aux angles adoucis, que les écrans de code.
+              PinBrand(height: 120),
               SizedBox(height: 28),
               CircularProgressIndicator(),
             ],

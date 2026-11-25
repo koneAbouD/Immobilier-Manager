@@ -62,7 +62,8 @@ class _InscriptionPageState extends ConsumerState<InscriptionPage> {
           telephone: _telephone.text,
           motDePasse: _motDePasse.text,
         );
-    // En cas de succès, l'application redémarre sur la session ouverte.
+    // En cas de succès, la session est ouverte et le choix du code TMK prend
+    // la place de cette page.
     if (!mounted || erreur == null) return;
     setState(() {
       _envoi = false;
