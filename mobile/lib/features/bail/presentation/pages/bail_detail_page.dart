@@ -97,6 +97,10 @@ class _BailDetailPageState extends ConsumerState<BailDetailPage> {
                 DetailInfoRow(Icons.event_busy_outlined, 'Fin prévue',
                     b.dateFin == null ? 'Indéterminée' : formatDate(b.dateFin)),
                 DetailInfoRow(Icons.today_outlined, 'Échéance', 'Le ${b.jourEcheance} de chaque mois'),
+                if (b.externe)
+                  DetailInfoRow(Icons.account_balance_wallet_outlined, 'Recouvrement',
+                      'Externe${b.gestionnaireExterne != null ? ' · ${b.gestionnaireExterne}' : ''}',
+                      valueColor: AppColors.warning),
               ]),
               DetailInfoCard(titre: 'Montants', icon: Icons.payments_outlined, children: [
                 DetailInfoRow(Icons.payments_outlined, 'Loyer', formatMontant(b.loyerMensuel)),
@@ -110,7 +114,8 @@ class _BailDetailPageState extends ConsumerState<BailDetailPage> {
                 if (b.moisAvance != null && b.moisAvance! > 0)
                   DetailInfoRow(Icons.fast_forward_outlined, 'Avance réglée',
                       '${formatMontant(b.montantAvance)} (${b.moisAvance} mois)'),
-                DetailInfoRow(Icons.event_available_outlined, '1er loyer facturé', formatMois(b.premierMoisFacture)),
+                DetailInfoRow(Icons.event_available_outlined, '1er loyer facturé',
+                    b.externe ? 'Aucun (bail externe)' : formatMois(b.premierMoisFacture)),
               ]),
               if (!b.estActif)
                 DetailInfoCard(titre: 'Résiliation', icon: Icons.logout_rounded, children: [
@@ -119,14 +124,16 @@ class _BailDetailPageState extends ConsumerState<BailDetailPage> {
                   DetailInfoRow(Icons.person_outline, 'Par', b.resiliePar),
                 ]),
               if (b.estActif) ...[
-                BoutonSecondaire(
-                  label: 'Créer des loyers à l\'avance',
-                  icon: Icons.playlist_add_rounded,
-                  onPressed: () async {
-                    if (await creerLoyers(context, bail: b) != null) _rafraichir();
-                  },
-                ),
-                const SizedBox(height: 10),
+                if (!b.externe) ...[
+                  BoutonSecondaire(
+                    label: 'Créer des loyers à l\'avance',
+                    icon: Icons.playlist_add_rounded,
+                    onPressed: () async {
+                      if (await creerLoyers(context, bail: b) != null) _rafraichir();
+                    },
+                  ),
+                  const SizedBox(height: 10),
+                ],
                 BoutonSecondaire(
                   label: 'Résilier le bail',
                   icon: Icons.logout_rounded,

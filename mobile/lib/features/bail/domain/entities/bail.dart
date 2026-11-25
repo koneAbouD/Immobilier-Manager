@@ -78,6 +78,12 @@ class Bail {
   /// Date d'enregistrement du bail : base du calcul du premier mois facturé.
   final DateTime? creeLe;
   final int? jourEcheance;
+
+  /// Loyers recouvrés par une autre entité : l'application n'en émet aucun.
+  final bool externe;
+
+  /// Entité chargée du recouvrement d'un bail externe ; facultatif.
+  final String? gestionnaireExterne;
   final StatutBail statut;
   final DateTime? dateResiliation;
   final String? motifResiliation;
@@ -113,6 +119,8 @@ class Bail {
     this.premierMoisFacture,
     this.creeLe,
     this.jourEcheance,
+    this.externe = false,
+    this.gestionnaireExterne,
     this.statut = StatutBail.actif,
     this.dateResiliation,
     this.motifResiliation,
@@ -127,6 +135,21 @@ class Bail {
   });
 
   bool get estActif => statut == StatutBail.actif;
+
+  /// Délai, après l'enregistrement, pendant lequel le bail peut passer externe
+  /// ou redevenir interne. Même règle que le backend.
+  static const delaiChangementRecouvrementJours = 45;
+
+  /// Dernier jour où le recouvrement peut encore changer.
+  DateTime get limiteChangementRecouvrement {
+    final c = creeLe ?? DateTime.now();
+    return DateTime(c.year, c.month, c.day + delaiChangementRecouvrementJours);
+  }
+
+  bool recouvrementModifiable([DateTime? aujourdhui]) {
+    final a = aujourdhui ?? DateTime.now();
+    return !DateTime(a.year, a.month, a.day).isAfter(limiteChangementRecouvrement);
+  }
 
   /// Premier mois facturé = le plus tardif du mois suivant l'enregistrement et
   /// du mois de début + les mois d'avance. Même règle que le backend.

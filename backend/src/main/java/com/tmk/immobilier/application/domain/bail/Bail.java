@@ -31,6 +31,8 @@ public class Bail {
     public static final int MOIS_AVANCE_MAX = 24;
     /** Usage courant : deux mois de loyer réglés d'avance à la signature. */
     public static final int MOIS_AVANCE_PAR_DEFAUT = 2;
+    /** Délai, après l'enregistrement du bail, pendant lequel il peut passer externe ou interne. */
+    public static final int DELAI_CHANGEMENT_RECOUVREMENT_JOURS = 45;
 
     private Long id;
     private String reference;
@@ -61,6 +63,13 @@ public class Bail {
     private LocalDate creeLe;
     /** Jour du mois où le loyer est exigible (1 à 28, pour exister chaque mois). */
     private Integer jourEcheance;
+    /**
+     * Bail externe : le recouvrement des loyers est assuré par une autre entité
+     * (agence, mandataire…). L'application n'en émet aucun loyer.
+     */
+    private Boolean externe;
+    /** Entité chargée du recouvrement d'un bail externe ; facultatif. */
+    private String gestionnaireExterne;
     private StatutBail statut;
     private LocalDate dateResiliation;
     private String motifResiliation;
@@ -83,6 +92,40 @@ public class Bail {
         if (depotGarantie == null) depotGarantie = BigDecimal.ZERO;
         if (jourEcheance == null) jourEcheance = JOUR_ECHEANCE_PAR_DEFAUT;
         if (moisAvance == null) moisAvance = MOIS_AVANCE_PAR_DEFAUT;
+        if (externe == null) externe = false;
+        if (!estExterne()) gestionnaireExterne = null;
+    }
+
+    /**
+     * Change le mode de recouvrement. Le basculement externe/interne n'est
+     * permis que dans les {@value #DELAI_CHANGEMENT_RECOUVREMENT_JOURS} jours
+     * qui suivent l'enregistrement du bail ; le nom de l'entité se corrige à
+     * tout moment.
+     *
+     * @param nouvelExterne nul : recouvrement inchangé, entité comprise
+     * @return vrai si le bail vient de passer externe
+     */
+    public boolean changerRecouvrement(Boolean nouvelExterne, String gestionnaire, LocalDate aujourdhui) {
+        if (nouvelExterne == null) return false;
+        boolean cible = nouvelExterne;
+        boolean devientExterne = cible && !estExterne();
+        if (cible != estExterne()) {
+            LocalDate creation = creeLe != null ? creeLe : aujourdhui;
+            LocalDate limite = creation.plusDays(DELAI_CHANGEMENT_RECOUVREMENT_JOURS);
+            if (aujourdhui.isAfter(limite)) {
+                throw new RegleMetierException("DELAI_RECOUVREMENT_DEPASSE",
+                        "Le recouvrement d'un bail ne change que dans les " + DELAI_CHANGEMENT_RECOUVREMENT_JOURS
+                                + " jours suivant sa création (jusqu'au " + limite + ").");
+            }
+            externe = cible;
+        }
+        gestionnaireExterne = cible && gestionnaire != null && !gestionnaire.isBlank() ? gestionnaire.trim() : null;
+        return devientExterne;
+    }
+
+    /** Vrai si les loyers sont recouvrés par une autre entité : aucun loyer n'est émis. */
+    public boolean estExterne() {
+        return Boolean.TRUE.equals(externe);
     }
 
     /**
@@ -147,9 +190,10 @@ public class Bail {
 
     /**
      * Vrai si un loyer est dû pour ce mois : à partir du premier mois facturé,
-     * jusqu'au mois de résiliation (ou de fin) inclus.
+     * jusqu'au mois de résiliation (ou de fin) inclus. Jamais pour un bail externe.
      */
     public boolean couvre(YearMonth periode) {
+        if (estExterne()) return false;
         if (periode.isBefore(premierMois())) return false;
         LocalDate fin = dateResiliation != null ? dateResiliation : dateFin;
         return fin == null || !periode.isAfter(YearMonth.from(fin));

@@ -24,6 +24,8 @@ abstract final class BailModel {
         premierMoisFacture: parseDate(json['premierMoisFacture']),
         creeLe: parseDate(json['creeLe']),
         jourEcheance: json['jourEcheance'] as int?,
+        externe: json['externe'] as bool? ?? false,
+        gestionnaireExterne: json['gestionnaireExterne'] as String?,
         statut: StatutBail.fromCode(json['statut'] as String?),
         dateResiliation: parseDate(json['dateResiliation']),
         motifResiliation: json['motifResiliation'] as String?,
@@ -50,5 +52,7 @@ abstract final class BailModel {
         'moisAvance': b.moisAvance,
         if (b.premierMoisFacture != null) 'premierMoisFacture': isoDate(b.premierMoisFacture!),
         'jourEcheance': b.jourEcheance,
+        'externe': b.externe,
+        if (b.externe && b.gestionnaireExterne != null) 'gestionnaireExterne': b.gestionnaireExterne,
       };
 }

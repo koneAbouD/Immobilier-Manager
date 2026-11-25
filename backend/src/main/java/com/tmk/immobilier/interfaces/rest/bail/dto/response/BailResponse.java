@@ -30,6 +30,9 @@ public record BailResponse(
         /** Date d'enregistrement : base du calcul du premier mois facturé. */
         LocalDate creeLe,
         Integer jourEcheance,
+        /** Loyers recouvrés par une autre entité : aucun loyer n'est émis. */
+        boolean externe,
+        String gestionnaireExterne,
         StatutBail statut,
         LocalDate dateResiliation,
         String motifResiliation,

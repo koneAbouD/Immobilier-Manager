@@ -61,6 +61,12 @@ public class BailEntity extends AbstractTenantEntity {
     @Column(name = "jour_echeance", nullable = false)
     private Integer jourEcheance;
 
+    @Column(nullable = false)
+    private Boolean externe;
+
+    @Column(name = "gestionnaire_externe", length = 150)
+    private String gestionnaireExterne;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 30)
     private StatutBail statut;

@@ -4,6 +4,7 @@ import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.PositiveOrZero;
+import jakarta.validation.constraints.Size;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -27,6 +28,10 @@ public record BailConditionsRequest(
         LocalDate premierMoisFacture,
         @Min(value = 1, message = "Le jour d'échéance doit être compris entre 1 et 28.")
         @Max(value = 28, message = "Le jour d'échéance doit être compris entre 1 et 28.")
-        Integer jourEcheance
+        Integer jourEcheance,
+        /** Changement de recouvrement : possible dans les 45 jours suivant la création. Nul : inchangé. */
+        Boolean externe,
+        @Size(max = 150, message = "Le nom du gestionnaire externe ne doit pas dépasser 150 caractères.")
+        String gestionnaireExterne
 ) {
 }

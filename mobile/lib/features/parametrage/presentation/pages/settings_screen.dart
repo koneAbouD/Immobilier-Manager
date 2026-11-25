@@ -5,7 +5,9 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/theme_controller.dart';
 import '../../../../core/widgets/app_header.dart';
 import '../../../../core/widgets/dialogs.dart';
+import '../../../../core/security/biometric_service.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
+import '../../../auth/presentation/providers/verrou_biometrique.dart';
 import '../../../organisation/domain/entities/organisation.dart';
 import '../../../organisation/presentation/pages/abonnement_page.dart';
 import '../../../organisation/presentation/pages/choix_organisation_page.dart';
@@ -110,6 +112,7 @@ class SettingsScreen extends ConsumerWidget {
                       description: session?.profil.identifiant,
                       onTap: () => _ouvrir(context, const MotDePassePage()),
                     ),
+                    const _LigneBiometrie(),
                     if (session?.profil.superAdmin ?? false)
                       SettingsTile(
                         icon: Icons.admin_panel_settings_outlined,
@@ -218,6 +221,97 @@ class _BandeauProfil extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Réglage du déverrouillage biométrique, repris de VTC Manager.
+///
+/// La ligne prend le nom de ce que sait faire l'appareil (Face ID, empreinte
+/// digitale…) et n'est actionnable que si une donnée biométrique y est
+/// enrôlée ; à défaut, elle reste en retrait avec le motif.
+class _LigneBiometrie extends ConsumerStatefulWidget {
+  const _LigneBiometrie();
+
+  @override
+  ConsumerState<_LigneBiometrie> createState() => _LigneBiometrieState();
+}
+
+class _LigneBiometrieState extends ConsumerState<_LigneBiometrie> {
+  BiometricAvailability? _dispo;
+  bool _active = false;
+  bool _occupee = false;
+
+  /// Position visée pendant la bascule : l'interrupteur s'y place aussitôt,
+  /// la validation se jouant dans la fenêtre de l'OS.
+  bool? _cible;
+
+  @override
+  void initState() {
+    super.initState();
+    _charger();
+  }
+
+  Future<void> _charger() async {
+    final verrou = ref.read(verrouBiometriqueProvider.notifier);
+    final dispo = await verrou.disponibilite();
+    final active = await verrou.estActif();
+    if (!mounted) return;
+    setState(() {
+      _dispo = dispo;
+      _active = active;
+    });
+  }
+
+  Future<void> _basculer(bool active) async {
+    setState(() {
+      _occupee = true;
+      _cible = active;
+    });
+    final verrou = ref.read(verrouBiometriqueProvider.notifier);
+    String? erreur;
+    if (active) {
+      erreur = await verrou.activer();
+    } else {
+      await verrou.desactiver();
+    }
+    if (!mounted) return;
+    setState(() {
+      _occupee = false;
+      _cible = null;
+      _active = active && erreur == null;
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(erreur ??
+            (active
+                ? 'Déverrouillage biométrique activé.'
+                : 'Déverrouillage biométrique désactivé.')),
+        backgroundColor: erreur == null ? AppColors.primary : AppColors.error,
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final dispo = _dispo;
+    final utilisable = (dispo?.disponible ?? false) && !_occupee;
+
+    return SettingsTile(
+      icon: dispo?.icone ?? Icons.fingerprint_rounded,
+      title: 'Déverrouillage biométrique',
+      description: switch (dispo) {
+        null => 'Vérification de cet appareil…',
+        BiometricAvailability(disponible: true, :final libelleAvecArticle) =>
+          'Ouvrir l\'application avec $libelleAvecArticle',
+        BiometricAvailability(:final raison?) => raison,
+        _ => 'Cet appareil ne dispose pas de capteur biométrique',
+      },
+      onTap: utilisable ? () => _basculer(!_active) : null,
+      trailing: SettingsSwitch(
+        value: _cible ?? _active,
+        onChanged: utilisable ? _basculer : null,
       ),
     );
   }

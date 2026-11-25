@@ -6,6 +6,7 @@ import '../../data/datasources/auth_remote_datasource.dart';
 import '../../data/repositories_impl/auth_repository_impl.dart';
 import '../../domain/repositories/auth_repository.dart';
 import 'auth_state.dart';
+import 'verrou_biometrique.dart';
 
 final authRepositoryProvider = Provider<AuthRepository>(
   (ref) => AuthRepositoryImpl(
@@ -17,13 +18,20 @@ final authRepositoryProvider = Provider<AuthRepository>(
 class AuthNotifier extends StateNotifier<AuthState> {
   final AuthRepository _repository;
 
-  AuthNotifier(this._repository) : super(const AuthInitial());
+  /// Verrou biométrique, consulté au lancement. Facultatif : les écrans de
+  /// connexion testés seuls n'en ont pas besoin.
+  final VerrouBiometriqueNotifier? _verrou;
+
+  AuthNotifier(this._repository, [this._verrou]) : super(const AuthInitial());
 
   /// Au démarrage : une session enregistrée rouvre l'application directement ;
   /// si elle a expiré, le premier appel API le dira et ramènera ici.
   Future<void> bootstrap() async {
     if (state is! AuthInitial) return;
     if (await _repository.hasSession()) {
+      // Avant d'annoncer la session : l'accueil ne doit pas se construire, même
+      // une image, si la biométrie doit d'abord être demandée.
+      await _verrou?.preparerDemarrage();
       state = AuthAuthenticated(await _repository.currentUsername() ?? '');
     } else {
       state = const AuthUnauthenticated();
@@ -37,7 +45,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
     final result = await _repository.login(username.trim(), password);
     result.fold(
       (failure) => state = AuthError(failure.message),
-      (_) => Redemarrage.lancer(),
+      (_) {
+        VerrouBiometriqueNotifier.marquerConnexion();
+        Redemarrage.lancer();
+      },
     );
   }
 
@@ -60,6 +71,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       motDePasse: motDePasse,
     );
     return result.fold((failure) => failure.message, (_) {
+      VerrouBiometriqueNotifier.marquerConnexion();
       Redemarrage.lancer();
       return null;
     });
@@ -68,6 +80,16 @@ class AuthNotifier extends StateNotifier<AuthState> {
   Future<void> logout() async {
     await _repository.logout();
     state = const AuthUnauthenticated();
+  }
+
+  /// Repli de l'écran de verrou biométrique : la session est fermée et la
+  /// connexion classique (téléphone + mot de passe) prend le relais. L'option
+  /// biométrique, rattachée au compte, reste active pour la suite.
+  Future<void> seReconnecterParMotDePasse() async {
+    _verrou?.abandonner();
+    await _repository.logout();
+    state = const AuthUnauthenticated(
+        'Connectez-vous avec votre téléphone et votre mot de passe.');
   }
 
   /// Le refresh token a été refusé : retour à la connexion.
@@ -80,7 +102,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
 final authNotifierProvider =
     StateNotifierProvider<AuthNotifier, AuthState>((ref) {
-  final notifier = AuthNotifier(ref.watch(authRepositoryProvider));
+  final notifier = AuthNotifier(
+    ref.watch(authRepositoryProvider),
+    ref.read(verrouBiometriqueProvider.notifier),
+  );
   ref.watch(apiClientProvider).onSessionExpired = notifier.sessionExpiree;
   return notifier;
 });

@@ -8,6 +8,8 @@
 	<string>Photographier le contrat de bail signé pour l'archiver.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Choisir la photo d'un contrat de bail signé.</string>
+	<key>NSFaceIDUsageDescription</key>
+	<string>Face ID vous permet de déverrouiller l'application sans saisir votre mot de passe.</string>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>CFBundleDevelopmentRegion</key>

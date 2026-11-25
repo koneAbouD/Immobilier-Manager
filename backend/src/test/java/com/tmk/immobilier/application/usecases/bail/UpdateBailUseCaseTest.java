@@ -3,6 +3,7 @@ package com.tmk.immobilier.application.usecases.bail;
 import com.tmk.immobilier.application.domain.bail.Bail;
 import com.tmk.immobilier.application.domain.bail.StatutBail;
 import com.tmk.immobilier.application.domain.loyer.EcheanceLoyer;
+import com.tmk.immobilier.application.domain.loyer.StatutEcheance;
 import com.tmk.immobilier.application.ports.persistence.BailRepository;
 import com.tmk.immobilier.application.ports.persistence.EcheanceLoyerRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -47,6 +48,64 @@ class UpdateBailUseCaseTest {
     private Bail modifications() {
         return Bail.builder().dateDebut(bail.getDateDebut()).moisAvance(bail.getMoisAvance())
                 .premierMoisFacture(bail.getPremierMoisFacture()).build();
+    }
+
+    @Test
+    void passerExterneAnnuleLesLoyersNonRegles() {
+        bail.setCreeLe(LocalDate.now().minusDays(10));
+        EcheanceLoyer emise = EcheanceLoyer.pour(bail, YearMonth.from(bail.getPremierMoisFacture()));
+        when(echeanceLoyerRepository.findByBailId(3L)).thenReturn(List.of(emise));
+        when(bailRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        Bail m = modifications();
+        m.setExterne(true);
+        m.setGestionnaireExterne(" Agence Horizon ");
+
+        Bail maj = useCase.execute(3L, m);
+
+        assertThat(maj.estExterne()).isTrue();
+        assertThat(maj.getGestionnaireExterne()).isEqualTo("Agence Horizon");
+        assertThat(emise.getStatut()).isEqualTo(StatutEcheance.ANNULEE);
+        verify(echeanceLoyerRepository).saveAll(List.of(emise));
+    }
+
+    @Test
+    void refusePasserExterneSiUnLoyerEstEncaisse() {
+        bail.setCreeLe(LocalDate.now().minusDays(10));
+        EcheanceLoyer emise = EcheanceLoyer.pour(bail, YearMonth.from(bail.getPremierMoisFacture()));
+        emise.enregistrerPaiement(new BigDecimal("1000"));
+        when(echeanceLoyerRepository.findByBailId(3L)).thenReturn(List.of(emise));
+        Bail m = modifications();
+        m.setExterne(true);
+
+        assertThatThrownBy(() -> useCase.execute(3L, m)).hasMessageContaining("déjà été encaissés");
+        verify(bailRepository, never()).save(any());
+    }
+
+    @Test
+    void refuseDeChangerLeRecouvrementApres45Jours() {
+        bail.setCreeLe(LocalDate.now().minusDays(46));
+        when(echeanceLoyerRepository.findByBailId(3L)).thenReturn(List.of());
+        Bail m = modifications();
+        m.setExterne(true);
+
+        assertThatThrownBy(() -> useCase.execute(3L, m)).hasMessageContaining("45 jours");
+        verify(bailRepository, never()).save(any());
+    }
+
+    @Test
+    void redevientInterneDansLeDelai() {
+        bail.setCreeLe(LocalDate.now().minusDays(45));
+        bail.setExterne(true);
+        bail.setGestionnaireExterne("Agence Horizon");
+        when(echeanceLoyerRepository.findByBailId(3L)).thenReturn(List.of());
+        when(bailRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        Bail m = modifications();
+        m.setExterne(false);
+
+        Bail maj = useCase.execute(3L, m);
+
+        assertThat(maj.estExterne()).isFalse();
+        assertThat(maj.getGestionnaireExterne()).isNull();
     }
 
     @Test

@@ -59,5 +59,6 @@ public interface BailRestMapper {
     @Mapping(target = "montantMensuel", expression = "java(domain.montantMensuel())")
     @Mapping(target = "statutContrat", expression = "java(domain.statutContrat())")
     @Mapping(target = "montantAvance", expression = "java(domain.montantAvance())")
+    @Mapping(target = "externe", expression = "java(domain.estExterne())")
     BailResponse toResponse(Bail domain);
 }

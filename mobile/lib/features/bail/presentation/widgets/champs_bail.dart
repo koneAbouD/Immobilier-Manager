@@ -13,40 +13,85 @@ class InterrupteurDuree extends StatelessWidget {
   const InterrupteurDuree({super.key, required this.valeur, required this.onChanged});
 
   @override
+  Widget build(BuildContext context) => _Interrupteur(
+    icone: Icons.all_inclusive_rounded,
+    titre: 'Durée indéterminée',
+    detail: valeur ? 'Le bail court jusqu\'à résiliation' : 'Le bail prend fin à la date indiquée',
+    valeur: valeur,
+    onChanged: onChanged,
+  );
+}
+
+/// Bail externe : le recouvrement des loyers est assuré par une autre entité,
+/// l'application n'en émet aucun.
+class InterrupteurBailExterne extends StatelessWidget {
+  final bool valeur;
+
+  /// Nul : interrupteur figé (délai de changement dépassé).
+  final ValueChanged<bool>? onChanged;
+
+  /// Remplace le texte d'aide, par exemple pour expliquer un blocage.
+  final String? detail;
+
+  const InterrupteurBailExterne({super.key, required this.valeur, required this.onChanged, this.detail});
+
+  @override
+  Widget build(BuildContext context) => _Interrupteur(
+    icone: Icons.handshake_outlined,
+    titre: 'Bail externe',
+    detail:
+        detail ??
+        (valeur
+            ? 'Loyers recouvrés par une autre entité : aucun loyer ne sera généré'
+            : 'Les loyers sont générés et suivis dans l\'application'),
+    valeur: valeur,
+    onChanged: onChanged,
+  );
+}
+
+class _Interrupteur extends StatelessWidget {
+  final IconData icone;
+  final String titre;
+  final String detail;
+  final bool valeur;
+  final ValueChanged<bool>? onChanged;
+
+  const _Interrupteur({
+    required this.icone,
+    required this.titre,
+    required this.detail,
+    required this.valeur,
+    required this.onChanged,
+  });
+
+  @override
   Widget build(BuildContext context) {
     return Material(
       color: valeur ? AppColors.primaryTint : AppColors.cardTint,
       borderRadius: BorderRadius.circular(14),
       child: InkWell(
         borderRadius: BorderRadius.circular(14),
-        onTap: () => onChanged(!valeur),
+        onTap: onChanged == null ? null : () => onChanged!(!valeur),
         child: Padding(
           padding: const EdgeInsets.fromLTRB(14, 8, 8, 8),
           child: Row(
             children: [
-              Icon(Icons.all_inclusive_rounded, size: 20, color: AppColors.primaryDark),
+              Icon(icone, size: 20, color: AppColors.primaryDark),
               const SizedBox(width: 10),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Durée indéterminée',
+                      titre,
                       style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.dark),
                     ),
                     const SizedBox(height: 2),
-                    Text(
-                      valeur ? 'Le bail court jusqu\'à résiliation' : 'Le bail prend fin à la date indiquée',
-                      style: TextStyle(fontSize: 12, color: AppColors.label),
-                    ),
+                    Text(detail, style: TextStyle(fontSize: 12, color: AppColors.label)),
                   ],
                 ),
               ),
-              Switch.adaptive(
-                value: valeur,
-                activeTrackColor: AppColors.primary,
-                onChanged: onChanged,
-              ),
+              Switch.adaptive(value: valeur, activeTrackColor: AppColors.primary, onChanged: onChanged),
             ],
           ),
         ),
@@ -91,8 +136,10 @@ class PremierLoyer extends StatelessWidget {
               children: [
                 Text(titre, style: TextStyle(fontSize: 12, color: AppColors.label)),
                 if (moisAvance > 0)
-                  Text('Avance à la signature : ${formatMontant(montantAvance)}',
-                      style: TextStyle(fontSize: 11.5, color: AppColors.label)),
+                  Text(
+                    'Avance à la signature : ${formatMontant(montantAvance)}',
+                    style: TextStyle(fontSize: 11.5, color: AppColors.label),
+                  ),
               ],
             ),
           ),

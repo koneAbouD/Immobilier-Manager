@@ -25,6 +25,10 @@ import java.util.Objects;
  * <p>Premier mois facturé : recalculé si la date de début ou l'avance change
  * tant qu'aucun loyer n'est émis ; une valeur saisie l'emporte. Il ne peut pas
  * passer après un loyer déjà émis et non annulé.
+ *
+ * <p>Recouvrement : un bail peut passer externe (ou redevenir interne) dans
+ * les {@value Bail#DELAI_CHANGEMENT_RECOUVREMENT_JOURS} jours suivant sa
+ * création. En passant externe, ses loyers non réglés sont annulés.
  */
 @RequiredArgsConstructor
 public class UpdateBailUseCase {
@@ -64,6 +68,18 @@ public class UpdateBailUseCase {
         List<EcheanceLoyer> emises = echeanceLoyerRepository.findByBailId(id).stream()
                 .filter(e -> e.getStatut() != StatutEcheance.ANNULEE)
                 .toList();
+
+        // Passé externe : les loyers déjà émis ne sont plus dus à l'organisation.
+        if (existant.changerRecouvrement(modifications.getExterne(), modifications.getGestionnaireExterne(),
+                LocalDate.now())) {
+            if (emises.stream().anyMatch(e -> e.getMontantPaye() != null && e.getMontantPaye().signum() > 0)) {
+                throw new RegleMetierException("LOYERS_DEJA_ENCAISSES",
+                        "Des loyers de ce bail ont déjà été encaissés : annulez ces paiements avant de le passer externe.");
+            }
+            emises.forEach(EcheanceLoyer::annuler);
+            if (!emises.isEmpty()) echeanceLoyerRepository.saveAll(emises);
+            emises = List.of();
+        }
         LocalDate premierSaisi = modifications.getPremierMoisFacture();
         if (premierSaisi != null && !YearMonth.from(premierSaisi).equals(YearMonth.from(premierAvant))) {
             existant.definirPremierMoisFacture(premierSaisi);

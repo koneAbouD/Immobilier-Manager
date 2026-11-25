@@ -9,6 +9,8 @@ class SecureStorage {
   static const _kThemeAccent = 'theme_accent';
   static const _kThemeMode = 'theme_mode';
   static const _kOrganisationId = 'organisation_id';
+  static const _kBiometrieCompte = 'biometrie_compte';
+  static const _kBiometrieProposee = 'biometrie_proposee_';
 
   final FlutterSecureStorage _storage;
 
@@ -51,6 +53,28 @@ class SecureStorage {
       _storage.write(key: _kOrganisationId, value: '$id');
 
   Future<void> clearOrganisationId() => _storage.delete(key: _kOrganisationId);
+
+  /// Compte (identifiant de connexion) pour lequel le déverrouillage
+  /// biométrique est activé, ou `null` si l'option est coupée.
+  ///
+  /// Rattaché au compte plutôt qu'un simple drapeau : une connexion sous un
+  /// autre identifiant ne doit pas hériter du réglage. Conservé par
+  /// [clearTokens] — le repli vers la connexion par mot de passe ne fait pas
+  /// perdre l'option à celui qui se reconnecte avec le même compte.
+  Future<String?> getBiometrieCompte() => _storage.read(key: _kBiometrieCompte);
+
+  Future<void> setBiometrieCompte(String? compte) => compte == null
+      ? _storage.delete(key: _kBiometrieCompte)
+      : _storage.write(key: _kBiometrieCompte, value: compte);
+
+  /// La proposition d'activer la biométrie a-t-elle déjà été faite à ce
+  /// compte sur cet appareil ? Un refus vaut pour toujours : l'option reste
+  /// dans les Réglages, mais on ne la redemande plus.
+  Future<bool> getBiometrieProposee(String compte) async =>
+      (await _storage.read(key: '$_kBiometrieProposee$compte')) == '1';
+
+  Future<void> setBiometrieProposee(String compte) =>
+      _storage.write(key: '$_kBiometrieProposee$compte', value: '1');
 
   /// Fin de session : jetons et organisation active partent ensemble, pour
   /// que le compte suivant ne démarre jamais dans l'organisation du précédent.

@@ -11,9 +11,12 @@ import 'core/theme/app_colors.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/theme_controller.dart';
 import 'features/auth/presentation/pages/login_page.dart';
+import 'features/auth/presentation/pages/verrou_biometrique_page.dart';
 import 'features/auth/presentation/providers/auth_provider.dart';
 import 'features/auth/presentation/providers/auth_state.dart';
+import 'features/auth/presentation/providers/verrou_biometrique.dart';
 import 'features/auth/presentation/widgets/auth_ui.dart';
+import 'features/auth/presentation/widgets/proposition_biometrie.dart';
 import 'features/organisation/presentation/pages/porte_organisation.dart';
 import 'features/organisation/presentation/providers/organisation_providers.dart';
 import 'screens/home_screen.dart';
@@ -107,6 +110,31 @@ class _ImmobilierManagerAppState extends ConsumerState<ImmobilierManagerApp>
     }
   }
 
+  /// Verrou biométrique : départ et retour au premier plan.
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState etat) {
+    if (ref.read(authNotifierProvider) is! AuthAuthenticated) return;
+    final verrou = ref.read(verrouBiometriqueProvider.notifier);
+    switch (etat) {
+      case AppLifecycleState.hidden:
+      case AppLifecycleState.paused:
+        verrou.enArrierePlan();
+      case AppLifecycleState.resumed:
+        verrou.auPremierPlan();
+      // `inactive` n'est pas un départ : la fenêtre Face ID, un appel entrant
+      // ou le centre de contrôle le déclenchent sans quitter l'application.
+      case AppLifecycleState.inactive:
+      case AppLifecycleState.detached:
+        break;
+    }
+  }
+
+  /// Sous l'écran de verrou, le bouton retour d'Android ne doit pas dépiler
+  /// les pages cachées dessous : il est absorbé.
+  @override
+  Future<bool> didPopRoute() async =>
+      ref.read(verrouBiometriqueProvider) == Verrou.retour;
+
   Brightness _luminosite(ThemeMode mode) => switch (mode) {
         ThemeMode.light => Brightness.light,
         ThemeMode.dark => Brightness.dark,
@@ -118,6 +146,9 @@ class _ImmobilierManagerAppState extends ConsumerState<ImmobilierManagerApp>
   Widget build(BuildContext context) {
     final authState = ref.watch(authNotifierProvider);
     final apparence = ref.watch(themeControllerProvider);
+    final verrou = ref.watch(verrouBiometriqueProvider);
+    final couvert =
+        authState is AuthAuthenticated && verrou == Verrou.retour;
 
     // La palette est installée ici, avant que le moindre descendant ne se
     // construise : les widgets lisent AppColors au fil de leur `build`. Ceux
@@ -164,12 +195,32 @@ class _ImmobilierManagerAppState extends ConsumerState<ImmobilierManagerApp>
         // Au-dessus du navigateur : toutes les pages voient les droits.
         child: DroitsEcriture(
           peutEcrire: authState is AuthAuthenticated ? ref.watch(peutEcrireProvider) : true,
-          child: child ?? const SizedBox.shrink(),
+          // Au retour au premier plan, le verrou couvre les pages ouvertes
+          // sans les détruire : une fois déverrouillé, on retrouve la page
+          // quittée. La pile reste toujours au même rang du Stack, pour que
+          // son état survive à l'apparition du verrou.
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              // Masquées et inertes sous le verrou (lecteurs d'écran compris).
+              ExcludeSemantics(
+                excluding: couvert,
+                child: child ?? const SizedBox.shrink(),
+              ),
+              if (couvert) const VerrouBiometriquePage(),
+            ],
+          ),
         ),
       ),
       home: switch (authState) {
         AuthInitial() => const _SplashScreen(),
-        AuthAuthenticated() => const PorteOrganisation(child: HomeScreen()),
+        // Session retrouvée au lancement : l'accueil attend la biométrie.
+        AuthAuthenticated() when verrou == Verrou.demarrage =>
+          const VerrouBiometriquePage(),
+        // La proposition d'activer la biométrie s'accroche à l'accueil, une
+        // fois l'organisation choisie.
+        AuthAuthenticated() => const PorteOrganisation(
+            child: PropositionBiometrie(child: HomeScreen())),
         _ => const LoginPage(),
       },
     );

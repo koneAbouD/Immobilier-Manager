@@ -53,6 +53,10 @@ dependencies:
   flutter_map: ^8.3.2
   latlong2: ^0.10.1
   geolocator: ^14.0.2
+  # Déverrouillage biométrique (Face ID, Touch ID, empreinte), comme VTC Manager.
+  local_auth: ^3.0.2
+  local_auth_android: ^2.0.8
+  local_auth_darwin: ^2.0.3
 
 dev_dependencies:
   flutter_test:

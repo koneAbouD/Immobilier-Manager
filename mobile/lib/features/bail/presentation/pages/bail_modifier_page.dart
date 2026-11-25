@@ -35,6 +35,8 @@ class _BailModifierPageState extends ConsumerState<BailModifierPage> {
   late final _moisCaution = TextEditingController(text: b.moisCaution?.toString() ?? '');
   late final _moisAvance = TextEditingController(text: '${b.moisAvance ?? 0}');
   late final _jour = TextEditingController(text: '${b.jourEcheance ?? 5}');
+  late bool _externe = b.externe;
+  late final _gestionnaireExterne = TextEditingController(text: b.gestionnaireExterne ?? '');
 
   /// Premier mois choisi à la main ; nul tant qu'il suit le calcul.
   DateTime? _premierChoisi;
@@ -42,7 +44,7 @@ class _BailModifierPageState extends ConsumerState<BailModifierPage> {
 
   @override
   void dispose() {
-    for (final c in [_loyer, _charges, _moisCaution, _moisAvance, _jour]) {
+    for (final c in [_loyer, _charges, _moisCaution, _moisAvance, _jour, _gestionnaireExterne]) {
       c.dispose();
     }
     super.dispose();
@@ -101,7 +103,15 @@ class _BailModifierPageState extends ConsumerState<BailModifierPage> {
       moisAvance: _avance,
       premierMoisFacture: _premierChoisi,
       jourEcheance: int.tryParse(_jour.text),
+      externe: _externe,
+      gestionnaireExterne: _externe && _gestionnaireExterne.text.trim().isNotEmpty
+          ? _gestionnaireExterne.text.trim()
+          : null,
     );
+    if (_externe && !b.externe && !await _confirmerPassageExterne()) {
+      setState(() => _envoi = false);
+      return;
+    }
     final result = await ref.read(bailRepositoryProvider).update(b.id!, modifications);
     if (!mounted) return;
     setState(() => _envoi = false);
@@ -111,8 +121,28 @@ class _BailModifierPageState extends ConsumerState<BailModifierPage> {
     });
   }
 
+  /// Passer externe annule les loyers déjà émis et non réglés : on prévient.
+  Future<bool> _confirmerPassageExterne() async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Passer le bail en externe ?'),
+        content: const Text(
+          'Les loyers déjà émis pour ce bail seront annulés et plus aucun ne sera généré. '
+          'Impossible si un loyer a déjà été encaissé.',
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Annuler')),
+          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Confirmer')),
+        ],
+      ),
+    );
+    return ok ?? false;
+  }
+
   @override
   Widget build(BuildContext context) {
+    final modifiable = b.recouvrementModifiable();
     return Scaffold(
       appBar: AppHeader(title: 'Modifier le bail'),
       body: Form(
@@ -211,55 +241,86 @@ class _BailModifierPageState extends ConsumerState<BailModifierPage> {
               ],
             ),
             GroupeChamps(
-              titre: 'Facturation',
-              icone: Icons.event_available_outlined,
+              titre: 'Recouvrement',
+              icone: Icons.account_balance_wallet_outlined,
               couleur: AppColors.warning,
               children: [
-                ChampEntier(
-                  controller: _moisAvance,
-                  label: 'Mois d\'avance',
-                  hint: '0',
-                  obligatoire: true,
-                  aide: 'Loyers réglés à la signature, non restitués : ces mois ne sont pas facturés (0 à 24)',
-                  validator: _validerMois,
+                InterrupteurBailExterne(
+                  valeur: _externe,
+                  onChanged: modifiable ? (v) => setState(() => _externe = v) : null,
+                  detail: modifiable
+                      ? null
+                      : 'Modifiable dans les ${Bail.delaiChangementRecouvrementJours} jours suivant la création '
+                            '(jusqu\'au ${formatDate(b.limiteChangementRecouvrement)})',
                 ),
-                kGapChamps,
-                ListenableBuilder(
-                  listenable: Listenable.merge([_loyer, _charges, _moisAvance]),
-                  builder: (context, _) {
-                    final mensuel =
-                        (parseMontantSaisi(_loyer.text) ?? 0) + (parseMontantSaisi(_charges.text) ?? 0);
-                    return ChampChoix<DateTime>(
-                      label: 'Premier loyer facturé',
-                      valeur: _premierAffiche,
-                      options: _moisPossibles,
-                      libelle: formatMois,
-                      onChanged: (m) => setState(() => _premierChoisi = m),
-                    ).avecApercu(
-                      PremierLoyer(
-                        titre: _premierChoisi != null
-                            ? 'Choisi à la main'
-                            : _debutOuAvanceModifie
-                            ? 'Recalculé si aucun loyer n\'est encore émis'
-                            : 'Premier loyer facturé',
-                        premierMois: _premierAffiche,
-                        moisAvance: _avance,
-                        montantAvance: mensuel * _avance,
-                      ),
-                    );
-                  },
-                ),
-                if (_premierChoisi != null)
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: TextButton.icon(
-                      onPressed: () => setState(() => _premierChoisi = null),
-                      icon: const Icon(Icons.restart_alt_rounded, size: 18),
-                      label: const Text('Revenir au calcul automatique'),
+                if (_externe) ...[
+                  kGapChamps,
+                  ChampTexte(
+                    controller: _gestionnaireExterne,
+                    label: 'Entité de recouvrement',
+                    hint: 'Agence, mandataire…',
+                    validator: (v) => (v ?? '').trim().length > 150 ? '150 caractères au plus.' : null,
+                  ),
+                ] else if (modifiable)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 6),
+                    child: Text(
+                      'Modifiable jusqu\'au ${formatDate(b.limiteChangementRecouvrement)}',
+                      style: TextStyle(fontSize: 12, color: AppColors.label),
                     ),
                   ),
               ],
             ),
+            if (!_externe)
+              GroupeChamps(
+                titre: 'Facturation',
+                icone: Icons.event_available_outlined,
+                couleur: AppColors.warning,
+                children: [
+                  ChampEntier(
+                    controller: _moisAvance,
+                    label: 'Mois d\'avance',
+                    hint: '0',
+                    obligatoire: true,
+                    aide: 'Loyers réglés à la signature, non restitués : ces mois ne sont pas facturés (0 à 24)',
+                    validator: _validerMois,
+                  ),
+                  kGapChamps,
+                  ListenableBuilder(
+                    listenable: Listenable.merge([_loyer, _charges, _moisAvance]),
+                    builder: (context, _) {
+                      final mensuel = (parseMontantSaisi(_loyer.text) ?? 0) + (parseMontantSaisi(_charges.text) ?? 0);
+                      return ChampChoix<DateTime>(
+                        label: 'Premier loyer facturé',
+                        valeur: _premierAffiche,
+                        options: _moisPossibles,
+                        libelle: formatMois,
+                        onChanged: (m) => setState(() => _premierChoisi = m),
+                      ).avecApercu(
+                        PremierLoyer(
+                          titre: _premierChoisi != null
+                              ? 'Choisi à la main'
+                              : _debutOuAvanceModifie
+                              ? 'Recalculé si aucun loyer n\'est encore émis'
+                              : 'Premier loyer facturé',
+                          premierMois: _premierAffiche,
+                          moisAvance: _avance,
+                          montantAvance: mensuel * _avance,
+                        ),
+                      );
+                    },
+                  ),
+                  if (_premierChoisi != null)
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: TextButton.icon(
+                        onPressed: () => setState(() => _premierChoisi = null),
+                        icon: const Icon(Icons.restart_alt_rounded, size: 18),
+                        label: const Text('Revenir au calcul automatique'),
+                      ),
+                    ),
+                ],
+              ),
             const SizedBox(height: 8),
             BoutonPrincipal(label: 'Enregistrer', loading: _envoi, onPressed: _enregistrer),
           ],

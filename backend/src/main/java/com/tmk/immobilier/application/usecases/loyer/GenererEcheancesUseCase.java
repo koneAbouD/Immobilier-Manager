@@ -27,7 +27,8 @@ import java.util.stream.Collectors;
  *
  * <p>Un bail n'est facturé qu'à partir de son premier mois facturé (voir
  * {@link Bail#calculerPremierMoisFacture}) : ni rétroactivement, ni pour les
- * mois réglés d'avance.
+ * mois réglés d'avance. Un bail externe (recouvrement assuré par une autre
+ * entité) n'est jamais facturé.
  *
  * <p>Idempotent : un mois déjà émis pour un bail n'est jamais recréé (contrainte
  * unique bail/période en base, et filtrage ici). Le scheduler peut donc
@@ -74,6 +75,10 @@ public class GenererEcheancesUseCase {
         if (!bail.estActif()) {
             throw new RegleMetierException("BAIL_NON_ACTIF", "Un bail résilié n'émet plus de loyers.");
         }
+        if (bail.estExterne()) {
+            throw new RegleMetierException("BAIL_EXTERNE",
+                    "Les loyers de ce bail sont recouvrés par une autre entité : l'application n'en émet pas.");
+        }
         return executePourBail(bail, jusquA);
     }
 
@@ -87,6 +92,8 @@ public class GenererEcheancesUseCase {
 
     @Transactional
     public int executePourBail(Bail bail, YearMonth jusquA) {
+        // Recouvrement assuré par une autre entité : rien à émettre.
+        if (bail.estExterne()) return 0;
         Set<LocalDate> dejaEmises = echeanceLoyerRepository.findByBailId(bail.getId()).stream()
                 .map(EcheanceLoyer::getPeriode)
                 .collect(Collectors.toSet());

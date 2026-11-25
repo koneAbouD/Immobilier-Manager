@@ -55,6 +55,28 @@ class GenererEcheancesUseCaseTest {
     }
 
     @Test
+    void nEmetAucunLoyerPourUnBailExterne() {
+        Bail bail = bail();
+        bail.setExterne(true);
+
+        int creees = useCase.executePourBail(bail, YearMonth.of(2026, 10));
+
+        assertThat(creees).isZero();
+        verifyNoInteractions(echeanceLoyerRepository);
+    }
+
+    @Test
+    void refuseUneCreationManuellePourUnBailExterne() {
+        Bail bail = bail();
+        bail.setExterne(true);
+        when(bailRepository.findById(7L)).thenReturn(java.util.Optional.of(bail));
+
+        assertThatThrownBy(() -> useCase.executeManuelle(7L, YearMonth.now()))
+                .hasMessageContaining("autre entité");
+        verifyNoInteractions(echeanceLoyerRepository);
+    }
+
+    @Test
     void estIdempotente() {
         Bail bail = bail();
         when(echeanceLoyerRepository.findByBailId(7L)).thenReturn(List.of(

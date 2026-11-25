@@ -57,6 +57,10 @@ class _BailFormPageState extends ConsumerState<BailFormPage> {
   // restitués ; ils repoussent le premier loyer facturé.
   final _moisAvance = TextEditingController(text: '2');
   final _jour = TextEditingController(text: '5');
+
+  /// Bail externe : loyers recouvrés par une autre entité, aucun n'est généré.
+  bool _externe = false;
+  final _gestionnaireExterne = TextEditingController();
   bool _envoi = false;
 
   /// Bail créé à la fin de l'étape Conditions.
@@ -77,7 +81,7 @@ class _BailFormPageState extends ConsumerState<BailFormPage> {
 
   @override
   void dispose() {
-    for (final c in [_loyer, _charges, _moisCaution, _moisAvance, _jour]) {
+    for (final c in [_loyer, _charges, _moisCaution, _moisAvance, _jour, _gestionnaireExterne]) {
       c.dispose();
     }
     super.dispose();
@@ -106,8 +110,7 @@ class _BailFormPageState extends ConsumerState<BailFormPage> {
 
   /// Enveloppe une action de la barre pour ignorer l'appui qui suit de trop
   /// près un changement d'étape.
-  VoidCallback? _garde(VoidCallback? action) =>
-      action == null ? null : () => _appuiTropProche ? null : action();
+  VoidCallback? _garde(VoidCallback? action) => action == null ? null : () => _appuiTropProche ? null : action();
 
   void _aller(_Etape etape) => setState(() {
     _etape = etape;
@@ -128,8 +131,7 @@ class _BailFormPageState extends ConsumerState<BailFormPage> {
           hintRecherche: 'Référence, bien…',
           emptyMessage: 'Aucun logement libre.',
           fetcherPour: (r) =>
-              (page, size) =>
-                  repo.getPage(page: page, size: size, statut: StatutAppartement.libre, recherche: r),
+              (page, size) => repo.getPage(page: page, size: size, statut: StatutAppartement.libre, recherche: r),
           titreItem: (a) => a.libelleComplet,
           sousTitreItem: (a) => a.montantMensuel > 0
               ? '${a.type.libelle} · ${formatMontant(a.montantMensuel)}/mois'
@@ -175,8 +177,13 @@ class _BailFormPageState extends ConsumerState<BailFormPage> {
       // Recalculé par le backend à partir du nombre de mois.
       depotGarantie: _depotCalcule,
       moisCaution: int.tryParse(_moisCaution.text),
-      moisAvance: int.tryParse(_moisAvance.text) ?? 0,
+      // Sans loyer émis, aucun mois d'avance ne vient le repousser.
+      moisAvance: _externe ? 0 : int.tryParse(_moisAvance.text) ?? 0,
       jourEcheance: int.tryParse(_jour.text),
+      externe: _externe,
+      gestionnaireExterne: _externe && _gestionnaireExterne.text.trim().isNotEmpty
+          ? _gestionnaireExterne.text.trim()
+          : null,
     );
     final result = await ref.read(bailRepositoryProvider).create(bail);
     if (!mounted) return;
@@ -340,6 +347,23 @@ class _BailFormPageState extends ConsumerState<BailFormPage> {
       ],
     ),
     GroupeChamps(
+      titre: 'Recouvrement',
+      icone: Icons.account_balance_wallet_outlined,
+      couleur: AppColors.warning,
+      children: [
+        InterrupteurBailExterne(valeur: _externe, onChanged: (v) => setState(() => _externe = v)),
+        if (_externe) ...[
+          kGapChamps,
+          ChampTexte(
+            controller: _gestionnaireExterne,
+            label: 'Entité de recouvrement',
+            hint: 'Agence, mandataire…',
+            validator: (v) => (v ?? '').trim().length > 150 ? '150 caractères au plus.' : null,
+          ),
+        ],
+      ],
+    ),
+    GroupeChamps(
       titre: 'Montants',
       icone: Icons.payments_outlined,
       couleur: AppColors.positive,
@@ -364,33 +388,35 @@ class _BailFormPageState extends ConsumerState<BailFormPage> {
           listenable: Listenable.merge([_loyer, _moisCaution]),
           builder: (context, _) => DepotCalcule(montant: _depotCalcule, mois: int.tryParse(_moisCaution.text)),
         ),
-        kGapChamps,
-        ChampEntier(
-          controller: _moisAvance,
-          label: 'Mois d\'avance',
-          hint: '2',
-          obligatoire: true,
-          aide: 'Loyers réglés à la signature, non restitués : ces mois ne sont pas facturés (0 à 24)',
-          validator: (v) {
-            final m = int.tryParse(v ?? '');
-            return m == null || m < 0 || m > 24 ? 'Entre 0 et 24.' : null;
-          },
-        ),
-        kGapChamps,
-        ListenableBuilder(
-          listenable: Listenable.merge([_loyer, _charges, _moisAvance]),
-          builder: (context, _) {
-            final avance = int.tryParse(_moisAvance.text) ?? 0;
-            final mensuel = (parseMontantSaisi(_loyer.text) ?? 0) + (parseMontantSaisi(_charges.text) ?? 0);
-            return PremierLoyer(
-              premierMois: _dateDebut == null
-                  ? null
-                  : Bail.calculerPremierMoisFacture(_dateDebut!, avance, DateTime.now()),
-              moisAvance: avance,
-              montantAvance: mensuel * avance,
-            );
-          },
-        ),
+        if (!_externe) ...[
+          kGapChamps,
+          ChampEntier(
+            controller: _moisAvance,
+            label: 'Mois d\'avance',
+            hint: '2',
+            obligatoire: true,
+            aide: 'Loyers réglés à la signature, non restitués : ces mois ne sont pas facturés (0 à 24)',
+            validator: (v) {
+              final m = int.tryParse(v ?? '');
+              return m == null || m < 0 || m > 24 ? 'Entre 0 et 24.' : null;
+            },
+          ),
+          kGapChamps,
+          ListenableBuilder(
+            listenable: Listenable.merge([_loyer, _charges, _moisAvance]),
+            builder: (context, _) {
+              final avance = int.tryParse(_moisAvance.text) ?? 0;
+              final mensuel = (parseMontantSaisi(_loyer.text) ?? 0) + (parseMontantSaisi(_charges.text) ?? 0);
+              return PremierLoyer(
+                premierMois: _dateDebut == null
+                    ? null
+                    : Bail.calculerPremierMoisFacture(_dateDebut!, avance, DateTime.now()),
+                moisAvance: avance,
+                montantAvance: mensuel * avance,
+              );
+            },
+          ),
+        ],
       ],
     ),
   ];
@@ -404,10 +430,7 @@ class _BailFormPageState extends ConsumerState<BailFormPage> {
         child: Container(
           width: 64,
           height: 64,
-          decoration: BoxDecoration(
-            color: AppColors.positive.withValues(alpha: 0.14),
-            shape: BoxShape.circle,
-          ),
+          decoration: BoxDecoration(color: AppColors.positive.withValues(alpha: 0.14), shape: BoxShape.circle),
           child: Icon(Icons.check_rounded, size: 34, color: AppColors.positive),
         ),
       ),
@@ -623,12 +646,7 @@ class _TitreEtape extends StatelessWidget {
         children: [
           Text(
             titre,
-            style: TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.w800,
-              color: AppColors.dark,
-              letterSpacing: -0.5,
-            ),
+            style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: AppColors.dark, letterSpacing: -0.5),
           ),
           const SizedBox(height: 4),
           Text(detail, style: TextStyle(fontSize: 13, color: AppColors.label)),
@@ -687,11 +705,7 @@ class _CarteChoix extends StatelessWidget {
                 child: initiales != null
                     ? Text(
                         initiales!,
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w800,
-                          color: AppColors.primaryDark,
-                        ),
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: AppColors.primaryDark),
                       )
                     : Icon(choisi ? icone : Icons.add_rounded, color: AppColors.primaryDark, size: 24),
               ),
