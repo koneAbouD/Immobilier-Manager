@@ -75,6 +75,16 @@ public class EcheanceLoyerRepositoryAdapter implements EcheanceLoyerRepository {
     }
 
     @Override
+    public BigDecimal sommeMontantDuPourPeriodeEtBien(LocalDate periode, Long immeubleId) {
+        return jpaRepository.sommeMontantDuDuBien(periode, StatutEcheance.ANNULEE, immeubleId);
+    }
+
+    @Override
+    public BigDecimal sommeMontantPayePourPeriodeEtBien(LocalDate periode, Long immeubleId) {
+        return jpaRepository.sommeMontantPayeDuBien(periode, StatutEcheance.ANNULEE, immeubleId);
+    }
+
+    @Override
     public BigDecimal sommeImpayesAu(LocalDate aujourdhui) {
         return jpaRepository.sommeImpayes(NON_SOLDEES, aujourdhui);
     }

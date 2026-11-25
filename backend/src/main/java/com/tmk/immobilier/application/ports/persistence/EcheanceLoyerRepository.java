@@ -37,6 +37,12 @@ public interface EcheanceLoyerRepository {
     /** Total payé des échéances du mois, hors annulées. */
     BigDecimal sommeMontantPayePourPeriode(LocalDate periode);
 
+    /** Total dû des échéances du mois pour les logements d'un bien, hors annulées. */
+    BigDecimal sommeMontantDuPourPeriodeEtBien(LocalDate periode, Long immeubleId);
+
+    /** Total payé des échéances du mois pour les logements d'un bien, hors annulées. */
+    BigDecimal sommeMontantPayePourPeriodeEtBien(LocalDate periode, Long immeubleId);
+
     /** Reste dû cumulé des échéances échues avant {@code aujourdhui} et non soldées. */
     BigDecimal sommeImpayesAu(LocalDate aujourdhui);
 

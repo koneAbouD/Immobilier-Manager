@@ -42,6 +42,20 @@ public interface EcheanceLoyerJpaRepository extends JpaRepository<EcheanceLoyerE
     BigDecimal sommeMontantPaye(@Param("periode") LocalDate periode, @Param("exclu") StatutEcheance exclu);
 
     @Query("""
+            select coalesce(sum(e.montantDu), 0) from EcheanceLoyerEntity e
+            where e.periode = :periode and e.statut <> :exclu and e.bail.appartement.immeuble.id = :immeuble
+            """)
+    BigDecimal sommeMontantDuDuBien(@Param("periode") LocalDate periode, @Param("exclu") StatutEcheance exclu,
+                                    @Param("immeuble") Long immeubleId);
+
+    @Query("""
+            select coalesce(sum(e.montantPaye), 0) from EcheanceLoyerEntity e
+            where e.periode = :periode and e.statut <> :exclu and e.bail.appartement.immeuble.id = :immeuble
+            """)
+    BigDecimal sommeMontantPayeDuBien(@Param("periode") LocalDate periode, @Param("exclu") StatutEcheance exclu,
+                                      @Param("immeuble") Long immeubleId);
+
+    @Query("""
             select coalesce(sum(e.montantDu - e.montantPaye), 0) from EcheanceLoyerEntity e
             where e.statut in :ouverts and e.dateEcheance < :aujourdhui
             """)

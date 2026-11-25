@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/utils/saisie_telephone.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/app_header.dart';
 import '../../../../core/widgets/feedback.dart';
@@ -23,13 +24,13 @@ class _LocataireFormPageState extends ConsumerState<LocataireFormPage> {
   late final l = widget.locataire;
   late final _nom = TextEditingController(text: l?.nom);
   late final _prenom = TextEditingController(text: l?.prenom);
-  late final _telephone = TextEditingController(text: l?.telephone);
+  late final _telephone = TextEditingController(text: saisieTelephone(l?.telephone));
   late final _email = TextEditingController(text: l?.email);
   late final _numeroPiece = TextEditingController(text: l?.numeroPiece);
   late final _profession = TextEditingController(text: l?.profession);
   late final _adresse = TextEditingController(text: l?.adresse);
   late final _urgenceNom = TextEditingController(text: l?.contactUrgenceNom);
-  late final _urgenceTel = TextEditingController(text: l?.contactUrgenceTelephone);
+  late final _urgenceTel = TextEditingController(text: saisieTelephone(l?.contactUrgenceTelephone));
   late TypePiece? _typePiece = l?.typePiece;
   late DateTime? _dateNaissance = l?.dateNaissance;
   bool _envoi = false;
@@ -54,7 +55,7 @@ class _LocataireFormPageState extends ConsumerState<LocataireFormPage> {
     final saisie = Locataire(
       nom: _nom.text.trim(),
       prenom: _prenom.text.trim(),
-      telephone: _telephone.text.trim(),
+      telephone: telephoneSaisi(_telephone.text) ?? '',
       email: _texte(_email),
       typePiece: _typePiece,
       numeroPiece: _texte(_numeroPiece),
@@ -62,7 +63,7 @@ class _LocataireFormPageState extends ConsumerState<LocataireFormPage> {
       dateNaissance: _dateNaissance,
       adresse: _texte(_adresse),
       contactUrgenceNom: _texte(_urgenceNom),
-      contactUrgenceTelephone: _texte(_urgenceTel),
+      contactUrgenceTelephone: telephoneSaisi(_urgenceTel.text),
     );
     final repo = ref.read(locataireRepositoryProvider);
     final result = _edition ? await repo.update(l!.id!, saisie) : await repo.create(saisie);
@@ -101,12 +102,7 @@ class _LocataireFormPageState extends ConsumerState<LocataireFormPage> {
               ChampTexte(controller: _profession, label: 'Profession', hint: 'Ex. Comptable'),
             ]),
             GroupeChamps(titre: 'Coordonnées', icone: Icons.contact_mail_outlined, couleur: AppColors.info, children: [
-              ChampTexte(
-                  controller: _telephone,
-                  label: 'Téléphone',
-                  hint: '07 00 00 00 00',
-                  obligatoire: true,
-                  keyboardType: TextInputType.phone),
+              ChampTelephone(controller: _telephone, obligatoire: true),
               kGapChamps,
               ChampTexte(
                 controller: _email,
@@ -134,11 +130,7 @@ class _LocataireFormPageState extends ConsumerState<LocataireFormPage> {
             GroupeChamps(titre: 'Contact d\'urgence', icone: Icons.emergency_outlined, couleur: AppColors.error, children: [
               ChampTexte(controller: _urgenceNom, label: 'Nom', hint: 'Personne à prévenir'),
               kGapChamps,
-              ChampTexte(
-                  controller: _urgenceTel,
-                  label: 'Téléphone',
-                  hint: '07 00 00 00 00',
-                  keyboardType: TextInputType.phone),
+              ChampTelephone(controller: _urgenceTel),
             ]),
             const SizedBox(height: 8),
             BoutonPrincipal(

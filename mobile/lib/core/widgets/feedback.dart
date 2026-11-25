@@ -11,12 +11,17 @@ class EmptyState extends StatelessWidget {
   final String? actionLabel;
   final VoidCallback? onAction;
 
+  /// Icône du bouton : « + » par défaut (ajouter), autre chose pour une
+  /// action qui ne crée rien (retirer un filtre…).
+  final IconData actionIcon;
+
   const EmptyState({
     super.key,
     required this.icon,
     required this.message,
     this.actionLabel,
     this.onAction,
+    this.actionIcon = Icons.add_rounded,
   });
 
   @override
@@ -45,7 +50,7 @@ class EmptyState extends StatelessWidget {
               const SizedBox(height: 16),
               FilledButton.icon(
                 onPressed: onAction,
-                icon: const Icon(Icons.add_rounded, size: 18),
+                icon: Icon(actionIcon, size: 18),
                 label: LibelleBouton(actionLabel!),
               ),
             ],

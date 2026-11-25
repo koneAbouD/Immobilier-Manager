@@ -121,7 +121,7 @@ void main() {
       accueilAEncaisserProvider,
       accueilPaiementsProvider,
       immeublesListeProvider,
-      comptesSituationsProvider(''),
+      comptesSituationsProvider((recherche: '', immeubleId: null)),
       organisationCouranteProvider,
     ]) {
       final abonnement = container.listen(ecran, (_, _) {});

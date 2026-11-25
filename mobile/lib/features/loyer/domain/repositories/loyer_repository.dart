@@ -13,11 +13,15 @@ abstract interface class LoyerRepository {
     int size,
     int? bailId,
     int? locataireId,
+    int? immeubleId,
     DateTime? periode,
     StatutEcheance? statut,
     bool aEncaisser,
     bool enRetard,
   });
+
+  /// Attendu et encaissé des loyers d'un mois, pour tous les biens ou un seul.
+  Future<Either<Failure, ResumeLoyers>> getResume({required DateTime periode, int? immeubleId});
 
   Future<Either<Failure, Echeance>> getEcheance(int id);
 

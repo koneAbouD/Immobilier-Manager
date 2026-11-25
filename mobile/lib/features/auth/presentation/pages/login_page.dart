@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/utils/saisie_telephone.dart';
 import '../providers/auth_provider.dart';
 import '../providers/auth_state.dart';
 import '../widgets/auth_ui.dart';
@@ -80,6 +81,8 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                   TextFormField(
                     controller: _username,
                     autocorrect: false,
+                    // Groupe un numéro par deux ; un e-mail reste tel quel.
+                    inputFormatters: const [TelephoneFormatter()],
                     textInputAction: TextInputAction.next,
                     decoration: authInputDecoration(
                       label: 'Téléphone ou e-mail',

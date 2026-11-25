@@ -20,6 +20,7 @@ class LoyerRepositoryImpl implements LoyerRepository {
     int size = 20,
     int? bailId,
     int? locataireId,
+    int? immeubleId,
     DateTime? periode,
     StatutEcheance? statut,
     bool aEncaisser = false,
@@ -30,11 +31,16 @@ class LoyerRepositoryImpl implements LoyerRepository {
             size: size,
             bailId: bailId,
             locataireId: locataireId,
+            immeubleId: immeubleId,
             periode: periode,
             statut: statut,
             aEncaisser: aEncaisser,
             enRetard: enRetard,
           ));
+
+  @override
+  Future<Either<Failure, ResumeLoyers>> getResume({required DateTime periode, int? immeubleId}) =>
+      guard(() => _ds.getResume(periode: periode, immeubleId: immeubleId));
 
   @override
   Future<Either<Failure, Echeance>> getEcheance(int id) => guard(() => _ds.getEcheance(id));

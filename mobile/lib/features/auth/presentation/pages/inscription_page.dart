@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/utils/saisie_telephone.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../providers/auth_provider.dart';
 import '../widgets/auth_ui.dart';
@@ -37,7 +39,6 @@ class _InscriptionPageState extends ConsumerState<InscriptionPage> {
   int _tick = 0;
 
   static final _emailValide = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
-  static final _telephoneValide = RegExp(r'^\+?[0-9 .\-()]{8,20}$');
 
   @override
   void dispose() {
@@ -59,7 +60,7 @@ class _InscriptionPageState extends ConsumerState<InscriptionPage> {
           prenom: _prenom.text,
           nom: _nom.text,
           email: _email.text,
-          telephone: _telephone.text,
+          telephone: telephoneSaisi(_telephone.text) ?? '',
           motDePasse: _motDePasse.text,
         );
     // En cas de succès, la session est ouverte et le choix du code prend
@@ -75,9 +76,7 @@ class _InscriptionPageState extends ConsumerState<InscriptionPage> {
   String? _obligatoire(String? v, String quoi) => v == null || v.trim().isEmpty ? '$quoi obligatoire.' : null;
 
   String? _verifierTelephone(String? v) {
-    final t = (v ?? '').trim();
-    if (t.isEmpty) return 'Téléphone obligatoire.';
-    return _telephoneValide.hasMatch(t) ? null : 'Numéro invalide (ex. 07 07 12 34 56).';
+    return verifierTelephone(v, obligatoire: true);
   }
 
   String? _verifierEmail(String? v) {
@@ -96,6 +95,7 @@ class _InscriptionPageState extends ConsumerState<InscriptionPage> {
   Widget _champ(TextEditingController c, String label, IconData icone,
           {String? Function(String?)? validator,
           TextInputType? clavier,
+          List<TextInputFormatter>? formateurs,
           bool masque = false,
           Widget? suffixe,
           TextInputAction action = TextInputAction.next,
@@ -104,6 +104,7 @@ class _InscriptionPageState extends ConsumerState<InscriptionPage> {
       TextFormField(
         controller: c,
         keyboardType: clavier,
+        inputFormatters: formateurs,
         obscureText: masque,
         autocorrect: false,
         textCapitalization: majuscules,
@@ -128,7 +129,7 @@ class _InscriptionPageState extends ConsumerState<InscriptionPage> {
     final nom = _champ(_nom, 'Nom', Icons.badge_outlined,
         majuscules: TextCapitalization.words, validator: (v) => _obligatoire(v, 'Nom'));
     final telephone = _champ(_telephone, 'Téléphone (identifiant)', Icons.phone_outlined,
-        clavier: TextInputType.phone, validator: _verifierTelephone);
+        clavier: TextInputType.phone, formateurs: const [TelephoneFormatter()], validator: _verifierTelephone);
     final email = _champ(_email, 'E-mail (facultatif)', Icons.alternate_email_rounded,
         clavier: TextInputType.emailAddress, validator: _verifierEmail);
     final motDePasse = _champ(_motDePasse, 'Mot de passe', Icons.lock_outline_rounded,

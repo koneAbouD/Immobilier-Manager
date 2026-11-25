@@ -16,6 +16,7 @@ class LoyerRemoteDatasource {
     int size = 20,
     int? bailId,
     int? locataireId,
+    int? immeubleId,
     DateTime? periode,
     StatutEcheance? statut,
     bool aEncaisser = false,
@@ -26,12 +27,25 @@ class LoyerRemoteDatasource {
       'size': '$size',
       if (bailId != null) 'bailId': '$bailId',
       if (locataireId != null) 'locataireId': '$locataireId',
+      if (immeubleId != null) 'immeubleId': '$immeubleId',
       if (periode != null) 'periode': isoMois(periode),
       if (statut != null) 'statut': statut.code,
       if (aEncaisser) 'aEncaisser': 'true',
       if (enRetard) 'enRetard': 'true',
     });
     return PageResult.fromJson(data as Map<String, dynamic>, EcheanceModel.fromJson);
+  }
+
+  /// Attendu et encaissé des loyers d'un mois, pour tous les biens ou un seul.
+  Future<ResumeLoyers> getResume({required DateTime periode, int? immeubleId}) async {
+    final data = await _client.get('/loyers/echeances/resume', query: {
+      'periode': isoMois(periode),
+      if (immeubleId != null) 'immeubleId': '$immeubleId',
+    }) as Map<String, dynamic>;
+    return ResumeLoyers(
+      attendus: parseNum(data['attendu']) ?? 0,
+      encaisses: parseNum(data['encaisse']) ?? 0,
+    );
   }
 
   Future<Echeance> getEcheance(int id) async =>

@@ -20,25 +20,36 @@ final class LocataireResumeQueries {
     private LocataireResumeQueries() {
     }
 
+    /**
+     * Restriction d'un bail {@code b} aux logements du bien choisi : les
+     * indicateurs et le logement affiché ne portent alors que sur ce bien.
+     */
+    private static final String BAIL_DU_BIEN = " AND EXISTS (SELECT 1 FROM appartements ab"
+            + " WHERE ab.id = b.appartement_id AND ab.immeuble_id = :immeuble)";
+
+    /** Locataire ayant un bail actif dans le bien choisi. */
+    private static final String LOCATAIRE_DU_BIEN = "EXISTS (SELECT 1 FROM baux b WHERE b.locataire_id = l.id"
+            + " AND b.statut = 'ACTIF'" + BAIL_DU_BIEN + ")";
+
     /** Une ligne par locataire : indicateurs, logement du bail actif le plus récent et situation. */
     private static final String SITUATIONS = """
             WITH stats AS (
                 SELECT l.id, l.nom, l.prenom,
                        (SELECT count(*) FROM baux b
-                         WHERE b.locataire_id = l.id AND b.statut = 'ACTIF') AS baux_actifs,
+                         WHERE b.locataire_id = l.id AND b.statut = 'ACTIF'{BIEN}) AS baux_actifs,
                        (SELECT count(*) FROM baux b
                          WHERE b.locataire_id = l.id AND b.statut = 'ACTIF'
-                           AND b.contrat_signe_cle IS NULL) AS contrats_a_signer,
+                           AND b.contrat_signe_cle IS NULL{BIEN}) AS contrats_a_signer,
                        (SELECT coalesce(sum(e.montant_du - e.montant_paye), 0)
                           FROM echeances_loyer e JOIN baux b ON b.id = e.bail_id
-                         WHERE b.locataire_id = l.id AND e.statut IN ('A_PAYER', 'PARTIEL')
+                         WHERE b.locataire_id = l.id{BIEN} AND e.statut IN ('A_PAYER', 'PARTIEL')
                            AND e.date_echeance < :aujourdhui) AS montant_retard,
                        (SELECT min(e.date_echeance)
                           FROM echeances_loyer e JOIN baux b ON b.id = e.bail_id
-                         WHERE b.locataire_id = l.id AND e.statut IN ('A_PAYER', 'PARTIEL')
+                         WHERE b.locataire_id = l.id{BIEN} AND e.statut IN ('A_PAYER', 'PARTIEL')
                            AND e.date_echeance < :aujourdhui) AS plus_ancien_retard
                   FROM locataires l
-                 WHERE l.organisation_id = :organisation AND (%s)
+                 WHERE l.organisation_id = :organisation AND {RECHERCHE} AND {FILTRE_BIEN}
             ), situations AS (
                 SELECT s.*,
                        CASE WHEN s.montant_retard > 0 THEN 'EN_RETARD'
@@ -53,12 +64,14 @@ final class LocataireResumeQueries {
              OR lower(l.prenom || ' ' || l.nom) LIKE :motif ESCAPE '\\'
              OR lower(l.telephone) LIKE :motif ESCAPE '\\' OR lower(coalesce(l.email, '')) LIKE :motif ESCAPE '\\'
              OR EXISTS (SELECT 1 FROM baux b JOIN appartements a ON a.id = b.appartement_id
+                         JOIN immeubles i ON i.id = a.immeuble_id
                          WHERE b.locataire_id = l.id AND b.statut = 'ACTIF'
-                           AND lower(a.reference) LIKE :motif ESCAPE '\\'))
+                           AND (lower(a.reference) LIKE :motif ESCAPE '\\'
+                                OR lower(i.nom) LIKE :motif ESCAPE '\\')))
             """;
 
-    static String page(boolean avecRecherche, boolean avecSituation) {
-        return situations(avecRecherche) + """
+    static String page(boolean avecRecherche, boolean avecBien, boolean avecSituation) {
+        return (situations(avecRecherche, avecBien) + """
                 SELECT s.id, s.situation, s.baux_actifs, s.contrats_a_signer, s.montant_retard,
                        s.plus_ancien_retard, lg.reference AS logement_reference, lg.type AS logement_type,
                        lg.immeuble AS immeuble_nom
@@ -68,7 +81,7 @@ final class LocataireResumeQueries {
                          FROM baux b
                          JOIN appartements a ON a.id = b.appartement_id
                          JOIN immeubles i ON i.id = a.immeuble_id
-                        WHERE b.locataire_id = s.id AND b.statut = 'ACTIF'
+                        WHERE b.locataire_id = s.id AND b.statut = 'ACTIF'{BIEN}
                         ORDER BY b.date_debut DESC, b.id DESC
                         LIMIT 1) lg ON true
                 """ + (avecSituation ? " WHERE s.situation = :situation" : "") + """
@@ -76,23 +89,24 @@ final class LocataireResumeQueries {
                  ORDER BY CASE s.situation WHEN 'EN_RETARD' THEN 0 WHEN 'A_JOUR' THEN 1 ELSE 2 END,
                           lower(s.nom), lower(s.prenom), s.id
                  LIMIT :size OFFSET :offset
-                """;
+                """).replace("{BIEN}", avecBien ? BAIL_DU_BIEN : "");
     }
 
-    static String total(boolean avecRecherche, boolean avecSituation) {
-        return situations(avecRecherche) + "SELECT count(*) FROM situations s"
+    static String total(boolean avecRecherche, boolean avecBien, boolean avecSituation) {
+        return situations(avecRecherche, avecBien) + "SELECT count(*) FROM situations s"
                 + (avecSituation ? " WHERE s.situation = :situation" : "");
     }
 
-    static String comptes(boolean avecRecherche) {
-        return situations(avecRecherche) + "SELECT s.situation, count(*) AS nombre FROM situations s GROUP BY s.situation";
+    static String comptes(boolean avecRecherche, boolean avecBien) {
+        return situations(avecRecherche, avecBien) + "SELECT s.situation, count(*) AS nombre FROM situations s GROUP BY s.situation";
     }
 
-    static MapSqlParameterSource parametres(Long organisationId, String recherche, SituationLocataire situation,
-                                            LocalDate aujourdhui) {
+    static MapSqlParameterSource parametres(Long organisationId, String recherche, Long immeubleId,
+                                            SituationLocataire situation, LocalDate aujourdhui) {
         MapSqlParameterSource params = new MapSqlParameterSource("aujourdhui", aujourdhui)
                 .addValue("organisation", organisationId);
         if (aRecherche(recherche)) params.addValue("motif", motif(recherche));
+        if (immeubleId != null) params.addValue("immeuble", immeubleId);
         if (situation != null) params.addValue("situation", situation.name());
         return params;
     }
@@ -101,8 +115,11 @@ final class LocataireResumeQueries {
         return recherche != null && !recherche.isBlank();
     }
 
-    private static String situations(boolean avecRecherche) {
-        return SITUATIONS.formatted(avecRecherche ? RECHERCHE : "true");
+    private static String situations(boolean avecRecherche, boolean avecBien) {
+        return SITUATIONS
+                .replace("{RECHERCHE}", avecRecherche ? RECHERCHE : "true")
+                .replace("{FILTRE_BIEN}", avecBien ? LOCATAIRE_DU_BIEN : "true")
+                .replace("{BIEN}", avecBien ? BAIL_DU_BIEN : "");
     }
 
     /** Motif LIKE insensible à la casse, jokers saisis par l'utilisateur neutralisés. */

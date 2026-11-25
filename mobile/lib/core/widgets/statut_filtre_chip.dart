@@ -61,12 +61,16 @@ class FiltresStatut<T> extends StatelessWidget {
   final String Function(T) libelle;
   final ValueChanged<T> onSelected;
 
+  /// Filtre affiché avant les pastilles (par exemple le choix d'un bien).
+  final Widget? debut;
+
   const FiltresStatut({
     super.key,
     required this.options,
     required this.selection,
     required this.libelle,
     required this.onSelected,
+    this.debut,
   });
 
   @override
@@ -77,6 +81,14 @@ class FiltresStatut<T> extends StatelessWidget {
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.fromLTRB(16, 6, 8, 6),
         children: [
+          if (debut != null) ...[
+            debut!,
+            Container(
+              width: 1,
+              margin: const EdgeInsets.only(right: 8, top: 6, bottom: 6),
+              color: AppColors.border,
+            ),
+          ],
           for (final o in options)
             StatutFiltreChip(
               label: libelle(o),

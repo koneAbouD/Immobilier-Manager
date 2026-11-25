@@ -10,7 +10,8 @@ import '../../../../core/widgets/statut_filtre_chip.dart';
 import '../../domain/entities/echeance.dart';
 import '../providers/loyer_providers.dart';
 import '../widgets/echeance_tile.dart';
-import '../../../tableau_bord/domain/entities/tableau_bord.dart';
+import '../../../immeuble/domain/entities/immeuble.dart';
+import '../../../immeuble/presentation/widgets/pastille_filtre_bien.dart';
 import '../../../tableau_bord/presentation/providers/tableau_bord_providers.dart';
 import '../widgets/creation_loyers_sheet.dart';
 import '../widgets/encaissement_sheet.dart';
@@ -27,10 +28,19 @@ class LoyersPage extends StatelessWidget {
 /// Filtre rapide des loyers.
 enum _FiltreEcheance { tous, aEncaisser, enRetard, payes }
 
-/// Résumé des loyers d'un mois (attendu, encaissé, taux), lu dans le tableau de bord.
-final _resumeMoisProvider = FutureProvider.autoDispose.family<TableauBord, DateTime>((ref, mois) async {
-  final result = await ref.watch(tableauBordRepositoryProvider).get(periode: mois);
-  return result.fold((f) => throw f.message, (t) => t);
+/// Résumé des loyers d'un mois (attendu, encaissé). Pour tous les biens, il
+/// est lu dans le tableau de bord, préchargé pour le hors-ligne ; pour un bien,
+/// dans le résumé limité à ses logements.
+final _resumeMoisProvider =
+    FutureProvider.autoDispose.family<ResumeLoyers, ({DateTime mois, int? immeubleId})>((ref, cle) async {
+  if (cle.immeubleId == null) {
+    final result = await ref.watch(tableauBordRepositoryProvider).get(periode: cle.mois);
+    return result.fold(
+        (f) => throw f.message, (t) => ResumeLoyers(attendus: t.loyersAttendus, encaisses: t.loyersEncaisses));
+  }
+  final result =
+      await ref.watch(loyerRepositoryProvider).getResume(periode: cle.mois, immeubleId: cle.immeubleId);
+  return result.fold((f) => throw f.message, (r) => r);
 });
 
 /// Loyers émis, mois par mois : résumé du mois, filtres, puis la liste. Un
@@ -49,6 +59,11 @@ class _EcheancesTabState extends ConsumerState<_EcheancesTab> {
   _FiltreEcheance _filtre = _FiltreEcheance.tous;
   DateTime _mois = DateTime(DateTime.now().year, DateTime.now().month);
 
+  /// Bien filtré : seuls les loyers de ses logements, résumé compris.
+  Immeuble? _bien;
+
+  ({DateTime mois, int? immeubleId}) get _cleResume => (mois: _mois, immeubleId: _bien?.id);
+
   DateTime get _moisCourant => DateTime(DateTime.now().year, DateTime.now().month);
 
   void _changerMois(int delta) => setState(() => _mois = DateTime(_mois.year, _mois.month + delta));
@@ -63,7 +78,7 @@ class _EcheancesTabState extends ConsumerState<_EcheancesTab> {
 
   void _rafraichir() {
     _listKey.currentState?.refresh();
-    ref.invalidate(_resumeMoisProvider(_mois));
+    ref.invalidate(_resumeMoisProvider(_cleResume));
   }
 
   Future<void> _creer({DateTime? mois}) async {
@@ -84,6 +99,13 @@ class _EcheancesTabState extends ConsumerState<_EcheancesTab> {
   /// Message et action de la liste vide, selon que le mois est passé, en
   /// cours (avant le 25) ou à venir.
   (String, String?, VoidCallback?) get _vide {
+    if (_bien != null) {
+      return (
+        'Aucun loyer${_filtre == _FiltreEcheance.tous ? '' : ' pour ce filtre'} pour ${_bien!.nom}.',
+        'Voir tous les biens',
+        () => setState(() => _bien = null),
+      );
+    }
     if (_filtre != _FiltreEcheance.tous) return ('Aucun loyer pour ce filtre.', null, null);
     final mois = formatMois(_mois).toLowerCase();
     if (_mois == _moisCourant && DateTime.now().day < kJourEmissionLoyers) {
@@ -129,7 +151,7 @@ class _EcheancesTabState extends ConsumerState<_EcheancesTab> {
         if (parMois)
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-            child: _ResumeMois(mois: _mois, async: ref.watch(_resumeMoisProvider(_mois))),
+            child: _ResumeMois(async: ref.watch(_resumeMoisProvider(_cleResume))),
           ),
         FiltresStatut<_FiltreEcheance>(
           options: _FiltreEcheance.values,
@@ -141,14 +163,20 @@ class _EcheancesTabState extends ConsumerState<_EcheancesTab> {
             _FiltreEcheance.payes => 'Payés',
           },
           onSelected: (f) => setState(() => _filtre = f),
+          debut: PastilleFiltreBien(
+            bien: _bien,
+            sousTitre: 'Loyers des logements de ce bien',
+            onChanged: (b) => setState(() => _bien = b),
+          ),
         ),
         Expanded(
           child: PagedListView<Echeance>(
             key: _listKey,
-            filtresKey: (_filtre, _mois),
+            filtresKey: (_filtre, _mois, _bien?.id),
             fetcher: (page, size) => repo.getEcheances(
               page: page,
               size: size,
+              immeubleId: _bien?.id,
               periode: parMois ? _mois : null,
               statut: _filtre == _FiltreEcheance.payes ? StatutEcheance.payee : null,
               aEncaisser: _filtre == _FiltreEcheance.aEncaisser,
@@ -158,6 +186,7 @@ class _EcheancesTabState extends ConsumerState<_EcheancesTab> {
             emptyMessage: vide.$1,
             emptyActionLabel: vide.$2,
             onEmptyAction: vide.$3,
+            emptyActionIcon: _bien != null ? Icons.filter_alt_off_outlined : Icons.add_rounded,
             itemBuilder: (context, e) => EcheanceTile(
               echeance: e,
               onTap: () async {
@@ -173,17 +202,16 @@ class _EcheancesTabState extends ConsumerState<_EcheancesTab> {
 
 /// Résumé du mois : encaissé sur attendu, barre de recouvrement, reste.
 class _ResumeMois extends StatelessWidget {
-  final DateTime mois;
-  final AsyncValue<TableauBord> async;
+  final AsyncValue<ResumeLoyers> async;
 
-  const _ResumeMois({required this.mois, required this.async});
+  const _ResumeMois({required this.async});
 
   @override
   Widget build(BuildContext context) {
     final t = async.valueOrNull;
-    final attendus = t?.loyersAttendus ?? 0;
-    final encaisses = t?.loyersEncaisses ?? 0;
-    final taux = attendus <= 0 ? 0.0 : (encaisses / attendus).clamp(0.0, 1.0);
+    final attendus = t?.attendus ?? 0;
+    final encaisses = t?.encaisses ?? 0;
+    final taux = t?.taux ?? 0.0;
     return Container(
       padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
       decoration: BoxDecoration(
@@ -214,7 +242,7 @@ class _ResumeMois extends StatelessWidget {
               ? ' '
               : attendus <= 0
                   ? 'Aucun loyer émis pour ce mois'
-                  : '${(taux * 100).round()} % recouvré · reste ${formatMontant(t.resteAEncaisser)}',
+                  : '${(taux * 100).round()} % recouvré · reste ${formatMontant(t.reste)}',
           style: TextStyle(fontSize: 11.5, color: AppColors.label),
         ),
       ]),

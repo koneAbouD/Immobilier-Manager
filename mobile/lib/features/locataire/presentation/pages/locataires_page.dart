@@ -8,14 +8,16 @@ import '../../../../core/widgets/form_fields.dart';
 import '../../../../core/widgets/liste_carte.dart';
 import '../../../../core/widgets/paged_list_view.dart';
 import '../../../../core/widgets/statut_filtre_chip.dart';
+import '../../../immeuble/domain/entities/immeuble.dart';
 import '../../domain/entities/locataire_resume.dart';
 import '../providers/locataire_providers.dart';
+import '../../../immeuble/presentation/widgets/pastille_filtre_bien.dart';
 import 'locataire_detail_page.dart';
 import 'locataire_form_page.dart';
 
 /// Onglet « Locataires » : chaque locataire avec son logement et l'état de ses
 /// loyers, les retards en tête. Les filtres affichent combien de locataires
-/// tombent dans chaque situation.
+/// tombent dans chaque situation, pour le bien choisi le cas échéant.
 class LocatairesPage extends ConsumerStatefulWidget {
   const LocatairesPage({super.key});
 
@@ -29,6 +31,11 @@ class _LocatairesPageState extends ConsumerState<LocatairesPage> {
   String _recherche = '';
   SituationLocataire? _situation;
 
+  /// Bien filtré : seuls ses locataires en cours, retards et logement limités à ce bien.
+  Immeuble? _bien;
+
+  FiltreLocataires get _filtre => (recherche: _recherche, immeubleId: _bien?.id);
+
   @override
   void dispose() {
     _debounce.dispose();
@@ -37,7 +44,7 @@ class _LocatairesPageState extends ConsumerState<LocatairesPage> {
 
   void _rafraichir() {
     _listKey.currentState?.refresh();
-    ref.invalidate(comptesSituationsProvider(_recherche));
+    ref.invalidate(comptesSituationsProvider(_filtre));
   }
 
   Future<void> _ouvrir(Widget page) async {
@@ -48,13 +55,13 @@ class _LocatairesPageState extends ConsumerState<LocatairesPage> {
   @override
   Widget build(BuildContext context) {
     final repo = ref.watch(locataireRepositoryProvider);
-    final comptes = ref.watch(comptesSituationsProvider(_recherche)).valueOrNull;
+    final comptes = ref.watch(comptesSituationsProvider(_filtre)).valueOrNull;
     return Column(
       children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
           child: ChampRecherche(
-            hint: 'Nom, téléphone, logement…',
+            hint: 'Nom, téléphone, logement, bien…',
             onChanged: (v) => _debounce.run(() => setState(() => _recherche = v.trim())),
             onAjouter: () => _ouvrir(const LocataireFormPage()),
             ajouterTooltip: 'Ajouter un locataire',
@@ -68,17 +75,35 @@ class _LocatairesPageState extends ConsumerState<LocatairesPage> {
             return comptes == null ? libelle : '$libelle  ${comptes.pour(s)}';
           },
           onSelected: (s) => setState(() => _situation = s),
+          debut: PastilleFiltreBien(
+            bien: _bien,
+            sousTitre: 'Locataires ayant un bail en cours dans ce bien',
+            onChanged: (b) => setState(() => _bien = b),
+          ),
         ),
         Expanded(
           child: PagedListView<LocataireResume>(
             key: _listKey,
-            filtresKey: (_recherche, _situation),
+            filtresKey: (_recherche, _bien?.id, _situation),
             fetcher: (page, size) => repo.getResumes(
-                page: page, size: size, recherche: _recherche, situation: _situation),
+                page: page, size: size, recherche: _recherche, immeubleId: _bien?.id, situation: _situation),
             emptyIcon: Icons.people_outline,
-            emptyMessage: _situation == null ? 'Aucun locataire.' : 'Aucun locataire dans cette situation.',
-            emptyActionLabel: _situation == null ? 'Ajouter un locataire' : null,
-            onEmptyAction: _situation == null ? () => _ouvrir(const LocataireFormPage()) : null,
+            emptyMessage: _bien != null
+                ? 'Aucun locataire${_situation == null ? '' : ' dans cette situation'} pour ${_bien!.nom}.'
+                : _situation == null
+                ? 'Aucun locataire.'
+                : 'Aucun locataire dans cette situation.',
+            emptyActionLabel: _bien != null
+                ? 'Voir tous les biens'
+                : _situation == null
+                ? 'Ajouter un locataire'
+                : null,
+            onEmptyAction: _bien != null
+                ? () => setState(() => _bien = null)
+                : _situation == null
+                ? () => _ouvrir(const LocataireFormPage())
+                : null,
+            emptyActionIcon: _bien != null ? Icons.filter_alt_off_outlined : Icons.add_rounded,
             itemBuilder: (context, l) => Padding(
               padding: const EdgeInsets.only(bottom: 2),
               child: CarteLocataire(

@@ -10,6 +10,7 @@ import com.tmk.immobilier.interfaces.rest.loyer.dto.request.PaiementRequest;
 import com.tmk.immobilier.interfaces.rest.loyer.dto.response.EcheanceResponse;
 import com.tmk.immobilier.interfaces.rest.loyer.dto.response.GenerationEcheancesResponse;
 import com.tmk.immobilier.interfaces.rest.loyer.dto.response.PaiementResponse;
+import com.tmk.immobilier.interfaces.rest.loyer.dto.response.ResumeLoyersResponse;
 import com.tmk.immobilier.interfaces.rest.loyer.mapper.LoyerRestMapper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -49,6 +50,15 @@ public class EcheanceLoyerController {
         return PageResponse.from(getEcheancesUseCase
                 .executePage(bailId, locataireId, immeubleId, periode, statut, aEncaisser, enRetard, page, size)
                 .map(mapper::toResponse));
+    }
+
+    @GetMapping("/resume")
+    @Operation(summary = "Résumé des loyers d'un mois",
+            description = "Attendu, encaissé et reste du mois (en cours à défaut), pour tous les biens ou un seul")
+    public ResumeLoyersResponse resumer(
+            @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM") YearMonth periode,
+            @RequestParam(required = false) Long immeubleId) {
+        return ResumeLoyersResponse.from(getEcheancesUseCase.resumer(periode, immeubleId));
     }
 
     @GetMapping("/{id:\\d+}")

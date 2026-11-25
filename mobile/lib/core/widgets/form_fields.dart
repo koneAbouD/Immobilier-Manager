@@ -7,6 +7,7 @@ import '../utils/formatters.dart';
 import 'date_filter_dialogs.dart';
 import 'premium_select_field.dart';
 import 'libelle_bouton.dart';
+import '../utils/saisie_telephone.dart';
 import '../utils/separateur_milliers.dart';
 
 /// Espacement standard entre champs de formulaire.
@@ -143,6 +144,34 @@ class ChampMontant extends StatelessWidget {
           if (strictementPositif && montant <= 0) return 'Le montant doit être positif.';
           return null;
         },
+      ),
+    );
+  }
+}
+
+/// Champ téléphone : chiffres groupés par deux pendant la frappe
+/// (« 07 07 12 34 56 »), 10 chiffres pour un numéro ivoirien. Valeur
+/// initiale : [saisieTelephone] ; valeur à envoyer : [telephoneSaisi].
+class ChampTelephone extends StatelessWidget {
+  final TextEditingController controller;
+  final String label;
+  final bool obligatoire;
+
+  const ChampTelephone({super.key, required this.controller, this.label = 'Téléphone', this.obligatoire = false});
+
+  @override
+  Widget build(BuildContext context) {
+    return ChampEtiquete(
+      label: label,
+      obligatoire: obligatoire,
+      child: TextFormField(
+        controller: controller,
+        keyboardType: TextInputType.phone,
+        autofillHints: const [AutofillHints.telephoneNumber],
+        inputFormatters: const [TelephoneFormatter()],
+        style: _styleSaisie,
+        decoration: decorationPilule(hint: '07 00 00 00 00'),
+        validator: (v) => verifierTelephone(v, obligatoire: obligatoire),
       ),
     );
   }

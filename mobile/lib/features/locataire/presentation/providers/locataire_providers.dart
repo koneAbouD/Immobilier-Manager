@@ -17,9 +17,14 @@ final locataireDetailProvider =
   return result.fold((f) => throw f.message, (l) => l);
 });
 
-/// Répartition par situation des locataires répondant à la recherche.
+/// Filtres de la liste des locataires qui pèsent sur les comptes par situation.
+typedef FiltreLocataires = ({String recherche, int? immeubleId});
+
+/// Répartition par situation des locataires répondant à la recherche et au bien choisi.
 final comptesSituationsProvider =
-    FutureProvider.autoDispose.family<ComptesSituations, String>((ref, recherche) async {
-  final result = await ref.watch(locataireRepositoryProvider).getComptes(recherche: recherche);
+    FutureProvider.autoDispose.family<ComptesSituations, FiltreLocataires>((ref, filtre) async {
+  final result = await ref
+      .watch(locataireRepositoryProvider)
+      .getComptes(recherche: filtre.recherche, immeubleId: filtre.immeubleId);
   return result.fold((f) => throw f.message, (c) => c);
 });

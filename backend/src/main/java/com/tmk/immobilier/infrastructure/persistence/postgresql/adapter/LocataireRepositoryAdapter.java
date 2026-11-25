@@ -56,15 +56,17 @@ public class LocataireRepositoryAdapter implements LocataireRepository {
     }
 
     @Override
-    public PageResult<LocataireResume> findResumes(String recherche, SituationLocataire situation,
+    public PageResult<LocataireResume> findResumes(String recherche, Long immeubleId, SituationLocataire situation,
                                                    LocalDate aujourdhui, int page, int size) {
         boolean avecRecherche = LocataireResumeQueries.aRecherche(recherche);
-        MapSqlParameterSource params = LocataireResumeQueries.parametres(organisationCourante.id(), recherche, situation, aujourdhui);
+        boolean avecBien = immeubleId != null;
+        MapSqlParameterSource params = LocataireResumeQueries.parametres(
+                organisationCourante.id(), recherche, immeubleId, situation, aujourdhui);
         Long total = jdbc.queryForObject(
-                LocataireResumeQueries.total(avecRecherche, situation != null), params, Long.class);
+                LocataireResumeQueries.total(avecRecherche, avecBien, situation != null), params, Long.class);
 
         params.addValue("size", size).addValue("offset", (long) page * size);
-        List<LigneResume> lignes = jdbc.query(LocataireResumeQueries.page(avecRecherche, situation != null), params,
+        List<LigneResume> lignes = jdbc.query(LocataireResumeQueries.page(avecRecherche, avecBien, situation != null), params,
                 (rs, i) -> new LigneResume(
                         rs.getLong("id"),
                         SituationLocataire.valueOf(rs.getString("situation")),
@@ -87,10 +89,10 @@ public class LocataireRepositoryAdapter implements LocataireRepository {
     }
 
     @Override
-    public ComptesSituations compterSituations(String recherche, LocalDate aujourdhui) {
+    public ComptesSituations compterSituations(String recherche, Long immeubleId, LocalDate aujourdhui) {
         boolean avecRecherche = LocataireResumeQueries.aRecherche(recherche);
-        Map<String, Long> comptes = jdbc.query(LocataireResumeQueries.comptes(avecRecherche),
-                        LocataireResumeQueries.parametres(organisationCourante.id(), recherche, null, aujourdhui),
+        Map<String, Long> comptes = jdbc.query(LocataireResumeQueries.comptes(avecRecherche, immeubleId != null),
+                        LocataireResumeQueries.parametres(organisationCourante.id(), recherche, immeubleId, null, aujourdhui),
                         (rs, i) -> Map.entry(rs.getString("situation"), rs.getLong("nombre")))
                 .stream().collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
         return new ComptesSituations(

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../../../../core/utils/saisie_telephone.dart';
 import '../../../../core/error/exception.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/app_header.dart';
@@ -50,7 +51,7 @@ class _FormulaireState extends ConsumerState<_Formulaire> {
   late final _nom = TextEditingController(text: widget.organisation.nom);
   late final _representant = TextEditingController(text: widget.organisation.representant);
   late final _email = TextEditingController(text: widget.organisation.email);
-  late final _telephone = TextEditingController(text: widget.organisation.telephone);
+  late final _telephone = TextEditingController(text: saisieTelephone(widget.organisation.telephone));
   late final _adresse = TextEditingController(text: widget.organisation.adresse);
   late final _ville = TextEditingController(text: widget.organisation.ville);
   bool _envoi = false;
@@ -73,7 +74,7 @@ class _FormulaireState extends ConsumerState<_Formulaire> {
       'nom': _nom.text.trim(),
       'representant': _texte(_representant),
       'email': _texte(_email),
-      'telephone': _texte(_telephone),
+      'telephone': telephoneSaisi(_telephone.text),
       'adresse': _texte(_adresse),
       'ville': _texte(_ville),
       'pays': widget.organisation.pays,
@@ -183,7 +184,7 @@ class _FormulaireState extends ConsumerState<_Formulaire> {
               GroupeChamps(titre: 'Coordonnées', icone: Icons.contact_mail_outlined, couleur: AppColors.info, children: [
                 ChampTexte(controller: _email, label: 'E-mail', keyboardType: TextInputType.emailAddress),
                 kGapChamps,
-                ChampTexte(controller: _telephone, label: 'Téléphone', keyboardType: TextInputType.phone),
+                ChampTelephone(controller: _telephone),
                 kGapChamps,
                 ChampTexte(controller: _adresse, label: 'Adresse', hint: 'Rue, lot, boîte postale'),
                 kGapChamps,

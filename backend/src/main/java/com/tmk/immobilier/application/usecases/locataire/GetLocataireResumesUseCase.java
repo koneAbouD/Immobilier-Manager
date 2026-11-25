@@ -17,12 +17,13 @@ public class GetLocataireResumesUseCase {
     private final LocataireRepository locataireRepository;
 
     @Transactional(readOnly = true)
-    public PageResult<LocataireResume> executePage(String recherche, SituationLocataire situation, int page, int size) {
-        return locataireRepository.findResumes(recherche, situation, LocalDate.now(), page, size);
+    public PageResult<LocataireResume> executePage(String recherche, Long immeubleId, SituationLocataire situation,
+                                                 int page, int size) {
+        return locataireRepository.findResumes(recherche, immeubleId, situation, LocalDate.now(), page, size);
     }
 
     @Transactional(readOnly = true)
-    public ComptesSituations compter(String recherche) {
-        return locataireRepository.compterSituations(recherche, LocalDate.now());
+    public ComptesSituations compter(String recherche, Long immeubleId) {
+        return locataireRepository.compterSituations(recherche, immeubleId, LocalDate.now());
     }
 }

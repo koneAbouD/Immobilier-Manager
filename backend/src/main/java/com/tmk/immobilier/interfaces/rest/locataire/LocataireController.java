@@ -59,17 +59,19 @@ public class LocataireController {
             description = "Logement en cours et état des loyers ; les retards en tête, puis par nom")
     public PageResponse<LocataireResumeResponse> findResumes(
             @RequestParam(required = false) String recherche,
+            @RequestParam(required = false) Long immeubleId,
             @RequestParam(required = false) SituationLocataire situation,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
-        return PageResponse.from(getLocataireResumesUseCase.executePage(recherche, situation, page, size)
+        return PageResponse.from(getLocataireResumesUseCase.executePage(recherche, immeubleId, situation, page, size)
                 .map(mapper::toResponse));
     }
 
     @GetMapping("/resumes/comptes")
     @Operation(summary = "Nombre de locataires par situation", description = "Alimente les filtres de la liste")
-    public ComptesSituationsResponse compterSituations(@RequestParam(required = false) String recherche) {
-        return mapper.toResponse(getLocataireResumesUseCase.compter(recherche));
+    public ComptesSituationsResponse compterSituations(@RequestParam(required = false) String recherche,
+                                                       @RequestParam(required = false) Long immeubleId) {
+        return mapper.toResponse(getLocataireResumesUseCase.compter(recherche, immeubleId));
     }
 
     @GetMapping("/{id:\\d+}")

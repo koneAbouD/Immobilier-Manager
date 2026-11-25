@@ -21,6 +21,9 @@ class PagedListView<T> extends StatefulWidget {
   final String? emptyActionLabel;
   final VoidCallback? onEmptyAction;
 
+  /// Icône de ce bouton ; « + » par défaut.
+  final IconData emptyActionIcon;
+
   /// En-tête de groupe placé au-dessus d'un élément (ex. « Aujourd'hui ») :
   /// reçoit l'élément précédent (nul pour le premier) et renvoie nul quand
   /// l'élément reste dans le groupe du précédent.
@@ -36,6 +39,7 @@ class PagedListView<T> extends StatefulWidget {
     this.padding = const EdgeInsets.fromLTRB(16, 6, 16, 32),
     this.emptyActionLabel,
     this.onEmptyAction,
+    this.emptyActionIcon = Icons.add_rounded,
     this.enTete,
   });
 
@@ -100,6 +104,7 @@ class PagedListViewState<T> extends State<PagedListView<T>> {
                 message: widget.emptyMessage,
                 actionLabel: widget.emptyActionLabel,
                 onAction: widget.onEmptyAction,
+                actionIcon: widget.emptyActionIcon,
               ),
             ])
           : ListView.separated(

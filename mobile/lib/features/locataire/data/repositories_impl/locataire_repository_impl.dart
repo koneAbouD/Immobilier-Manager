@@ -21,12 +21,13 @@ class LocataireRepositoryImpl implements LocataireRepository {
 
   @override
   Future<Either<Failure, PageResult<LocataireResume>>> getResumes(
-          {int page = 0, int size = 20, String? recherche, SituationLocataire? situation}) =>
-      guard(() => _ds.getResumes(page: page, size: size, recherche: recherche, situation: situation));
+          {int page = 0, int size = 20, String? recherche, int? immeubleId, SituationLocataire? situation}) =>
+      guard(() => _ds.getResumes(
+          page: page, size: size, recherche: recherche, immeubleId: immeubleId, situation: situation));
 
   @override
-  Future<Either<Failure, ComptesSituations>> getComptes({String? recherche}) =>
-      guard(() => _ds.getComptes(recherche: recherche));
+  Future<Either<Failure, ComptesSituations>> getComptes({String? recherche, int? immeubleId}) =>
+      guard(() => _ds.getComptes(recherche: recherche, immeubleId: immeubleId));
 
   @override
   Future<Either<Failure, Locataire>> getById(int id) => guard(() => _ds.getById(id));

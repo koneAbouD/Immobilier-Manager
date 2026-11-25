@@ -22,14 +22,16 @@ public interface LocataireRepository {
      * Locataires avec leur logement et l'état de leurs loyers au jour donné,
      * les retards en tête puis par nom.
      *
-     * @param recherche nom, prénom, téléphone, e-mail ou référence du logement ; ignoré s'il est vide
-     * @param situation filtre facultatif
+     * @param recherche  nom, prénom, téléphone, e-mail, référence du logement ou nom du bien ; ignoré s'il est vide
+     * @param immeubleId facultatif : seuls les locataires ayant un bail actif dans ce bien ; indicateurs
+     *                   et logement affiché se limitent alors à ce bien
+     * @param situation  filtre facultatif
      */
-    PageResult<LocataireResume> findResumes(String recherche, SituationLocataire situation,
+    PageResult<LocataireResume> findResumes(String recherche, Long immeubleId, SituationLocataire situation,
                                             LocalDate aujourdhui, int page, int size);
 
-    /** Répartition par situation des locataires répondant à la recherche. */
-    ComptesSituations compterSituations(String recherche, LocalDate aujourdhui);
+    /** Répartition par situation des locataires répondant à la recherche (et au bien, s'il est donné). */
+    ComptesSituations compterSituations(String recherche, Long immeubleId, LocalDate aujourdhui);
 
     boolean existsByTelephone(String telephone);
 

@@ -66,3 +66,16 @@ class Echeance {
       .where((s) => s != null && s.isNotEmpty)
       .join(' — ');
 }
+
+/// Loyers d'un mois : total dû (hors annulés) et part déjà encaissée.
+class ResumeLoyers {
+  final double attendus;
+  final double encaisses;
+
+  const ResumeLoyers({required this.attendus, required this.encaisses});
+
+  double get reste => (attendus - encaisses).clamp(0, double.infinity);
+
+  /// Part encaissée, entre 0 et 1.
+  double get taux => attendus <= 0 ? 0 : (encaisses / attendus).clamp(0.0, 1.0);
+}
