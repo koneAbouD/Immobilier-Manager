@@ -183,13 +183,23 @@ Future<void> informer(
       ),
     );
 
+/// Animation douce d'une feuille : montée qui décélère sans rebond, descente
+/// plus brève.
+const kAnimationFeuilleDouce = AnimationStyle(
+  duration: Duration(milliseconds: 320),
+  reverseDuration: Duration(milliseconds: 220),
+  curve: Curves.easeOutCubic,
+  reverseCurve: Curves.easeInCubic,
+);
+
 /// Feuille du bas au gabarit de VTC Manager : fond blanc, coins de 24,
-/// poignée de glissement.
-Future<T?> afficherFeuille<T>(BuildContext context, {required WidgetBuilder builder}) =>
+/// poignée de glissement. [animation] remplace l'animation Material par défaut.
+Future<T?> afficherFeuille<T>(BuildContext context, {required WidgetBuilder builder, AnimationStyle? animation}) =>
     showModalBottomSheet<T>(
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
+      sheetAnimationStyle: animation,
       backgroundColor: AppColors.blanc,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
       builder: (ctx) => Column(mainAxisSize: MainAxisSize.min, children: [

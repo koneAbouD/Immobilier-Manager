@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/error/exception.dart';
@@ -11,7 +12,11 @@ import '../providers/immeuble_providers.dart';
 /// travaux) : vide, elle propose de choisir un bien ; remplie, elle affiche
 /// son nom et une croix pour revenir à tous. [sousTitre] explique, dans la
 /// feuille de choix, ce que le filtre retient.
-class PastilleFiltreBien extends StatelessWidget {
+///
+/// La pastille écoute la liste des biens : elle est chargée dès l'affichage de
+/// la page, et la feuille s'ouvre déjà remplie, à sa hauteur finale, au lieu
+/// de monter vide puis de sauter quand les biens arrivent.
+class PastilleFiltreBien extends ConsumerWidget {
   final Immeuble? bien;
   final ValueChanged<Immeuble?> onChanged;
   final String sousTitre;
@@ -24,12 +29,18 @@ class PastilleFiltreBien extends StatelessWidget {
   });
 
   Future<void> _choisir(BuildContext context) async {
-    final choix = await afficherFeuille<_Choix>(context, builder: (_) => _FeuilleBiens(selection: bien, sousTitre: sousTitre));
+    final choix = await afficherFeuille<_Choix>(
+      context,
+      animation: kAnimationFeuilleDouce,
+      builder: (_) => _FeuilleBiens(selection: bien, sousTitre: sousTitre),
+    );
     if (choix != null) onChanged(choix.bien);
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Préchargement : garde la liste vivante tant que la page est affichée.
+    ref.watch(immeublesListeProvider);
     final actif = bien != null;
     final accent = AppColors.primary;
     return Semantics(
@@ -121,10 +132,20 @@ class _FeuilleBiensState extends ConsumerState<_FeuilleBiens> {
       .replaceAll(RegExp('[ùûü]'), 'u')
       .replaceAll('ç', 'c');
 
+  void _retenir(_Choix choix) {
+    HapticFeedback.selectionClick();
+    Navigator.pop(context, choix);
+  }
+
   @override
   Widget build(BuildContext context) {
     final biens = ref.watch(immeublesListeProvider);
-    return Padding(
+    // Hauteur bornée : au-delà, la liste défile dans la feuille, qui laisse
+    // voir la page derrière elle.
+    final hauteurMax = MediaQuery.sizeOf(context).height * 0.72;
+    return ConstrainedBox(
+      constraints: BoxConstraints(maxHeight: hauteurMax),
+      child: Padding(
       padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -138,10 +159,8 @@ class _FeuilleBiensState extends ConsumerState<_FeuilleBiens> {
           const SizedBox(height: 12),
           Flexible(
             child: biens.when(
-              loading: () => const Padding(
-                padding: EdgeInsets.all(32),
-                child: Center(child: CircularProgressIndicator()),
-              ),
+              // Lignes fantômes à la hauteur des vraies : la feuille ne saute pas.
+              loading: () => const _LignesFantomes(),
               error: (e, _) => Padding(
                 padding: const EdgeInsets.all(24),
                 child: Text(messageErreur(e), textAlign: TextAlign.center, style: TextStyle(color: AppColors.label)),
@@ -184,7 +203,7 @@ class _FeuilleBiensState extends ConsumerState<_FeuilleBiens> {
                               titre: 'Tous les biens',
                               detail: '${tous.length} bien${tous.length > 1 ? 's' : ''}',
                               choisi: widget.selection == null,
-                              onTap: () => Navigator.pop(context, const _Choix(null)),
+                              onTap: () => _retenir(const _Choix(null)),
                             ),
                           for (final b in liste)
                             _LigneBien(
@@ -195,7 +214,7 @@ class _FeuilleBiensState extends ConsumerState<_FeuilleBiens> {
                                 '${b.nombreOccupes}/${b.nombreAppartements} occupé${b.nombreOccupes > 1 ? 's' : ''}',
                               ].join(' · '),
                               choisi: widget.selection?.id == b.id,
-                              onTap: () => Navigator.pop(context, _Choix(b)),
+                              onTap: () => _retenir(_Choix(b)),
                             ),
                           if (liste.isEmpty)
                             Padding(
@@ -216,6 +235,27 @@ class _FeuilleBiensState extends ConsumerState<_FeuilleBiens> {
           ),
         ],
       ),
+      ),
+    );
+  }
+}
+
+/// Trois lignes grisées à la taille d'une ligne de bien, pendant le chargement.
+class _LignesFantomes extends StatelessWidget {
+  const _LignesFantomes();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        for (var i = 0; i < 3; i++)
+          Container(
+            height: 60,
+            margin: const EdgeInsets.only(bottom: 6),
+            decoration: BoxDecoration(color: AppColors.cardTint, borderRadius: BorderRadius.circular(14)),
+          ),
+      ],
     );
   }
 }

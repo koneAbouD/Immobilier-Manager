@@ -273,3 +273,60 @@ class DepotCalcule extends StatelessWidget {
     );
   }
 }
+
+/// Ligne d'aide sous le dépôt de garantie : d'où vient le montant, et un lien
+/// pour revenir au calcul quand il a été saisi à la main.
+class AideDepot extends StatelessWidget {
+  final int? mois;
+  final double? calcul;
+
+  /// Montant saisi à la main, différent du calcul.
+  final bool libre;
+  final VoidCallback onRecalculer;
+
+  const AideDepot({
+    super.key,
+    required this.mois,
+    required this.calcul,
+    required this.libre,
+    required this.onRecalculer,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    // Même retrait et même style que le texte d'aide des autres champs.
+    final style = TextStyle(fontSize: 11.5, color: AppColors.hint);
+    if (!libre) {
+      return Padding(
+        padding: const EdgeInsets.only(top: 6, left: 16),
+        child: Text(
+          mois == null || mois == 0 ? 'Aucune caution' : '$mois mois × loyer · modifiable',
+          style: style,
+        ),
+      );
+    }
+    return Padding(
+      padding: const EdgeInsets.only(top: 2, left: 16),
+      child: Row(
+        children: [
+          Icon(Icons.edit_outlined, size: 14, color: AppColors.warning),
+          const SizedBox(width: 4),
+          Expanded(child: Text('Montant libre', maxLines: 1, overflow: TextOverflow.ellipsis, style: style)),
+          if (calcul != null)
+            TextButton(
+              onPressed: onRecalculer,
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                minimumSize: const Size(0, 36),
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              child: Text(
+                'Recalculer : ${formatMontant(calcul)}',
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.primary),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}

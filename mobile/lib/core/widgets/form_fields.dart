@@ -119,12 +119,17 @@ class ChampMontant extends StatelessWidget {
   final bool obligatoire;
   final bool strictementPositif;
 
+  /// Appelé à chaque frappe de l'utilisateur (pas quand le contrôleur est
+  /// modifié par le code) : sert à savoir qu'un montant a été saisi à la main.
+  final ValueChanged<String>? onChanged;
+
   const ChampMontant({
     super.key,
     required this.controller,
     required this.label,
     this.obligatoire = false,
     this.strictementPositif = false,
+    this.onChanged,
   });
 
   @override
@@ -136,6 +141,7 @@ class ChampMontant extends StatelessWidget {
         controller: controller,
         keyboardType: TextInputType.number,
         inputFormatters: const [SeparateurMilliersFormatter()],
+        onChanged: onChanged,
         style: _styleSaisie,
         decoration: decorationPilule(hint: '0', suffixText: 'FCFA'),
         validator: (v) {

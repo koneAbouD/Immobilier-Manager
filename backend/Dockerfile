@@ -6,13 +6,24 @@
 FROM maven:3.9-eclipse-temurin-21 AS build
 WORKDIR /build
 
-# 1) Résolution des dépendances en couche cachée (rebuild rapide si seul le code change)
+# Dépôt Maven DANS l'image, pas dans un `--mount=type=cache` : le cache de
+# couches de la CI (cache-to: type=gha) ne sauvegarde pas les montages de
+# cache. Avec eux, l'étape go-offline était reprise du cache mais le dépôt
+# arrivait vide, et `package` retéléchargeait tout depuis Maven Central à
+# chaque build, jusqu'à se faire limiter (HTTP 429 Too Many Requests).
+# Les options de nouvelle tentative absorbent un 429 passager.
+ENV MAVEN_ARGS="-B -Dmaven.repo.local=/build/.m2 \
+    -Daether.connector.http.retryHandler.count=5 \
+    -Daether.connector.http.retryHandler.interval=10000"
+
+# 1) Résolution des dépendances dans une couche cachée : tant que pom.xml ne
+#    change pas, elle est reprise telle quelle, dépendances comprises.
 COPY pom.xml .
-RUN --mount=type=cache,target=/root/.m2 mvn -B -q dependency:go-offline
+RUN mvn -q dependency:go-offline
 
 # 2) Compilation et packaging (tests ignorés ici : à exécuter dans la CI)
 COPY src ./src
-RUN --mount=type=cache,target=/root/.m2 mvn -B -q clean package -DskipTests
+RUN mvn -q clean package -DskipTests
 
 # 3) Extraction des couches Spring Boot pour optimiser le cache d'image runtime
 RUN mkdir -p target/extracted \

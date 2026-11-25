@@ -54,6 +54,12 @@ class _BailFormPageState extends ConsumerState<BailFormPage> {
   final _charges = TextEditingController();
   // Usage courant : deux mois de loyer en caution.
   final _moisCaution = TextEditingController(text: '2');
+
+  /// Dépôt de garantie, prérempli avec mois de caution × loyer. Il suit ce
+  /// calcul tant qu'il n'est pas modifié à la main ; ensuite il reste tel
+  /// quel, jusqu'à un changement du nombre de mois ou « Recalculer ».
+  final _depot = TextEditingController();
+  bool _depotSaisi = false;
   // Usage courant : deux mois de loyer d'avance, réglés à la signature et non
   // restitués ; ils repoussent le premier loyer facturé.
   final _moisAvance = TextEditingController(text: '2');
@@ -81,11 +87,28 @@ class _BailFormPageState extends ConsumerState<BailFormPage> {
   void initState() {
     super.initState();
     if (_appartement != null) _reprendreConditions(_appartement!);
+    _loyer.addListener(_suivreCalcul);
+    _moisCaution.addListener(_recalculerDepot);
+    _suivreCalcul();
+  }
+
+  /// Le dépôt suit le calcul, sauf s'il a été saisi à la main.
+  void _suivreCalcul() {
+    if (_depotSaisi) return;
+    final calcul = _depotCalcule;
+    final texte = calcul == null ? '' : saisieMontant(calcul);
+    if (_depot.text != texte) _depot.text = texte;
+  }
+
+  /// Changer le nombre de mois redemande le calcul, même après une saisie.
+  void _recalculerDepot() {
+    if (_depotSaisi) setState(() => _depotSaisi = false);
+    _suivreCalcul();
   }
 
   @override
   void dispose() {
-    for (final c in [_loyer, _charges, _moisCaution, _moisAvance, _jour, _gestionnaireExterne]) {
+    for (final c in [_loyer, _charges, _moisCaution, _depot, _moisAvance, _jour, _gestionnaireExterne]) {
       c.dispose();
     }
     super.dispose();
@@ -97,6 +120,15 @@ class _BailFormPageState extends ConsumerState<BailFormPage> {
     _loyer.text = aLoyer ? saisieMontant(a.loyerMensuel) : '';
     _charges.text = saisieMontant(a.charges);
     _usage = UsageBail.parDefautPour(a.type);
+    // Autre logement, autre loyer : le dépôt repart du calcul.
+    _depotSaisi = false;
+    _suivreCalcul();
+  }
+
+  /// Montant saisi différent du calcul : c'est lui qui fait foi, sans nombre de mois.
+  bool get _depotLibre {
+    final saisi = parseMontantSaisi(_depot.text);
+    return _depotSaisi && saisi != null && saisi != _depotCalcule;
   }
 
   /// Dépôt de garantie : mois de caution × loyer mensuel.
@@ -180,9 +212,10 @@ class _BailFormPageState extends ConsumerState<BailFormPage> {
       dateFin: _dureeIndeterminee ? null : _dateFin,
       loyerMensuel: parseMontantSaisi(_loyer.text),
       charges: parseMontantSaisi(_charges.text),
-      // Recalculé par le backend à partir du nombre de mois.
-      depotGarantie: _depotCalcule,
-      moisCaution: int.tryParse(_moisCaution.text),
+      // Montant libre : envoyé seul, le serveur le garde tel quel. Sinon le
+      // serveur le recalcule à partir du nombre de mois.
+      depotGarantie: parseMontantSaisi(_depot.text) ?? 0,
+      moisCaution: _depotLibre ? null : int.tryParse(_moisCaution.text),
       // Sans loyer émis, aucun mois d'avance ne vient le repousser.
       moisAvance: _externe ? 0 : int.tryParse(_moisAvance.text) ?? 0,
       jourEcheance: int.tryParse(_jour.text),
@@ -405,9 +438,25 @@ class _BailFormPageState extends ConsumerState<BailFormPage> {
           },
         ),
         kGapChamps,
+        ChampMontant(
+          controller: _depot,
+          label: 'Dépôt de garantie',
+          obligatoire: true,
+          onChanged: (_) {
+            if (!_depotSaisi) setState(() => _depotSaisi = true);
+          },
+        ),
         ListenableBuilder(
-          listenable: Listenable.merge([_loyer, _moisCaution]),
-          builder: (context, _) => DepotCalcule(montant: _depotCalcule, mois: int.tryParse(_moisCaution.text)),
+          listenable: Listenable.merge([_loyer, _moisCaution, _depot]),
+          builder: (context, _) => AideDepot(
+            mois: int.tryParse(_moisCaution.text),
+            calcul: _depotCalcule,
+            libre: _depotLibre,
+            onRecalculer: () {
+              setState(() => _depotSaisi = false);
+              _suivreCalcul();
+            },
+          ),
         ),
         if (!_externe) ...[
           kGapChamps,
