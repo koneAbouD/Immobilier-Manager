@@ -1,5 +1,6 @@
 package com.tmk.immobilier.interfaces.rest.bail.dto.request;
 
+import com.tmk.immobilier.application.domain.bail.UsageBail;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Positive;
@@ -11,6 +12,8 @@ import java.time.LocalDate;
 
 /** Révision des conditions d'un bail actif ; le logement et le locataire ne changent pas. */
 public record BailConditionsRequest(
+        /** Changement de régime du bail (habitation / professionnel). Nul : inchangé. */
+        UsageBail usage,
         LocalDate dateDebut,
         LocalDate dateFin,
         @Positive(message = "Le loyer mensuel doit être strictement positif.") BigDecimal loyerMensuel,

@@ -94,6 +94,7 @@ class _BailDetailPageState extends ConsumerState<BailDetailPage> {
               ),
               SectionContrat(bail: b, onChange: _rafraichir),
               DetailInfoCard(titre: 'Conditions', icon: Icons.handshake_outlined, children: [
+                DetailInfoRow(Icons.gavel_rounded, 'Type de bail', b.usage?.libelle),
                 DetailInfoRow(Icons.phone_outlined, 'Téléphone', b.locataireTelephone),
                 DetailInfoRow(Icons.event_outlined, 'Début', formatDate(b.dateDebut)),
                 DetailInfoRow(Icons.event_busy_outlined, 'Fin prévue',

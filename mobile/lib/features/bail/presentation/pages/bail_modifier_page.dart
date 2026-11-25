@@ -38,6 +38,8 @@ class _BailModifierPageState extends ConsumerState<BailModifierPage> {
   late final _moisCaution = TextEditingController(text: b.moisCaution?.toString() ?? '');
   late final _moisAvance = TextEditingController(text: '${b.moisAvance ?? 0}');
   late final _jour = TextEditingController(text: '${b.jourEcheance ?? 5}');
+  late final UsageBail _usageInitial = b.usage ?? UsageBail.habitation;
+  late UsageBail _usage = _usageInitial;
   late bool _externe = b.externe;
   late final _gestionnaireExterne = TextEditingController(text: b.gestionnaireExterne ?? '');
 
@@ -96,6 +98,8 @@ class _BailModifierPageState extends ConsumerState<BailModifierPage> {
     final modifications = Bail(
       appartementId: b.appartementId,
       locataireId: b.locataireId,
+      // Envoyé seulement s'il change.
+      usage: _usage != _usageInitial ? _usage : null,
       dateDebut: _dateDebut,
       dateFin: _dureeIndeterminee ? null : _dateFin,
       loyerMensuel: parseMontantSaisi(_loyer.text),
@@ -155,6 +159,22 @@ class _BailModifierPageState extends ConsumerState<BailModifierPage> {
           children: [
             _Avertissement(bail: b),
             const SizedBox(height: 12),
+            GroupeChamps(
+              titre: 'Type de bail',
+              icone: Icons.gavel_rounded,
+              couleur: AppColors.primary,
+              children: [
+                ChoixUsageBail(valeur: _usage, onChanged: (u) => setState(() => _usage = u)),
+                if (_usage != _usageInitial && b.statutContrat != StatutContrat.aGenerer)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: Text(
+                      'Le contrat déjà généré suit l\'ancien type : générez-le à nouveau.',
+                      style: TextStyle(fontSize: 12, color: AppColors.warning),
+                    ),
+                  ),
+              ],
+            ),
             GroupeChamps(
               titre: 'Durée',
               icone: Icons.event_outlined,

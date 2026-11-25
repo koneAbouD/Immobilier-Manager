@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../appartement/domain/entities/appartement.dart';
 
 enum StatutBail {
   actif('ACTIF', 'Actif'),
@@ -18,6 +19,30 @@ enum StatutBail {
 
   static StatutBail fromCode(String? code) =>
       values.firstWhere((v) => v.code == code, orElse: () => StatutBail.actif);
+}
+
+/// Régime du bail, choisi à la signature : il fixe le modèle du contrat PDF.
+enum UsageBail {
+  habitation('HABITATION', 'Habitation', 'Logement du locataire', Icons.bed_outlined),
+  professionnel('PROFESSIONNEL', 'Professionnel', 'Activité, commerce, bureaux', Icons.work_outline_rounded);
+
+  final String code;
+  final String libelle;
+  final String detail;
+  final IconData icone;
+  const UsageBail(this.code, this.libelle, this.detail, this.icone);
+
+  /// Proposé à défaut : habitation pour un appartement, professionnel sinon.
+  /// Même règle que le backend.
+  static UsageBail parDefautPour(TypeLogement? type) =>
+      type == null || type == TypeLogement.appartement ? habitation : professionnel;
+
+  static UsageBail? fromCode(String? code) {
+    for (final v in values) {
+      if (v.code == code) return v;
+    }
+    return null;
+  }
 }
 
 /// Avancement du contrat écrit d'un bail.
@@ -56,6 +81,9 @@ class Bail {
   final int locataireId;
   final String? locataireNom;
   final String? locataireTelephone;
+
+  /// Habitation ou professionnel ; nul à la création : déduit du logement.
+  final UsageBail? usage;
   final DateTime dateDebut;
   final DateTime? dateFin;
 
@@ -107,6 +135,7 @@ class Bail {
     required this.locataireId,
     this.locataireNom,
     this.locataireTelephone,
+    this.usage,
     required this.dateDebut,
     this.dateFin,
     this.loyerMensuel,

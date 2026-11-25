@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/formatters.dart';
+import '../../domain/entities/bail.dart';
 
 // Éléments communs à la signature et à la modification d'un bail.
 
@@ -93,6 +94,86 @@ class _Interrupteur extends StatelessWidget {
               ),
               Switch.adaptive(value: valeur, activeTrackColor: AppColors.primary, onChanged: onChanged),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Choix du régime du bail (habitation ou professionnel) : deux tuiles côte à
+/// côte. Il fixe le modèle du contrat PDF.
+class ChoixUsageBail extends StatelessWidget {
+  final UsageBail valeur;
+  final ValueChanged<UsageBail> onChanged;
+
+  const ChoixUsageBail({super.key, required this.valeur, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        for (final u in UsageBail.values) ...[
+          if (u.index > 0) const SizedBox(width: 10),
+          Expanded(child: _TuileUsage(usage: u, choisi: u == valeur, onTap: () => onChanged(u))),
+        ],
+      ],
+    );
+  }
+}
+
+class _TuileUsage extends StatelessWidget {
+  final UsageBail usage;
+  final bool choisi;
+  final VoidCallback onTap;
+
+  const _TuileUsage({required this.usage, required this.choisi, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      selected: choisi,
+      button: true,
+      child: Material(
+        color: choisi ? AppColors.primaryTint : AppColors.cardTint,
+        borderRadius: BorderRadius.circular(14),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(14),
+          onTap: onTap,
+          child: Ink(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                color: choisi ? AppColors.primary : AppColors.border,
+                width: choisi ? 1.5 : 1,
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(usage.icone, size: 20, color: AppColors.primaryDark),
+                    const Spacer(),
+                    Icon(
+                      choisi ? Icons.radio_button_checked_rounded : Icons.radio_button_unchecked_rounded,
+                      size: 18,
+                      color: choisi ? AppColors.primary : AppColors.hint,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  usage.libelle,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.dark),
+                ),
+                const SizedBox(height: 2),
+                Text(usage.detail, style: TextStyle(fontSize: 11.5, color: AppColors.label)),
+              ],
+            ),
           ),
         ),
       ),

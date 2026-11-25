@@ -38,6 +38,8 @@ public class Bail {
     private String reference;
     private Appartement appartement;
     private Locataire locataire;
+    /** Régime du bail : habitation ou professionnel ; il fixe le modèle de contrat. */
+    private UsageBail usage;
     private LocalDate dateDebut;
     /** Fin prévue du contrat ; nulle pour un bail à durée indéterminée. */
     private LocalDate dateFin;
@@ -88,6 +90,7 @@ public class Bail {
 
     public void initializeDefaults() {
         if (statut == null) statut = StatutBail.ACTIF;
+        if (usage == null) usage = UsageBail.parDefautPour(appartement != null ? appartement.getType() : null);
         if (charges == null) charges = BigDecimal.ZERO;
         if (depotGarantie == null) depotGarantie = BigDecimal.ZERO;
         if (jourEcheance == null) jourEcheance = JOUR_ECHEANCE_PAR_DEFAUT;
@@ -172,6 +175,10 @@ public class Bail {
         if (moisCaution != null && loyerMensuel != null) {
             depotGarantie = loyerMensuel.multiply(BigDecimal.valueOf(moisCaution));
         }
+    }
+
+    public boolean estProfessionnel() {
+        return usage == UsageBail.PROFESSIONNEL;
     }
 
     public boolean estActif() {

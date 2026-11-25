@@ -1,5 +1,6 @@
 package com.tmk.immobilier.interfaces.rest.bail.dto.request;
 
+import com.tmk.immobilier.application.domain.bail.UsageBail;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
@@ -13,6 +14,8 @@ import java.time.LocalDate;
 public record BailRequest(
         @NotNull(message = "Le logement est obligatoire.") Long appartementId,
         @NotNull(message = "Le locataire est obligatoire.") Long locataireId,
+        /** Habitation ou professionnel ; à défaut, déduit de la nature du local. */
+        UsageBail usage,
         @NotNull(message = "La date de début est obligatoire.") LocalDate dateDebut,
         LocalDate dateFin,
         /** Facultatif : à défaut, le loyer affiché du logement. */

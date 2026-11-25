@@ -69,11 +69,14 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Février 2027'), findsWidgets);
 
+    await tester.scrollUntilVisible(find.text('Enregistrer'), 200, scrollable: find.byType(Scrollable).first);
     await tester.tap(find.text('Enregistrer'));
     await tester.pumpAndSettle();
 
     expect(repo.envoye, isNotNull);
     expect(repo.envoye!.moisAvance, 2);
+    // Type de bail inchangé : il n'est pas renvoyé.
+    expect(repo.envoye!.usage, isNull);
     // Ni choix manuel (le serveur recalcule), ni caution inchangée renvoyée.
     expect(repo.envoye!.premierMoisFacture, isNull);
     expect(repo.envoye!.moisCaution, isNull);

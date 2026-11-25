@@ -1,7 +1,10 @@
 package com.tmk.immobilier.application.domain;
 
 import com.tmk.immobilier.application.domain.bail.Bail;
+import com.tmk.immobilier.application.domain.appartement.Appartement;
+import com.tmk.immobilier.application.domain.appartement.TypeLogement;
 import com.tmk.immobilier.application.domain.bail.StatutBail;
+import com.tmk.immobilier.application.domain.bail.UsageBail;
 import com.tmk.immobilier.application.exception.RegleMetierException;
 import org.junit.jupiter.api.Test;
 
@@ -131,5 +134,25 @@ class BailTest {
                 .loyerMensuel(new BigDecimal("100000")).build();
         bail.definirPremierMoisFacture(LocalDate.of(2026, 11, 20));
         assertThatThrownBy(bail::valider).hasMessageContaining("premier loyer");
+    }
+
+    @Test
+    void leRegimeParDefautSuitLaNatureDuLocal() {
+        Bail habitation = Bail.builder().appartement(Appartement.builder().type(TypeLogement.APPARTEMENT).build()).build();
+        habitation.initializeDefaults();
+        assertThat(habitation.getUsage()).isEqualTo(UsageBail.HABITATION);
+
+        Bail magasin = Bail.builder().appartement(Appartement.builder().type(TypeLogement.MAGASIN).build()).build();
+        magasin.initializeDefaults();
+        assertThat(magasin.getUsage()).isEqualTo(UsageBail.PROFESSIONNEL);
+    }
+
+    @Test
+    void unRegimeChoisiLEmporteSurLaNatureDuLocal() {
+        Bail bail = Bail.builder().usage(UsageBail.PROFESSIONNEL)
+                .appartement(Appartement.builder().type(TypeLogement.APPARTEMENT).build()).build();
+        bail.initializeDefaults();
+        assertThat(bail.getUsage()).isEqualTo(UsageBail.PROFESSIONNEL);
+        assertThat(bail.estProfessionnel()).isTrue();
     }
 }

@@ -18,6 +18,7 @@ import com.lowagie.text.pdf.PdfWriter;
 import com.tmk.immobilier.application.domain.appartement.Appartement;
 import com.tmk.immobilier.application.domain.appartement.TypeLogement;
 import com.tmk.immobilier.application.domain.bail.Bail;
+import com.tmk.immobilier.application.domain.bail.UsageBail;
 import com.tmk.immobilier.application.domain.immeuble.Immeuble;
 import com.tmk.immobilier.application.domain.locataire.Locataire;
 import com.tmk.immobilier.application.domain.organisation.Organisation;
@@ -38,9 +39,11 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
- * Contrat de bail type, prérempli avec les données du bail. Les clauses sont
- * génériques et adaptées à la nature du local (habitation, commerce, bureau) :
- * elles sont à relire et à ajuster au modèle de l'entreprise.
+ * Contrat de bail type, prérempli avec les données du bail. Le régime choisi à
+ * la signature (habitation ou professionnel) fixe le modèle : titre, destination
+ * du local, obligations et préavis ; la nature du local précise l'activité d'un
+ * bail professionnel. Les clauses sont génériques : elles sont à relire et à
+ * ajuster au modèle de l'entreprise.
  */
 @Component
 public class ContratBailPdfGenerateur implements ContratBailGenerateurPort {
@@ -88,10 +91,12 @@ public class ContratBailPdfGenerateur implements ContratBailGenerateurPort {
         Immeuble immeuble = logement.getImmeuble();
         Locataire locataire = bail.getLocataire();
         TypeLogement type = logement.getType();
+        UsageBail usage = bail.getUsage() != null ? bail.getUsage() : UsageBail.parDefautPour(type);
+        boolean pro = usage == UsageBail.PROFESSIONNEL;
 
         var image = logo.charger(bailleur);
         if (image.isPresent()) doc.add(image.get());
-        Paragraph entete = new Paragraph(titreContrat(type), titre);
+        Paragraph entete = new Paragraph(titreContrat(usage), titre);
         entete.setAlignment(Element.ALIGN_CENTER);
         doc.add(entete);
         Paragraph ref = new Paragraph("Bail n° " + bail.getReference(), sousTitre);
@@ -120,8 +125,14 @@ public class ContratBailPdfGenerateur implements ContratBailGenerateurPort {
         int n = 1;
         doc.add(titreArticle(n++, "Objet"));
         doc.add(paragraphe("Le bailleur donne en location au preneur, qui accepte, le local désigné à "
-                + "l'article 2, à usage exclusif " + usage(type) + ". Le preneur ne pourra en changer la "
-                + "destination sans l'accord écrit du bailleur."));
+                + "l'article 2, à usage exclusif " + destination(usage, type) + ". Le preneur ne pourra en "
+                + "changer la destination sans l'accord écrit du bailleur."));
+        doc.add(paragraphe(pro
+                ? "Le preneur y exercera son activité sous sa seule responsabilité. Il fera son affaire de "
+                  + "l'obtention et du maintien des autorisations administratives, agréments et inscriptions "
+                  + "requis par cette activité, sans recours contre le bailleur."
+                : "Le local constitue la résidence du preneur et des personnes vivant habituellement avec "
+                  + "lui. Aucune activité commerciale, artisanale ou professionnelle ne pourra y être exercée."));
 
         doc.add(titreArticle(n++, "Désignation du local"));
         doc.add(tableau(List.of(
@@ -143,7 +154,9 @@ public class ContratBailPdfGenerateur implements ContratBailGenerateurPort {
                   + " au " + date(bail.getDateFin()) + ". Il pourra être renouvelé d'un commun accord."
                 : "Le présent bail prend effet le " + date(bail.getDateDebut()) + " pour une durée "
                   + "indéterminée. Chacune des parties peut y mettre fin dans les conditions de l'article "
-                  + "relatif à la résiliation."));
+                  + "relatif à la résiliation."
+                  + (pro ? " Le preneur bénéficie du droit au renouvellement dans les conditions prévues "
+                           + "par l'Acte uniforme OHADA relatif au droit commercial général." : "")));
 
         doc.add(titreArticle(n++, "Loyer et charges"));
         doc.add(tableau(List.of(
@@ -173,14 +186,23 @@ public class ContratBailPdfGenerateur implements ContratBailGenerateurPort {
                 : "Aucun dépôt de garantie n'est exigé du preneur."));
 
         doc.add(titreArticle(n++, "Obligations du preneur"));
-        doc.add(liste("Le preneur s'engage à :",
+        List<String> obligations = new ArrayList<>(List.of(
                 "payer le loyer et les charges aux termes convenus ;",
                 "user paisiblement du local, suivant la destination prévue à l'article 1 ;",
                 "entretenir le local et effectuer les réparations locatives à sa charge ;",
                 "ne pas sous-louer ni céder le bail sans l'accord écrit du bailleur ;",
                 "ne faire aucune transformation sans l'accord écrit du bailleur ;",
-                "signaler sans délai tout sinistre ou dégradation nécessitant une intervention ;",
-                "restituer le local en bon état à la fin du bail, sauf usure normale."));
+                "signaler sans délai tout sinistre ou dégradation nécessitant une intervention ;"));
+        if (pro) {
+            obligations.add("acquitter les impôts, taxes et redevances liés à son activité ;");
+            obligations.add("assurer le local et son activité (incendie, dégâts des eaux, responsabilité civile) "
+                    + "et en justifier à toute demande du bailleur ;");
+            obligations.add("respecter la réglementation propre à son activité ainsi que la tranquillité du voisinage ;");
+        } else {
+            obligations.add("n'y exercer aucune activité commerciale ou professionnelle ;");
+        }
+        obligations.add("restituer le local en bon état à la fin du bail, sauf usure normale.");
+        doc.add(liste("Le preneur s'engage à :", obligations.toArray(String[]::new)));
 
         doc.add(titreArticle(n++, "Obligations du bailleur"));
         doc.add(liste("Le bailleur s'engage à :",
@@ -189,8 +211,13 @@ public class ContratBailPdfGenerateur implements ContratBailGenerateurPort {
                 "effectuer les grosses réparations qui ne sont pas à la charge du preneur."));
 
         doc.add(titreArticle(n++, "Résiliation"));
-        doc.add(paragraphe("Chaque partie peut résilier le bail en prévenant l'autre par écrit au moins un "
-                + "mois à l'avance. Le loyer du mois au cours duquel la résiliation prend effet reste dû en "
+        doc.add(paragraphe((pro
+                ? "Chaque partie peut mettre fin au bail en notifiant un congé à l'autre, par acte "
+                  + "extrajudiciaire ou par tout moyen écrit permettant d'en établir la réception, au moins "
+                  + "six mois à l'avance. "
+                : "Chaque partie peut résilier le bail en prévenant l'autre par écrit au moins un "
+                  + "mois à l'avance. ")
+                + "Le loyer du mois au cours duquel la résiliation prend effet reste dû en "
                 + "totalité. À défaut de paiement d'un seul terme de loyer à son échéance et un mois après une "
                 + "mise en demeure restée sans effet, le bail pourra être résilié de plein droit."));
 
@@ -326,24 +353,25 @@ public class ContratBailPdfGenerateur implements ContratBailGenerateurPort {
 
     // ── Textes ──────────────────────────────────────────────────────────────
 
-    private static String titreContrat(TypeLogement type) {
-        return switch (type) {
-            case MAGASIN -> "CONTRAT DE BAIL À USAGE COMMERCIAL";
-            case BUREAU -> "CONTRAT DE BAIL À USAGE PROFESSIONNEL";
-            case ENTREPOT -> "CONTRAT DE BAIL À USAGE D'ENTREPÔT";
-            case APPARTEMENT -> "CONTRAT DE BAIL À USAGE D'HABITATION";
-            case TERRAIN -> "CONTRAT DE BAIL DE TERRAIN";
+    private static String titreContrat(UsageBail usage) {
+        return switch (usage) {
+            case HABITATION -> "CONTRAT DE BAIL À USAGE D'HABITATION";
+            case PROFESSIONNEL -> "CONTRAT DE BAIL À USAGE PROFESSIONNEL";
         };
     }
 
-    private static String usage(TypeLogement type) {
-        return switch (type) {
-            case MAGASIN -> "commercial";
-            case BUREAU -> "professionnel (bureaux)";
-            case ENTREPOT -> "d'entreposage et de stockage de marchandises";
-            case APPARTEMENT -> "d'habitation";
-            case TERRAIN -> "d'occupation du terrain nu, toute construction restant soumise à l'accord écrit du bailleur";
-        };
+    /** Destination du local : le régime du bail, précisé par la nature du local. */
+    private static String destination(UsageBail usage, TypeLogement type) {
+        String terrain = type == TypeLogement.TERRAIN
+                ? ", toute construction restant soumise à l'accord écrit du bailleur" : "";
+        if (usage == UsageBail.HABITATION) return "d'habitation" + terrain;
+        return "professionnel" + (type == null ? "" : switch (type) {
+            case MAGASIN -> " (activité commerciale)";
+            case BUREAU -> " (bureaux)";
+            case ENTREPOT -> " (entreposage et stockage de marchandises)";
+            case APPARTEMENT -> "";
+            case TERRAIN -> " (occupation du terrain nu)";
+        }) + terrain;
     }
 
     private static String libelle(TypeLogement type) {

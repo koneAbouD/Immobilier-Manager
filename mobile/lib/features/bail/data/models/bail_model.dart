@@ -12,6 +12,7 @@ abstract final class BailModel {
         locataireId: json['locataireId'] as int,
         locataireNom: json['locataireNom'] as String?,
         locataireTelephone: json['locataireTelephone'] as String?,
+        usage: UsageBail.fromCode(json['usage'] as String?),
         dateDebut: parseDate(json['dateDebut'])!,
         dateFin: parseDate(json['dateFin']),
         loyerMensuel: parseNum(json['loyerMensuel']),
@@ -43,6 +44,7 @@ abstract final class BailModel {
   static Map<String, dynamic> toJson(Bail b) => {
         'appartementId': b.appartementId,
         'locataireId': b.locataireId,
+        if (b.usage != null) 'usage': b.usage!.code,
         'dateDebut': isoDate(b.dateDebut),
         'dateFin': b.dateFin == null ? null : isoDate(b.dateFin!),
         'loyerMensuel': b.loyerMensuel,

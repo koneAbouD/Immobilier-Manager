@@ -59,6 +59,9 @@ class _BailFormPageState extends ConsumerState<BailFormPage> {
   final _moisAvance = TextEditingController(text: '2');
   final _jour = TextEditingController(text: '5');
 
+  /// Régime du bail : proposé selon la nature du logement, il fixe le modèle du contrat.
+  UsageBail _usage = UsageBail.habitation;
+
   /// Bail externe : loyers recouvrés par une autre entité, aucun n'est généré.
   bool _externe = false;
   final _gestionnaireExterne = TextEditingController();
@@ -93,6 +96,7 @@ class _BailFormPageState extends ConsumerState<BailFormPage> {
     final aLoyer = a.loyerMensuel > 0;
     _loyer.text = aLoyer ? saisieMontant(a.loyerMensuel) : '';
     _charges.text = saisieMontant(a.charges);
+    _usage = UsageBail.parDefautPour(a.type);
   }
 
   /// Dépôt de garantie : mois de caution × loyer mensuel.
@@ -171,6 +175,7 @@ class _BailFormPageState extends ConsumerState<BailFormPage> {
     final bail = Bail(
       appartementId: _appartement!.id!,
       locataireId: _locataire!.id!,
+      usage: _usage,
       dateDebut: _dateDebut!,
       dateFin: _dureeIndeterminee ? null : _dateFin,
       loyerMensuel: parseMontantSaisi(_loyer.text),
@@ -296,6 +301,21 @@ class _BailFormPageState extends ConsumerState<BailFormPage> {
     const _TitreEtape(titre: 'Conditions du bail', detail: 'Reprises du logement, vous pouvez les ajuster.'),
     _Recap(appartement: _appartement!, locataire: _locataire!),
     const SizedBox(height: 12),
+    GroupeChamps(
+      titre: 'Type de bail',
+      icone: Icons.gavel_rounded,
+      couleur: AppColors.primary,
+      children: [
+        ChoixUsageBail(valeur: _usage, onChanged: (u) => setState(() => _usage = u)),
+        const SizedBox(height: 8),
+        Text(
+          _usage == UsageBail.habitation
+              ? 'Contrat de bail à usage d\'habitation : préavis d\'un mois, aucune activité dans le local.'
+              : 'Contrat de bail à usage professionnel : préavis de six mois, obligations liées à l\'activité.',
+          style: TextStyle(fontSize: 12, color: AppColors.label),
+        ),
+      ],
+    ),
     GroupeChamps(
       titre: 'Durée',
       icone: Icons.event_outlined,
@@ -477,7 +497,8 @@ class _BailFormPageState extends ConsumerState<BailFormPage> {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    'Prérempli : parties, logement, loyer, caution, échéance',
+                    '${b.usage == UsageBail.professionnel ? 'Usage professionnel' : 'Usage d\'habitation'} · '
+                    'parties, logement, loyer, caution, échéance',
                     style: TextStyle(fontSize: 12, color: AppColors.label),
                   ),
                 ],

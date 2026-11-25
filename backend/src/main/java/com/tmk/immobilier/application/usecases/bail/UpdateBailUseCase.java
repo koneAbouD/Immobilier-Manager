@@ -48,6 +48,7 @@ public class UpdateBailUseCase {
         Integer avanceAvant = existant.getMoisAvance();
         LocalDate premierAvant = existant.getPremierMoisFacture();
 
+        if (modifications.getUsage() != null) existant.setUsage(modifications.getUsage());
         if (modifications.getDateDebut() != null) existant.setDateDebut(modifications.getDateDebut());
         existant.setDateFin(modifications.getDateFin());
         if (modifications.getLoyerMensuel() != null) existant.setLoyerMensuel(modifications.getLoyerMensuel());

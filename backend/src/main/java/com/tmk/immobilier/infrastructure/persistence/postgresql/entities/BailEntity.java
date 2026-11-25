@@ -1,6 +1,7 @@
 package com.tmk.immobilier.infrastructure.persistence.postgresql.entities;
 
 import com.tmk.immobilier.application.domain.bail.StatutBail;
+import com.tmk.immobilier.application.domain.bail.UsageBail;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -33,6 +34,10 @@ public class BailEntity extends AbstractTenantEntity {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "locataire_id", nullable = false)
     private LocataireEntity locataire;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "usage_bail", nullable = false, length = 20)
+    private UsageBail usage;
 
     @Column(name = "date_debut", nullable = false)
     private LocalDate dateDebut;

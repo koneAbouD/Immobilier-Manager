@@ -2,6 +2,7 @@ package com.tmk.immobilier.interfaces.rest.bail.dto.response;
 
 import com.tmk.immobilier.application.domain.bail.StatutBail;
 import com.tmk.immobilier.application.domain.bail.StatutContrat;
+import com.tmk.immobilier.application.domain.bail.UsageBail;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -17,6 +18,7 @@ public record BailResponse(
         Long locataireId,
         String locataireNom,
         String locataireTelephone,
+        UsageBail usage,
         LocalDate dateDebut,
         LocalDate dateFin,
         BigDecimal loyerMensuel,
